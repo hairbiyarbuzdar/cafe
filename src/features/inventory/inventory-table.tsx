@@ -42,20 +42,20 @@ export function InventoryTable() {
   }, [search, category]);
 
   return (
-    <div className="rounded-lg border bg-card shadow-elevated">
-      <div className="flex flex-col gap-3 border-b p-3 md:flex-row md:items-center md:justify-between md:p-4">
-        <div className="flex items-center gap-2">
-          <div className="relative">
-            <Search className="pointer-events-none absolute start-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+    <div className="ring-highlight rounded-xl border border-border/70 bg-card">
+      <div className="flex flex-col gap-3 border-b border-border/70 p-3 md:flex-row md:items-center md:justify-between md:p-4">
+        <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
+          <div className="relative min-w-0 flex-1 sm:flex-initial">
+            <Search className="pointer-events-none absolute start-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search ingredient or SKU…"
-              className="h-8 w-[260px] rounded-md ps-8 text-[12.5px]"
+              className="h-9 rounded-md ps-9 text-[13px] sm:w-[260px]"
             />
           </div>
           <Select value={category} onValueChange={setCategory}>
-            <SelectTrigger size="sm" className="h-8 w-[150px] rounded-md text-[12.5px]">
+            <SelectTrigger size="sm" className="h-9 w-auto min-w-[140px] rounded-md text-[13px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -68,19 +68,70 @@ export function InventoryTable() {
           </Select>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" className="h-8 rounded-md text-[12.5px]">
-            <SlidersHorizontal className="size-3.5" />
+          <Button
+            variant="outline"
+            size="sm"
+            className="hidden h-9 rounded-md text-[13px] md:inline-flex"
+          >
+            <SlidersHorizontal className="size-4" />
             Columns
           </Button>
-          <Button size="sm" className="h-8 rounded-md text-[12.5px]">
-            <Boxes className="size-3.5" />
+          <Button size="sm" className="h-9 flex-1 rounded-md text-[13px] md:flex-none">
+            <Boxes className="size-4" />
             Receive stock
           </Button>
         </div>
       </div>
 
-      <div className="overflow-x-auto">
-        <Table className="text-[12.5px]">
+      {/* Mobile cards */}
+      <ul className="divide-y divide-border/60 md:hidden">
+        {filtered.map((it) => {
+          const supplier = SUPPLIERS.find((s) => s.id === it.supplierId);
+          const ratio = Math.min(1, it.stock / Math.max(1, it.reorderLevel * 2));
+          const low = it.stock < it.reorderLevel;
+          return (
+            <li key={it.id} className="px-4 py-3.5">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-[14px] font-medium text-foreground">{it.name}</p>
+                  <p className="mt-0.5 text-[11.5px] font-mono text-muted-foreground">
+                    {it.sku} · {it.category}
+                  </p>
+                </div>
+                <span
+                  className={cn(
+                    "shrink-0 text-[14px] font-semibold tabular-nums",
+                    low ? "text-destructive" : "text-foreground",
+                  )}
+                >
+                  {it.stock}
+                  <span className="ms-0.5 text-[11px] text-muted-foreground">
+                    {it.unit}
+                  </span>
+                </span>
+              </div>
+              <div className="mt-2 flex items-center gap-2">
+                <Progress
+                  value={ratio * 100}
+                  className={cn(
+                    "h-1.5 flex-1 bg-muted",
+                    low ? "[&>div]:bg-destructive" : "[&>div]:bg-primary",
+                  )}
+                />
+                <span className="text-[11px] tabular-nums text-muted-foreground">
+                  ≥{it.reorderLevel}
+                </span>
+              </div>
+              <p className="mt-1.5 text-[11.5px] text-muted-foreground">
+                {supplier?.name ?? "—"} · {formatRelativeTime(it.lastRestocked)}
+              </p>
+            </li>
+          );
+        })}
+      </ul>
+
+      <div className="hidden overflow-x-auto md:block">
+        <Table className="text-[13px]">
           <TableHeader>
             <TableRow className="hover:bg-transparent">
               <Th>Item</Th>

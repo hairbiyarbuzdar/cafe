@@ -51,15 +51,25 @@ export function AppTopbar() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  return (
-    <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b bg-background/85 px-3 backdrop-blur supports-[backdrop-filter]:bg-background/65 md:px-4">
-      <SidebarTrigger className="-ms-1" />
-      <Separator orientation="vertical" className="h-5" />
+  const currentSegment = segments[segments.length - 1];
+  const currentLabel = currentSegment
+    ? (SEGMENT_LABELS[currentSegment] ??
+      currentSegment.replace(/-/g, " ").replace(/^./, (s) => s.toUpperCase()))
+    : "Workspace";
 
+  return (
+    <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border/60 bg-background/85 px-3 backdrop-blur supports-[backdrop-filter]:bg-background/65 md:h-14 md:px-4">
+      <SidebarTrigger className="-ms-1 size-9 md:size-8" />
+      <Separator orientation="vertical" className="hidden h-5 md:block" />
+
+      {/* Compact crumb on mobile, full crumb trail on md+ */}
+      <span className="truncate text-[14px] font-medium text-foreground md:hidden">
+        {currentLabel}
+      </span>
       <Breadcrumb className="hidden md:block">
         <BreadcrumbList>
           <BreadcrumbItem>
-            <BreadcrumbLink href="/dashboard" className="text-[12.5px]">
+            <BreadcrumbLink href="/dashboard" className="text-[13px]">
               Workspace
             </BreadcrumbLink>
           </BreadcrumbItem>
@@ -74,11 +84,11 @@ export function AppTopbar() {
                 <BreadcrumbSeparator />
                 <BreadcrumbItem>
                   {isLast ? (
-                    <BreadcrumbPage className="text-[12.5px] font-medium">
+                    <BreadcrumbPage className="text-[13px] font-medium">
                       {label}
                     </BreadcrumbPage>
                   ) : (
-                    <BreadcrumbLink href={href} className="text-[12.5px]">
+                    <BreadcrumbLink href={href} className="text-[13px]">
                       {label}
                     </BreadcrumbLink>
                   )}
@@ -89,30 +99,50 @@ export function AppTopbar() {
         </BreadcrumbList>
       </Breadcrumb>
 
-      <div className="ms-auto flex items-center gap-1.5 md:gap-2">
+      <div className="ms-auto flex items-center gap-1 md:gap-2">
+        {/* Mobile: search becomes an icon. Desktop: full quasi-input. */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-10 rounded-md md:hidden"
+              onClick={() => setOpenPalette(true)}
+              aria-label="Search"
+            >
+              <Search className="size-[18px]" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Search</TooltipContent>
+        </Tooltip>
+
         <Button
           variant="outline"
           size="sm"
           onClick={() => setOpenPalette(true)}
-          className="h-8 w-[220px] justify-between gap-2 rounded-md border-border/80 bg-card px-2.5 text-[12px] font-normal text-muted-foreground shadow-none hover:bg-secondary/60 md:w-[280px]"
+          className="hidden h-9 w-[260px] justify-between gap-2 rounded-md border-border/70 bg-card px-3 text-[13px] font-normal text-muted-foreground shadow-none hover:bg-secondary/60 md:inline-flex xl:w-[320px]"
         >
           <span className="flex items-center gap-2">
-            <Search className="size-3.5" />
-            Search or jump to...
+            <Search className="size-4" />
+            Search or jump to…
           </span>
-          <kbd className="hidden items-center gap-0.5 rounded border bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground md:inline-flex">
+          <kbd className="hidden items-center gap-0.5 rounded border bg-muted px-1.5 py-0.5 text-[10.5px] font-medium text-muted-foreground md:inline-flex">
             <CommandIcon className="size-3" /> K
           </kbd>
         </Button>
 
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" className="size-8 rounded-md">
-              <CalendarClock className="size-4" />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-10 rounded-md md:size-9"
+            >
+              <CalendarClock className="size-[18px]" />
               <span className="sr-only">Schedule</span>
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Today's schedule</TooltipContent>
+          <TooltipContent>Today&apos;s schedule</TooltipContent>
         </Tooltip>
 
         <Tooltip>
@@ -120,10 +150,10 @@ export function AppTopbar() {
             <Button
               variant="ghost"
               size="icon"
-              className="relative size-8 rounded-md"
+              className="relative size-10 rounded-md md:size-9"
             >
-              <Bell className="size-4" />
-              <span className="absolute end-1.5 top-1.5 size-1.5 rounded-full bg-destructive" />
+              <Bell className="size-[18px]" />
+              <span className="absolute end-2 top-2 size-1.5 rounded-full bg-destructive" />
               <span className="sr-only">Notifications</span>
             </Button>
           </TooltipTrigger>
@@ -132,11 +162,21 @@ export function AppTopbar() {
 
         <ThemeSwitch />
 
-        <Separator orientation="vertical" className="mx-1 h-5" />
+        <Separator orientation="vertical" className="mx-1 hidden h-6 md:block" />
 
-        <Button size="sm" className="h-8 gap-1.5 rounded-md text-[12.5px]">
-          <Plus className="size-3.5" />
+        <Button
+          size="sm"
+          className="hidden h-9 gap-1.5 rounded-md text-[13px] sm:inline-flex"
+        >
+          <Plus className="size-4" />
           New order
+        </Button>
+        <Button
+          size="icon"
+          className="h-10 w-10 rounded-md sm:hidden"
+          aria-label="New order"
+        >
+          <Plus className="size-[18px]" />
         </Button>
       </div>
 

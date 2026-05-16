@@ -60,14 +60,14 @@ export function AppSidebar() {
               asChild
             >
               <Link href="/dashboard" className="gap-3">
-                <span className="flex aspect-square size-9 items-center justify-center rounded-md bg-primary text-primary-foreground shadow-sm">
-                  <Coffee className="size-4" />
+                <span className="flex aspect-square size-10 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary/85 text-primary-foreground shadow-soft">
+                  <Coffee className="size-[18px]" strokeWidth={2} />
                 </span>
                 <div className="grid flex-1 text-left leading-tight">
-                  <span className="text-[13px] font-semibold tracking-tight">
+                  <span className="text-[14px] font-semibold tracking-tight">
                     {BRAND.name}
                   </span>
-                  <span className="text-[11px] text-muted-foreground">
+                  <span className="text-[11.5px] text-muted-foreground">
                     Mission St · San Francisco
                   </span>
                 </div>
@@ -82,7 +82,7 @@ export function AppSidebar() {
       <SidebarContent>
         {PRIMARY_NAV.map((group, gIdx) => (
           <SidebarGroup key={`${group.label}-${gIdx}`}>
-            <SidebarGroupLabel className="px-2 text-[11px] font-medium uppercase tracking-[0.06em] text-muted-foreground/70">
+            <SidebarGroupLabel className="px-2 text-[11.5px] font-medium uppercase tracking-[0.08em] text-muted-foreground/80">
               {group.label}
             </SidebarGroupLabel>
             <SidebarGroupContent>
@@ -97,15 +97,15 @@ export function AppSidebar() {
                         asChild
                         isActive={!!isActive}
                         tooltip={item.title}
-                        className="h-9 gap-2.5"
+                        className="h-10 gap-2.5 rounded-md text-[13.5px] data-[active=true]:bg-sidebar-accent data-[active=true]:font-semibold data-[active=true]:text-sidebar-primary data-[active=true]:shadow-soft"
                       >
                         <Link href={item.href}>
-                          <Icon className="size-4" />
-                          <span className="text-[13px]">{item.title}</span>
+                          <Icon className="size-[18px]" strokeWidth={1.85} />
+                          <span>{item.title}</span>
                           {item.badge ? (
                             <Badge
                               variant="secondary"
-                              className="ms-auto h-5 rounded-md border-0 bg-secondary/70 px-1.5 text-[10.5px] font-medium text-secondary-foreground/80 tabular-nums"
+                              className="ms-auto h-5 rounded-md border-0 bg-secondary/80 px-1.5 text-[11px] font-medium text-secondary-foreground/90 tabular-nums"
                             >
                               {item.badge}
                             </Badge>
@@ -130,17 +130,17 @@ export function AppSidebar() {
                   size="lg"
                   className="data-[state=open]:bg-sidebar-accent"
                 >
-                  <Avatar className="size-8 rounded-md">
+                  <Avatar className="size-9 rounded-lg">
                     <AvatarImage src={CURRENT_USER.avatar} alt={CURRENT_USER.name} />
-                    <AvatarFallback className="rounded-md bg-primary/10 text-primary text-[11px] font-semibold">
+                    <AvatarFallback className="rounded-lg bg-gradient-to-br from-primary/15 to-primary/10 text-[12px] font-semibold text-primary">
                       {initials(CURRENT_USER.name)}
                     </AvatarFallback>
                   </Avatar>
                   <div className="grid flex-1 text-left leading-tight">
-                    <span className="truncate text-[13px] font-medium">
+                    <span className="truncate text-[13.5px] font-medium">
                       {CURRENT_USER.name}
                     </span>
-                    <span className="truncate text-[11px] text-muted-foreground">
+                    <span className="truncate text-[11.5px] text-muted-foreground">
                       {CURRENT_USER.email}
                     </span>
                   </div>

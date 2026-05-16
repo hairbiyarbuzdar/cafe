@@ -9,7 +9,10 @@ import { cn } from "@/lib/utils";
 export function MobileTabbar() {
   const pathname = usePathname() ?? "";
   return (
-    <nav className="sticky bottom-0 z-30 grid grid-cols-5 gap-0.5 border-t bg-background/95 px-2 pb-[env(safe-area-inset-bottom)] pt-1.5 backdrop-blur md:hidden">
+    <nav
+      aria-label="Primary mobile navigation"
+      className="sticky bottom-0 z-30 grid grid-cols-5 gap-1 border-t border-border/70 bg-background/95 px-1.5 pb-[max(env(safe-area-inset-bottom),0.5rem)] pt-2 backdrop-blur supports-[backdrop-filter]:bg-background/80 md:hidden"
+    >
       {MOBILE_NAV.map((item) => {
         const Icon = item.icon;
         const active =
@@ -18,15 +21,25 @@ export function MobileTabbar() {
           <Link
             key={item.href}
             href={item.href}
+            aria-current={active ? "page" : undefined}
             className={cn(
-              "flex flex-col items-center gap-0.5 rounded-md px-1 py-1.5 text-[10px] font-medium transition",
+              "relative flex min-h-12 flex-col items-center justify-center gap-1 rounded-lg px-1 py-1 text-[11px] font-medium transition-colors",
               active
                 ? "text-primary"
-                : "text-muted-foreground hover:text-foreground",
+                : "text-muted-foreground active:bg-muted/60",
             )}
           >
-            <Icon className={cn("size-[18px]", active && "fill-primary/10")} />
-            {item.title}
+            {active ? (
+              <span className="absolute inset-x-3 top-0 h-0.5 rounded-full bg-primary" />
+            ) : null}
+            <Icon
+              className={cn(
+                "size-[22px] transition-transform",
+                active && "scale-110",
+              )}
+              strokeWidth={active ? 2.1 : 1.75}
+            />
+            <span className="leading-none">{item.title}</span>
           </Link>
         );
       })}

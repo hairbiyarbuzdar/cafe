@@ -1,17 +1,19 @@
 import { CartPanel } from "@/features/pos/cart-panel";
+import { MobileCartTrigger } from "@/features/pos/mobile-cart-trigger";
 import { ProductGrid } from "@/features/pos/product-grid";
 
 export const metadata = { title: "Point of Sale" };
 
 export default function PosPage() {
   return (
-    <div className="-mx-3 -my-4 grid h-[calc(100dvh-3.5rem)] grid-cols-1 overflow-hidden border-y bg-background md:-mx-6 md:-my-6 md:grid-cols-[1fr_360px] md:border-x lg:grid-cols-[1fr_400px]">
+    <div className="-mx-3 -my-4 grid h-[calc(100dvh-4rem)] grid-cols-1 overflow-hidden border-y border-border/70 bg-background md:-mx-6 md:-my-6 md:h-[calc(100dvh-3.5rem)] md:grid-cols-[1fr_360px] md:rounded-2xl md:border md:bg-card lg:grid-cols-[1fr_400px]">
       <section className="min-h-0 overflow-hidden bg-surface-1">
         <ProductGrid />
       </section>
-      <section className="min-h-0 overflow-hidden border-t md:border-s md:border-t-0">
+      <aside className="hidden min-h-0 overflow-hidden border-s border-border/60 md:block">
         <CartPanel />
-      </section>
+      </aside>
+      <MobileCartTrigger />
     </div>
   );
 }

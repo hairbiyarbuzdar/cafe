@@ -80,18 +80,18 @@ export function ProductGrid() {
         </ScrollArea>
       </div>
 
-      <ScrollArea className="min-h-0 flex-1 px-3 pb-3 md:px-4 md:pb-4">
+      <ScrollArea className="min-h-0 flex-1 px-3 pb-[calc(env(safe-area-inset-bottom)+150px)] md:px-4 md:pb-4">
         {filtered.length === 0 ? (
           <div className="flex h-full min-h-[260px] flex-col items-center justify-center gap-1 rounded-lg border border-dashed bg-card/40 text-center">
-            <p className="text-[13px] font-medium text-foreground">
+            <p className="text-[14px] font-medium text-foreground">
               No products match
             </p>
-            <p className="text-[12px] text-muted-foreground">
+            <p className="text-[12.5px] text-muted-foreground">
               Try a different search or category.
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {filtered.map((p) => (
               <ProductCard key={p.id} product={p} />
             ))}

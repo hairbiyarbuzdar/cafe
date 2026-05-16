@@ -38,7 +38,13 @@ const PAYMENTS: { value: PaymentMethod; label: string; icon: typeof Wallet }[] =
   { value: "wallet", label: "Wallet", icon: Smartphone },
 ];
 
-export function CartPanel() {
+type CartPanelProps = {
+  /** Optional hook fired when the user opens the checkout dialog
+   *  (useful for closing a wrapping bottom sheet on mobile). */
+  onChargeStart?: () => void;
+};
+
+export function CartPanel({ onChargeStart }: CartPanelProps = {}) {
   const {
     items,
     channel,
@@ -262,9 +268,12 @@ export function CartPanel() {
         </dl>
 
         <Button
-          className="h-10 w-full rounded-md text-[13px] font-medium"
+          className="h-12 w-full rounded-md text-[14px] font-semibold shadow-soft"
           disabled={items.length === 0}
-          onClick={() => setCheckoutOpen(true)}
+          onClick={() => {
+            setCheckoutOpen(true);
+            onChargeStart?.();
+          }}
         >
           <ReceiptText className="size-4" />
           Charge {formatCurrency(total)}

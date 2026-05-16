@@ -23,9 +23,9 @@ export function ProductCard({ product }: Props) {
       disabled={disabled}
       onClick={() => add(product)}
       className={cn(
-        "group ring-highlight relative flex flex-col gap-2 rounded-lg border border-border/60 bg-card p-3 text-left transition-all",
-        "hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-elevated focus-visible:border-primary/50",
-        disabled && "cursor-not-allowed opacity-55 hover:translate-y-0 hover:border-border",
+        "group ring-highlight relative flex min-h-[208px] flex-col gap-2.5 rounded-xl border border-border/70 bg-card p-3 text-left transition-all md:min-h-0",
+        "hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-hover focus-visible:border-primary/50 active:scale-[0.99]",
+        disabled && "cursor-not-allowed opacity-55 hover:translate-y-0 hover:border-border hover:shadow-none",
       )}
     >
       <div
@@ -70,16 +70,16 @@ export function ProductCard({ product }: Props) {
           <Plus className="size-3.5" />
         </span>
       </div>
-      <div className="min-h-0 space-y-0.5">
-        <p className="line-clamp-1 text-[13px] font-medium text-foreground">
+      <div className="min-h-0 flex-1 space-y-0.5">
+        <p className="line-clamp-1 text-[14px] font-medium text-foreground">
           {product.name}
         </p>
-        <p className="line-clamp-1 text-[11px] text-muted-foreground">
+        <p className="line-clamp-1 text-[12px] text-muted-foreground">
           {product.description}
         </p>
       </div>
       <div className="flex items-center justify-between pt-0.5">
-        <span className="text-[13px] font-semibold tabular-nums text-foreground">
+        <span className="text-[14px] font-semibold tabular-nums text-foreground">
           {formatCurrency(product.price)}
         </span>
         {product.sku ? (

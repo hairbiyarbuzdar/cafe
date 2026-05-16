@@ -5,47 +5,46 @@
 
 /* -----------------------------------------------------------------
    Brewline — Design Tokens
-   Premium SaaS aesthetic. Warm coffee palette in light, deep
-   neutrals in dark. Layered surfaces give cards/sidebar visual
-   distinction. Ambient color slots drive the animated background.
+   Light is warm/cream and intentionally layered so white cards
+   visibly float. Dark is deep neutral with a touch of warmth.
 ------------------------------------------------------------------ */
 
 :root {
-  /* Inset / main content area — kept brighter than the page */
-  --background: oklch(1 0 0);
+  /* Inset / main content area — tinted warm so cards pop */
+  --background: oklch(0.985 0.007 75);
   --foreground: oklch(0.18 0.02 285);
-  --muted: oklch(0.965 0.006 80);
-  --muted-foreground: oklch(0.50 0.012 270);
-  --border: oklch(0.92 0.006 80);
-  --input: oklch(0.92 0.006 80);
+  --muted: oklch(0.955 0.008 75);
+  --muted-foreground: oklch(0.48 0.012 270);
+  --border: oklch(0.90 0.008 70);
+  --input: oklch(0.92 0.008 70);
   --ring: oklch(0.42 0.07 38);
 
-  /* Cards float over content with a subtle warmth and shadow */
+  /* Cards — pure white with stronger shadow, so they float */
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.18 0.02 285);
-  --popover: oklch(0.995 0.003 80);
+  --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.18 0.02 285);
-  --surface-1: oklch(0.985 0.008 75);
-  --surface-2: oklch(0.965 0.012 70);
-  --surface-3: oklch(0.945 0.016 65);
+  --surface-1: oklch(0.975 0.010 75);
+  --surface-2: oklch(0.955 0.014 70);
+  --surface-3: oklch(0.94 0.018 65);
 
-  /* Brand — Coffee */
+  /* Brand */
   --primary: oklch(0.42 0.07 38);
   --primary-foreground: oklch(0.985 0.003 80);
   --primary-soft: oklch(0.93 0.024 50);
-  --accent: oklch(0.95 0.018 60);
+  --accent: oklch(0.94 0.022 60);
   --accent-foreground: oklch(0.28 0.04 35);
-  --secondary: oklch(0.955 0.014 70);
+  --secondary: oklch(0.95 0.014 70);
   --secondary-foreground: oklch(0.28 0.04 35);
 
   /* Semantic */
   --success: oklch(0.66 0.16 145);
   --success-foreground: oklch(0.98 0.01 145);
-  --warning: oklch(0.76 0.16 70);
+  --warning: oklch(0.74 0.15 70);
   --warning-foreground: oklch(0.22 0.05 60);
-  --destructive: oklch(0.62 0.21 25);
+  --destructive: oklch(0.60 0.21 25);
   --destructive-foreground: oklch(0.98 0.01 25);
-  --info: oklch(0.58 0.17 245);
+  --info: oklch(0.55 0.17 245);
   --info-foreground: oklch(0.98 0.01 245);
 
   /* Charts */
@@ -55,31 +54,37 @@
   --chart-4: oklch(0.55 0.18 295);
   --chart-5: oklch(0.65 0.17 145);
 
-  /* Sidebar — warmer cream than the inset, creating clear gutter */
-  --sidebar: oklch(0.955 0.018 70);
+  /* Sidebar — deeper cream than the inset, distinct gutter */
+  --sidebar: oklch(0.945 0.022 70);
   --sidebar-foreground: oklch(0.22 0.02 285);
   --sidebar-primary: oklch(0.42 0.07 38);
   --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.92 0.024 60);
+  --sidebar-accent: oklch(0.91 0.028 60);
   --sidebar-accent-foreground: oklch(0.26 0.04 35);
-  --sidebar-border: oklch(0.88 0.012 70);
+  --sidebar-border: oklch(0.87 0.014 70);
   --sidebar-ring: oklch(0.42 0.07 38);
 
-  /* Ambient background slots — slow drifting orbs */
-  --ambient-1: oklch(0.78 0.16 38 / 0.32);
-  --ambient-2: oklch(0.82 0.10 60 / 0.28);
-  --ambient-3: oklch(0.86 0.08 145 / 0.16);
-  --ambient-grid: oklch(0 0 0 / 0.04);
+  /* Ambient background slots */
+  --ambient-1: oklch(0.78 0.16 38 / 0.36);
+  --ambient-2: oklch(0.82 0.10 60 / 0.32);
+  --ambient-3: oklch(0.86 0.08 145 / 0.18);
+  --ambient-grid: oklch(0 0 0 / 0.045);
 
-  /* Premium elevation — soft layered shadow */
-  --shadow-soft: 0 1px 0 0 oklch(0 0 0 / 0.03),
-    0 1px 2px 0 oklch(0 0 0 / 0.04),
-    0 6px 18px -8px oklch(0 0 0 / 0.06);
-  --shadow-elevated: 0 1px 0 0 oklch(0 0 0 / 0.04),
-    0 2px 4px -1px oklch(0 0 0 / 0.05),
-    0 12px 28px -10px oklch(0 0 0 / 0.10);
+  /* Premium elevation — light needs more visible shadows */
+  --shadow-soft:
+    0 1px 0 0 oklch(0 0 0 / 0.03),
+    0 1px 2px 0 oklch(0 0 0 / 0.05),
+    0 4px 12px -2px oklch(0 0 0 / 0.06);
+  --shadow-elevated:
+    0 1px 0 0 oklch(0 0 0 / 0.04),
+    0 4px 8px -2px oklch(0 0 0 / 0.06),
+    0 16px 32px -8px oklch(0 0 0 / 0.10);
+  --shadow-hover:
+    0 2px 0 0 oklch(0 0 0 / 0.04),
+    0 8px 16px -4px oklch(0 0 0 / 0.09),
+    0 24px 48px -12px oklch(0 0 0 / 0.16);
 
-  --radius: 0.625rem;
+  --radius: 0.7rem;
 }
 
 .dark {
@@ -122,7 +127,6 @@
   --chart-4: oklch(0.68 0.18 295);
   --chart-5: oklch(0.74 0.17 145);
 
-  /* Sidebar — deeper than inset for clean separation */
   --sidebar: oklch(0.12 0.013 285);
   --sidebar-foreground: oklch(0.94 0.005 80);
   --sidebar-primary: oklch(0.74 0.11 50);
@@ -137,12 +141,18 @@
   --ambient-3: oklch(0.55 0.18 295 / 0.16);
   --ambient-grid: oklch(1 1 1 / 0.025);
 
-  --shadow-soft: 0 1px 0 0 oklch(0 0 0 / 0.30),
-    0 1px 3px 0 oklch(0 0 0 / 0.35),
-    0 6px 18px -8px oklch(0 0 0 / 0.45);
-  --shadow-elevated: 0 1px 0 0 oklch(0 0 0 / 0.35),
-    0 4px 10px -2px oklch(0 0 0 / 0.40),
+  --shadow-soft:
+    0 1px 0 0 oklch(0 0 0 / 0.30),
+    0 2px 4px 0 oklch(0 0 0 / 0.35),
+    0 8px 20px -8px oklch(0 0 0 / 0.45);
+  --shadow-elevated:
+    0 1px 0 0 oklch(0 0 0 / 0.35),
+    0 4px 12px -2px oklch(0 0 0 / 0.40),
     0 16px 40px -12px oklch(0 0 0 / 0.55);
+  --shadow-hover:
+    0 2px 0 0 oklch(0 0 0 / 0.40),
+    0 10px 20px -4px oklch(0 0 0 / 0.50),
+    0 28px 60px -16px oklch(0 0 0 / 0.65);
 }
 
 @theme inline {
@@ -220,6 +230,8 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
+    /* Avoid iOS double-tap zoom on touchable targets */
+    -webkit-tap-highlight-color: transparent;
   }
 
   ::selection {
@@ -263,28 +275,48 @@
   .shadow-elevated {
     box-shadow: var(--shadow-elevated);
   }
+  .shadow-hover {
+    box-shadow: var(--shadow-hover);
+  }
 
-  /* Layered surface utility — for cards that need extra depth on hover */
+  /* Premium tinted card surface — used on hero cards/KPIs.
+     A faint vertical gradient + a hairline highlight up top. */
   .surface-raised {
-    background: linear-gradient(
-      180deg,
-      color-mix(in oklab, var(--card) 100%, transparent) 0%,
-      color-mix(in oklab, var(--card) 96%, var(--primary) 4%) 100%
-    );
+    background:
+      linear-gradient(
+        180deg,
+        color-mix(in oklab, var(--card) 100%, transparent) 0%,
+        color-mix(in oklab, var(--card) 96%, var(--primary) 4%) 100%
+      );
     box-shadow: var(--shadow-elevated);
   }
 
-  /* Glass surface with subtle tint */
+  /* Subtle radial wash for empty-ish areas / panel headers */
+  .surface-wash {
+    background:
+      radial-gradient(
+        circle at 0% 0%,
+        color-mix(in oklab, var(--primary) 6%, transparent),
+        transparent 55%
+      ),
+      radial-gradient(
+        circle at 100% 0%,
+        color-mix(in oklab, var(--info) 6%, transparent),
+        transparent 50%
+      ),
+      var(--card);
+  }
+
   .glass {
     background: color-mix(in oklab, var(--card) 70%, transparent);
     backdrop-filter: saturate(160%) blur(14px);
     -webkit-backdrop-filter: saturate(160%) blur(14px);
   }
 
-  /* Subtle hairline highlight along the top of cards */
+  /* Inset top highlight that mimics light reflecting off the top edge */
   .ring-highlight {
     box-shadow:
-      inset 0 1px 0 0 color-mix(in oklab, white 25%, transparent),
+      inset 0 1px 0 0 color-mix(in oklab, white 50%, transparent),
       var(--shadow-soft);
   }
   .dark .ring-highlight {
@@ -293,21 +325,24 @@
       var(--shadow-soft);
   }
 
-  /* Ambient gradient backplate (for KPI cards) */
+  /* Tinted radial glow used by KPI cards (color via --glow-color) */
   .ambient-glow::before {
     content: "";
     position: absolute;
     inset: -40% -10% auto auto;
-    width: 220px;
-    height: 220px;
+    width: 240px;
+    height: 240px;
     border-radius: 9999px;
     background: radial-gradient(
       closest-side,
       var(--glow-color, color-mix(in oklab, var(--primary) 55%, transparent)),
       transparent 70%
     );
-    filter: blur(40px);
+    filter: blur(44px);
     pointer-events: none;
-    opacity: 0.85;
+    opacity: 0.95;
+  }
+  .dark .ambient-glow::before {
+    opacity: 0.7;
   }
 }
