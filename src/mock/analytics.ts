@@ -10,12 +10,12 @@ export const TODAY_KPIS: Kpi[] = [
   {
     id: "revenue",
     label: "Revenue today",
-    value: 8742.5,
-    formatted: "$8,742",
+    value: 248_960,
+    formatted: "Rs. 248,960",
     delta: 0.124,
     trend: "up",
     sparkline: spark(1),
-    helperText: "vs $7,776 yesterday",
+    helperText: "vs Rs. 221,540 yesterday",
   },
   {
     id: "orders",
@@ -30,12 +30,12 @@ export const TODAY_KPIS: Kpi[] = [
   {
     id: "avg",
     label: "Avg order value",
-    value: 28.02,
-    formatted: "$28.02",
+    value: 798,
+    formatted: "Rs. 798",
     delta: 0.018,
     trend: "up",
     sparkline: spark(3),
-    helperText: "vs $27.51 last week",
+    helperText: "vs Rs. 784 last week",
   },
   {
     id: "guests",
@@ -74,12 +74,12 @@ const DAYS = [
 ];
 
 export const REVENUE_14D: DailyPoint[] = DAYS.map((d, i) => {
-  const base = 5800 + Math.round(Math.sin(i / 1.4) * 1400 + i * 75);
+  const base = 165000 + Math.round(Math.sin(i / 1.4) * 40000 + i * 2100);
   return {
     date: d,
     revenue: base,
-    orders: Math.round(base / 27),
-    guests: Math.round((base / 27) * 1.4),
+    orders: Math.round(base / 770),
+    guests: Math.round((base / 770) * 1.4),
   };
 });
 
@@ -121,24 +121,24 @@ export type TopProduct = {
 };
 
 export const TOP_PRODUCTS: TopProduct[] = [
-  { rank: 1, name: "Caramel Macchiato", category: "Specialty", units: 184, revenue: 1058, delta: 0.18 },
-  { rank: 2, name: "Latte", category: "Espresso", units: 162, revenue: 769.5, delta: 0.09 },
-  { rank: 3, name: "Cold Brew", category: "Brewed", units: 144, revenue: 684, delta: 0.22 },
-  { rank: 4, name: "Almond Croissant", category: "Pastries", units: 128, revenue: 544, delta: 0.04 },
-  { rank: 5, name: "Avocado Toast", category: "Light Bites", units: 96, revenue: 912, delta: -0.03 },
-  { rank: 6, name: "Cappuccino", category: "Espresso", units: 88, revenue: 396, delta: 0.06 },
-  { rank: 7, name: "Cinnamon Roll", category: "Pastries", units: 74, revenue: 333, delta: 0.11 },
+  { rank: 1, name: "Caramel Macchiato", category: "Specialty", units: 184, revenue: 31_280, delta: 0.18 },
+  { rank: 2, name: "Latte", category: "Espresso", units: 162, revenue: 22_720, delta: 0.09 },
+  { rank: 3, name: "Cold Brew", category: "Brewed", units: 144, revenue: 20_280, delta: 0.22 },
+  { rank: 4, name: "Almond Croissant", category: "Pastries", units: 128, revenue: 16_120, delta: 0.04 },
+  { rank: 5, name: "Avocado Toast", category: "Light Bites", units: 96, revenue: 27_040, delta: -0.03 },
+  { rank: 6, name: "Cappuccino", category: "Espresso", units: 88, revenue: 11_720, delta: 0.06 },
+  { rank: 7, name: "Cinnamon Roll", category: "Pastries", units: 74, revenue: 9_860, delta: 0.11 },
 ];
 
 export type CategoryShare = { category: string; revenue: number };
 
 export const CATEGORY_REVENUE: CategoryShare[] = [
-  { category: "Espresso", revenue: 4280 },
-  { category: "Specialty", revenue: 3620 },
-  { category: "Brewed", revenue: 2150 },
-  { category: "Pastries", revenue: 1480 },
-  { category: "Light Bites", revenue: 1820 },
-  { category: "Cold Drinks", revenue: 1180 },
-  { category: "Tea", revenue: 720 },
-  { category: "Desserts", revenue: 540 },
+  { category: "Espresso", revenue: 126_800 },
+  { category: "Specialty", revenue: 107_200 },
+  { category: "Brewed", revenue: 63_600 },
+  { category: "Pastries", revenue: 43_800 },
+  { category: "Light Bites", revenue: 53_900 },
+  { category: "Cold Drinks", revenue: 34_900 },
+  { category: "Tea", revenue: 21_300 },
+  { category: "Desserts", revenue: 16_000 },
 ];

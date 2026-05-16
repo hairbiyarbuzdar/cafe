@@ -3,6 +3,7 @@
 import { Plus, Sparkles } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
+import { getCategoryIcon } from "@/constants/category-icons";
 import { cn, formatCurrency } from "@/lib/utils";
 import { useCart } from "@/store/cart-store";
 import type { Product } from "@/types";
@@ -14,6 +15,7 @@ type Props = {
 export function ProductCard({ product }: Props) {
   const add = useCart((s) => s.add);
   const disabled = !product.available;
+  const Icon = getCategoryIcon(product.categoryId);
 
   return (
     <button
@@ -21,24 +23,40 @@ export function ProductCard({ product }: Props) {
       disabled={disabled}
       onClick={() => add(product)}
       className={cn(
-        "group relative flex flex-col gap-2 rounded-lg border bg-card p-3 text-left transition-all",
-        "hover:border-primary/40 hover:shadow-elevated focus-visible:border-primary/50",
-        disabled && "cursor-not-allowed opacity-55 hover:border-border",
+        "group ring-highlight relative flex flex-col gap-2 rounded-lg border border-border/60 bg-card p-3 text-left transition-all",
+        "hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-elevated focus-visible:border-primary/50",
+        disabled && "cursor-not-allowed opacity-55 hover:translate-y-0 hover:border-border",
       )}
     >
-      <div className="relative aspect-[5/3] overflow-hidden rounded-md bg-gradient-to-br from-secondary/60 to-primary-soft/60">
-        <div className="absolute inset-0 flex items-center justify-center text-[36px] font-semibold tracking-tight text-primary/30">
-          {product.name.charAt(0)}
+      <div
+        className="relative aspect-[5/3] overflow-hidden rounded-md border border-border/40 bg-gradient-to-br from-secondary/60 via-card to-primary-soft/40"
+      >
+        <div className="absolute inset-0 flex items-center justify-center">
+          <Icon
+            className="size-9 text-primary/55 transition-transform duration-300 group-hover:scale-110 group-hover:text-primary/75"
+            strokeWidth={1.5}
+          />
         </div>
+        <div
+          aria-hidden
+          className="absolute inset-0 opacity-50"
+          style={{
+            background:
+              "radial-gradient(circle at 30% 20%, color-mix(in oklab, white 35%, transparent), transparent 55%)",
+          }}
+        />
         {product.popular ? (
-          <Badge className="absolute start-2 top-2 h-5 gap-0.5 rounded border-0 bg-card/90 px-1.5 text-[10px] font-medium text-foreground shadow-sm">
+          <Badge className="absolute start-2 top-2 h-5 gap-0.5 rounded border-0 bg-card/90 px-1.5 text-[10px] font-medium text-foreground shadow-soft">
             <Sparkles className="size-2.5 text-primary" />
             Popular
           </Badge>
         ) : null}
         {disabled ? (
-          <Badge variant="destructive" className="absolute end-2 top-2 h-5 rounded px-1.5 text-[10px]">
-            86'd
+          <Badge
+            variant="destructive"
+            className="absolute end-2 top-2 h-5 rounded px-1.5 text-[10px]"
+          >
+            86&apos;d
           </Badge>
         ) : null}
         <span
@@ -65,7 +83,7 @@ export function ProductCard({ product }: Props) {
           {formatCurrency(product.price)}
         </span>
         {product.sku ? (
-          <span className="text-[10.5px] font-mono text-muted-foreground/70">
+          <span className="font-mono text-[10.5px] text-muted-foreground/70">
             {product.sku}
           </span>
         ) : null}

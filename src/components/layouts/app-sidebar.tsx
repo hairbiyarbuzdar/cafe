@@ -9,7 +9,6 @@ import {
   Coffee,
   LogOut,
   Settings as SettingsIcon,
-  Sparkles,
 } from "lucide-react";
 
 import {
@@ -124,20 +123,6 @@ export function AppSidebar() {
 
       <SidebarFooter>
         <SidebarMenu>
-          <SidebarMenuItem>
-            <div className="mx-1 rounded-lg border bg-card p-3 group-data-[collapsible=icon]:hidden">
-              <div className="flex items-center gap-2 text-[11px] font-medium text-foreground">
-                <Sparkles className="size-3.5 text-primary" />
-                Upgrade to Brewline Pro
-              </div>
-              <p className="mt-1 text-[11px] leading-snug text-muted-foreground">
-                Unlock multi-location reports, KDS, and 99.9% SLA.
-              </p>
-              <button className="mt-2 inline-flex h-7 items-center justify-center rounded-md bg-primary px-2.5 text-[11px] font-medium text-primary-foreground hover:bg-primary/90">
-                See plans
-              </button>
-            </div>
-          </SidebarMenuItem>
           <SidebarMenuItem>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

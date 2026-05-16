@@ -1,20 +1,24 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
+import { formatMoney } from "@/lib/currency";
+
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+/**
+ * Thin compatibility shim over the currency module so older call sites
+ * keep working. New code should import `formatMoney` directly.
+ */
 export function formatCurrency(
   value: number,
-  options: Intl.NumberFormatOptions = {},
+  options: { maximumFractionDigits?: number; minimumFractionDigits?: number } = {},
 ) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 2,
-    ...options,
-  }).format(value);
+  return formatMoney(value, {
+    maximumFractionDigits: options.maximumFractionDigits,
+    minimumFractionDigits: options.minimumFractionDigits,
+  });
 }
 
 export function formatCompact(value: number) {

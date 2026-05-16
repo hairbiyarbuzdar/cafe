@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Search } from "lucide-react";
+import { Search, Sparkles } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
@@ -10,20 +10,33 @@ import { CATEGORIES } from "@/mock/categories";
 import { PRODUCTS } from "@/mock/products";
 import { ProductCard } from "@/features/pos/product-card";
 
+type Filter = "all" | "popular" | string;
+
 export function ProductGrid() {
-  const [activeCategory, setActiveCategory] = React.useState<string | null>(null);
+  const [activeFilter, setActiveFilter] = React.useState<Filter>("all");
   const [query, setQuery] = React.useState("");
+
+  const popularCount = React.useMemo(
+    () => PRODUCTS.filter((p) => p.popular).length,
+    [],
+  );
 
   const filtered = React.useMemo(() => {
     return PRODUCTS.filter((p) => {
-      if (activeCategory && p.categoryId !== activeCategory) return false;
+      if (activeFilter === "popular" && !p.popular) return false;
+      if (
+        activeFilter !== "all" &&
+        activeFilter !== "popular" &&
+        p.categoryId !== activeFilter
+      )
+        return false;
       if (query) {
         const q = query.toLowerCase();
         return p.name.toLowerCase().includes(q) || p.sku?.toLowerCase().includes(q);
       }
       return true;
     });
-  }, [activeCategory, query]);
+  }, [activeFilter, query]);
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-3">
@@ -40,16 +53,23 @@ export function ProductGrid() {
         <ScrollArea className="w-full">
           <div className="flex gap-1.5 pb-1">
             <CategoryChip
-              active={activeCategory === null}
-              onClick={() => setActiveCategory(null)}
+              active={activeFilter === "all"}
+              onClick={() => setActiveFilter("all")}
               label="All"
               count={PRODUCTS.length}
+            />
+            <CategoryChip
+              active={activeFilter === "popular"}
+              onClick={() => setActiveFilter("popular")}
+              label="Popular"
+              count={popularCount}
+              icon={<Sparkles className="size-3" />}
             />
             {CATEGORIES.map((c) => (
               <CategoryChip
                 key={c.id}
-                active={activeCategory === c.id}
-                onClick={() => setActiveCategory(c.id)}
+                active={activeFilter === c.id}
+                onClick={() => setActiveFilter(c.id)}
                 label={c.name}
                 count={c.count}
                 dotColor={c.color}
@@ -88,36 +108,40 @@ function CategoryChip({
   label,
   count,
   dotColor,
+  icon,
 }: {
   active: boolean;
   onClick: () => void;
   label: string;
   count: number;
   dotColor?: string;
+  icon?: React.ReactNode;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
+      aria-pressed={active}
       className={cn(
-        "inline-flex h-7 shrink-0 items-center gap-1.5 rounded-md border bg-card px-2.5 text-[12px] font-medium transition-colors",
+        "inline-flex h-7 shrink-0 items-center gap-1.5 rounded-md border bg-card px-2.5 text-[12px] font-medium transition-all",
         active
-          ? "border-primary/40 bg-primary/10 text-primary"
-          : "border-border text-foreground hover:bg-muted",
+          ? "border-primary/40 bg-primary text-primary-foreground shadow-soft dark:bg-primary/90"
+          : "border-border/70 text-foreground hover:border-border hover:bg-muted",
       )}
     >
+      {icon ? <span className={cn(active && "text-primary-foreground")}>{icon}</span> : null}
       {dotColor ? (
         <span
           aria-hidden
           className="size-2 rounded-full"
-          style={{ background: dotColor }}
+          style={{ background: active ? "currentColor" : dotColor }}
         />
       ) : null}
       {label}
       <span
         className={cn(
           "ms-1 rounded px-1 text-[10.5px] tabular-nums",
-          active ? "text-primary/80" : "text-muted-foreground",
+          active ? "text-primary-foreground/90" : "text-muted-foreground",
         )}
       >
         {count}
