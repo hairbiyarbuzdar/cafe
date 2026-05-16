@@ -1,10 +1,10 @@
 "use client";
 
 import * as React from "react";
-import { Search, Sparkles } from "lucide-react";
+import { ChevronLeft, ChevronRight, Search, Sparkles } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { CATEGORIES } from "@/mock/categories";
 import { PRODUCTS } from "@/mock/products";
@@ -15,6 +15,17 @@ type Filter = "all" | "popular" | string;
 export function ProductGrid() {
   const [activeFilter, setActiveFilter] = React.useState<Filter>("all");
   const [query, setQuery] = React.useState("");
+  const scrollRef = React.useRef<HTMLDivElement>(null);
+
+  const scroll = (direction: "left" | "right") => {
+    if (scrollRef.current) {
+      const amount = 240;
+      scrollRef.current.scrollBy({
+        left: direction === "left" ? -amount : amount,
+        behavior: "smooth",
+      });
+    }
+  };
 
   const popularCount = React.useMemo(
     () => PRODUCTS.filter((p) => p.popular).length,
@@ -50,8 +61,20 @@ export function ProductGrid() {
             className="h-9 rounded-md bg-card ps-9 text-[13px]"
           />
         </div>
-        <ScrollArea className="w-full">
-          <div className="flex gap-1.5 pb-1">
+        <div className="group relative flex items-center">
+          <button
+            type="button"
+            onClick={() => scroll("left")}
+            className="absolute -left-2 z-10 flex size-7 items-center justify-center rounded-full border bg-card/90 shadow-soft opacity-0 transition-opacity group-hover:opacity-100 md:-left-3"
+            aria-label="Scroll categories left"
+          >
+            <ChevronLeft className="size-4" />
+          </button>
+
+          <div
+            ref={scrollRef}
+            className="flex w-full gap-1.5 overflow-x-auto scroll-smooth pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          >
             <CategoryChip
               active={activeFilter === "all"}
               onClick={() => setActiveFilter("all")}
@@ -76,8 +99,16 @@ export function ProductGrid() {
               />
             ))}
           </div>
-          <ScrollBar orientation="horizontal" />
-        </ScrollArea>
+
+          <button
+            type="button"
+            onClick={() => scroll("right")}
+            className="absolute -right-2 z-10 flex size-7 items-center justify-center rounded-full border bg-card/90 shadow-soft opacity-0 transition-opacity group-hover:opacity-100 md:-right-3"
+            aria-label="Scroll categories right"
+          >
+            <ChevronRight className="size-4" />
+          </button>
+        </div>
       </div>
 
       <ScrollArea className="min-h-0 flex-1 px-3 pb-[calc(env(safe-area-inset-bottom)+150px)] md:px-4 md:pb-4">
