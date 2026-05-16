@@ -287,23 +287,99 @@ function ScrollableTabs({
   tab: OrderStatus | "all";
   onChange: (v: string) => void;
 }) {
+  const scrollRef = React.useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = React.useState(false);
+  const [canScrollRight, setCanScrollRight] = React.useState(false);
+
+  const checkScrollability = React.useCallback(() => {
+    if (scrollRef.current) {
+      const { scrollWidth, clientWidth, scrollLeft } = scrollRef.current;
+      setCanScrollLeft(scrollLeft > 0);
+      setCanScrollRight(scrollLeft + clientWidth < scrollWidth - 1);
+    }
+  }, []);
+
+  const scroll = (direction: "left" | "right") => {
+    if (scrollRef.current) {
+      const amount = 200;
+      scrollRef.current.scrollBy({
+        left: direction === "left" ? -amount : amount,
+        behavior: "smooth",
+      });
+    }
+  };
+
+  React.useEffect(() => {
+    checkScrollability();
+    window.addEventListener("resize", checkScrollability);
+    const timeoutId = setTimeout(checkScrollability, 100);
+    return () => {
+      window.removeEventListener("resize", checkScrollability);
+      clearTimeout(timeoutId);
+    };
+  }, [checkScrollability]);
+
+  React.useEffect(() => {
+    if (scrollRef.current) {
+      const activeTab = scrollRef.current.querySelector(
+        `[data-value="${tab}"]`
+      ) as HTMLElement;
+      if (activeTab) {
+        activeTab.scrollIntoView({
+          behavior: "smooth",
+          inline: "center",
+          block: "nearest",
+        });
+      }
+    }
+  }, [tab]);
+
   return (
-    <Tabs
-      value={tab}
-      onValueChange={onChange}
-      className="-mx-1 w-[calc(100%+0.5rem)] overflow-x-auto md:mx-0 md:w-auto"
-    >
-      <TabsList className="h-9 w-max justify-start gap-0.5 rounded-md bg-secondary/60 p-0.5 md:w-auto">
-        {TABS.map((t) => (
-          <TabsTrigger
-            key={t.value}
-            value={t.value}
-            className="h-8 rounded px-3 text-[12.5px]"
-          >
-            {t.label}
-          </TabsTrigger>
-        ))}
-      </TabsList>
-    </Tabs>
+    <div className="group relative flex items-center md:w-auto">
+      <button
+        type="button"
+        onClick={() => scroll("left")}
+        className={cn(
+          "absolute -left-2 z-10 flex size-7 items-center justify-center rounded-full border bg-card/90 shadow-soft transition-opacity md:-left-3",
+          canScrollLeft ? "opacity-0 group-hover:opacity-100" : "opacity-0 pointer-events-none"
+        )}
+        disabled={!canScrollLeft}
+      >
+        <ChevronLeft className="size-4" />
+      </button>
+
+      <Tabs value={tab} onValueChange={onChange} className="w-full">
+        <div
+          ref={scrollRef}
+          onScroll={checkScrollability}
+          className="overflow-x-auto scroll-smooth [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        >
+          <TabsList className="h-9 w-max justify-start gap-0.5 rounded-md bg-secondary/60 p-0.5">
+            {TABS.map((t) => (
+              <TabsTrigger
+                key={t.value}
+                value={t.value}
+                data-value={t.value}
+                className="h-8 rounded px-3 text-[12.5px]"
+              >
+                {t.label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </div>
+      </Tabs>
+
+      <button
+        type="button"
+        onClick={() => scroll("right")}
+        className={cn(
+          "absolute -right-2 z-10 flex size-7 items-center justify-center rounded-full border bg-card/90 shadow-soft transition-opacity md:-right-3",
+          canScrollRight ? "opacity-0 group-hover:opacity-100" : "opacity-0 pointer-events-none"
+        )}
+        disabled={!canScrollRight}
+      >
+        <ChevronRight className="size-4" />
+      </button>
+    </div>
   );
 }
