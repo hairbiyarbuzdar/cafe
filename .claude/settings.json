@@ -1,0 +1,29 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir c:\\\\AddsMint\\\\cafe /a)",
+      "Bash(ls -la \"C:/Users/PMLS/.claude/projects/c--AddsMint-cafe/memory/\" 2>/dev/null || echo \"memory dir not yet populated\")",
+      "Read(//c/Users/PMLS/.claude/projects/c--AddsMint-cafe/memory/**)",
+      "Bash(npm --version)",
+      "Bash(npx --version)",
+      "Bash(npx --yes create-next-app@latest . --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --use-npm --turbopack --no-interactive)",
+      "Bash(mkdir -p src/components/ui src/components/shared src/components/layouts src/components/charts src/features/dashboard src/features/pos src/features/orders src/features/inventory src/features/reports src/features/staff src/features/settings src/hooks src/lib src/services src/store src/types src/constants src/styles src/mock src/providers src/utils src/app/\\\\\\(app\\\\\\)/dashboard src/app/\\\\\\(app\\\\\\)/pos src/app/\\\\\\(app\\\\\\)/orders src/app/\\\\\\(app\\\\\\)/inventory src/app/\\\\\\(app\\\\\\)/reports src/app/\\\\\\(app\\\\\\)/staff src/app/\\\\\\(app\\\\\\)/settings 2>&1 && ls src/)",
+      "Bash(npx --yes shadcn@latest add button card badge input label separator dropdown-menu dialog sheet tabs avatar tooltip skeleton sonner scroll-area select textarea command popover table toggle switch progress alert checkbox)",
+      "Bash(npx --yes shadcn@latest add sidebar collapsible breadcrumb hover-card kbd)",
+      "Bash(npm run *)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3000/dashboard)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:3000/)",
+      "Bash(curl -s -o /tmp/dash.html -w \"HTTP=%{http_code} SIZE=%{size_download}\\\\n\" http://localhost:3000/dashboard)",
+      "Bash(curl -s -o /dev/null -w \"POS=%{http_code}\\\\n\" http://localhost:3000/pos)",
+      "Bash(curl -s -o /dev/null -w \"ORDERS=%{http_code}\\\\n\" http://localhost:3000/orders)",
+      "Bash(curl -s -o /dev/null -w \"INV=%{http_code}\\\\n\" http://localhost:3000/inventory)",
+      "Bash(curl -s -o /dev/null -w \"REPORTS=%{http_code}\\\\n\" http://localhost:3000/reports)",
+      "Bash(curl -s -o /dev/null -w \"STAFF=%{http_code}\\\\n\" http://localhost:3000/staff)",
+      "Bash(curl -s -o /dev/null -w \"SETTINGS=%{http_code}\\\\n\" http://localhost:3000/settings)",
+      "Bash(npx tsc *)"
+    ],
+    "additionalDirectories": [
+      "C:\\AddsMint\\cafe\\src\\components"
+    ]
+  }
+}

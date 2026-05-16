@@ -1,0 +1,170 @@
+"use client";
+
+import * as React from "react";
+import { Boxes, Search, SlidersHorizontal } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Progress } from "@/components/ui/progress";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { INVENTORY, SUPPLIERS } from "@/mock/inventory";
+import { cn, formatCurrency, formatRelativeTime } from "@/lib/utils";
+
+const CATS = ["All", "Coffee", "Dairy", "Pantry", "Syrups", "Bakery", "Produce", "Packaging"];
+
+export function InventoryTable() {
+  const [search, setSearch] = React.useState("");
+  const [category, setCategory] = React.useState("All");
+
+  const filtered = React.useMemo(() => {
+    return INVENTORY.filter((it) => {
+      if (category !== "All" && it.category !== category) return false;
+      if (search) {
+        const q = search.toLowerCase();
+        return it.name.toLowerCase().includes(q) || it.sku.toLowerCase().includes(q);
+      }
+      return true;
+    });
+  }, [search, category]);
+
+  return (
+    <div className="rounded-lg border bg-card shadow-elevated">
+      <div className="flex flex-col gap-3 border-b p-3 md:flex-row md:items-center md:justify-between md:p-4">
+        <div className="flex items-center gap-2">
+          <div className="relative">
+            <Search className="pointer-events-none absolute start-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search ingredient or SKU…"
+              className="h-8 w-[260px] rounded-md ps-8 text-[12.5px]"
+            />
+          </div>
+          <Select value={category} onValueChange={setCategory}>
+            <SelectTrigger size="sm" className="h-8 w-[150px] rounded-md text-[12.5px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {CATS.map((c) => (
+                <SelectItem key={c} value={c}>
+                  {c}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" className="h-8 rounded-md text-[12.5px]">
+            <SlidersHorizontal className="size-3.5" />
+            Columns
+          </Button>
+          <Button size="sm" className="h-8 rounded-md text-[12.5px]">
+            <Boxes className="size-3.5" />
+            Receive stock
+          </Button>
+        </div>
+      </div>
+
+      <div className="overflow-x-auto">
+        <Table className="text-[12.5px]">
+          <TableHeader>
+            <TableRow className="hover:bg-transparent">
+              <Th>Item</Th>
+              <Th>Category</Th>
+              <Th className="text-right">Stock</Th>
+              <Th>Reorder level</Th>
+              <Th className="text-right">Cost</Th>
+              <Th>Supplier</Th>
+              <Th className="text-right">Last restocked</Th>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filtered.map((it) => {
+              const supplier = SUPPLIERS.find((s) => s.id === it.supplierId);
+              const ratio = Math.min(1, it.stock / Math.max(1, it.reorderLevel * 2));
+              const low = it.stock < it.reorderLevel;
+              return (
+                <TableRow key={it.id}>
+                  <TableCell>
+                    <p className="font-medium text-foreground">{it.name}</p>
+                    <p className="text-[11px] font-mono text-muted-foreground">{it.sku}</p>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">{it.category}</TableCell>
+                  <TableCell className="text-right">
+                    <span
+                      className={cn(
+                        "tabular-nums font-medium",
+                        low ? "text-destructive" : "text-foreground",
+                      )}
+                    >
+                      {it.stock}
+                      <span className="ms-0.5 text-[11px] text-muted-foreground">
+                        {it.unit}
+                      </span>
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Progress
+                        value={ratio * 100}
+                        className={cn(
+                          "h-1.5 w-28 bg-muted",
+                          low ? "[&>div]:bg-destructive" : "[&>div]:bg-primary",
+                        )}
+                      />
+                      <span className="text-[11px] tabular-nums text-muted-foreground">
+                        ≥{it.reorderLevel}
+                      </span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums text-muted-foreground">
+                    {formatCurrency(it.costPerUnit)}/{it.unit}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {supplier?.name ?? "—"}
+                  </TableCell>
+                  <TableCell className="text-right text-muted-foreground">
+                    {formatRelativeTime(it.lastRestocked)}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </div>
+    </div>
+  );
+}
+
+function Th({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <TableHead
+      className={cn(
+        "h-9 text-[11px] font-medium uppercase tracking-[0.04em] text-muted-foreground",
+        className,
+      )}
+    >
+      {children}
+    </TableHead>
+  );
+}
