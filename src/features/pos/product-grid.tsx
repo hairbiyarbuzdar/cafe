@@ -16,6 +16,8 @@ export function ProductGrid() {
   const [activeFilter, setActiveFilter] = React.useState<Filter>("all");
   const [query, setQuery] = React.useState("");
   const scrollRef = React.useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = React.useState(false);
+  const [canScrollRight, setCanScrollRight] = React.useState(false);
 
   const scroll = (direction: "left" | "right") => {
     if (scrollRef.current) {
@@ -26,6 +28,48 @@ export function ProductGrid() {
       });
     }
   };
+
+  // Function to check scrollability and update state
+  const checkScrollability = React.useCallback(() => {
+    if (scrollRef.current) {
+      const { scrollWidth, clientWidth, scrollLeft } = scrollRef.current;
+      setCanScrollLeft(scrollLeft > 0);
+      setCanScrollRight(scrollLeft + clientWidth < scrollWidth);
+    }
+  }, []);
+
+  // Effect to check scrollability on mount and resize
+  React.useEffect(() => {
+    checkScrollability(); // Initial check
+
+    const handleResize = () => {
+      checkScrollability();
+    };
+
+    window.addEventListener("resize", handleResize);
+    // Also re-check after a short delay to ensure all elements are rendered and measured
+    const timeoutId = setTimeout(checkScrollability, 100);
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      clearTimeout(timeoutId);
+    };
+  }, [checkScrollability]);
+
+  // Effect to scroll to active chip when activeFilter changes
+  React.useEffect(() => {
+    if (scrollRef.current) {
+      const activeChip = scrollRef.current.querySelector(
+        `[data-category-id="${activeFilter}"]`
+      ) as HTMLElement;
+      if (activeChip) {
+        activeChip.scrollIntoView({
+          behavior: "smooth",
+          inline: "center", // Scrolls to the center of the view
+        });
+      }
+    }
+  }, [activeFilter]);
 
   const popularCount = React.useMemo(
     () => PRODUCTS.filter((p) => p.popular).length,
@@ -65,28 +109,34 @@ export function ProductGrid() {
           <button
             type="button"
             onClick={() => scroll("left")}
-            className="absolute -left-2 z-10 flex size-7 items-center justify-center rounded-full border bg-card/90 shadow-soft opacity-0 transition-opacity group-hover:opacity-100 md:-left-3"
+            className={cn(
+              "absolute -left-2 z-10 flex size-7 items-center justify-center rounded-full border bg-card/90 shadow-soft transition-opacity md:-left-3",
+              canScrollLeft ? "opacity-0 group-hover:opacity-100" : "opacity-0 pointer-events-none"
+            )}
             aria-label="Scroll categories left"
+            disabled={!canScrollLeft}
           >
             <ChevronLeft className="size-4" />
           </button>
 
           <div
             ref={scrollRef}
+            onScroll={checkScrollability} // Add onScroll event listener
             className="flex w-full gap-1.5 overflow-x-auto scroll-smooth pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           >
-            <CategoryChip
-              active={activeFilter === "all"}
-              onClick={() => setActiveFilter("all")}
-              label="All"
-              count={PRODUCTS.length}
-            />
             <CategoryChip
               active={activeFilter === "popular"}
               onClick={() => setActiveFilter("popular")}
               label="Popular"
               count={popularCount}
               icon={<Sparkles className="size-3" />}
+            />
+            <CategoryChip
+              active={activeFilter === "all"}
+              onClick={() => setActiveFilter("all")}
+              label="All"
+              count={PRODUCTS.length}
+              data-category-id="all" // Add data attribute for identification
             />
             {CATEGORIES.map((c) => (
               <CategoryChip
@@ -96,6 +146,7 @@ export function ProductGrid() {
                 label={c.name}
                 count={c.count}
                 dotColor={c.color}
+                data-category-id={c.id} // Add data attribute for identification
               />
             ))}
           </div>
@@ -103,8 +154,12 @@ export function ProductGrid() {
           <button
             type="button"
             onClick={() => scroll("right")}
-            className="absolute -right-2 z-10 flex size-7 items-center justify-center rounded-full border bg-card/90 shadow-soft opacity-0 transition-opacity group-hover:opacity-100 md:-right-3"
+            className={cn(
+              "absolute -right-2 z-10 flex size-7 items-center justify-center rounded-full border bg-card/90 shadow-soft transition-opacity md:-right-3",
+              canScrollRight ? "opacity-0 group-hover:opacity-100" : "opacity-0 pointer-events-none"
+            )}
             aria-label="Scroll categories right"
+            disabled={!canScrollRight}
           >
             <ChevronRight className="size-4" />
           </button>
@@ -140,6 +195,7 @@ function CategoryChip({
   count,
   dotColor,
   icon,
+  ...props // Capture additional props like data-category-id
 }: {
   active: boolean;
   onClick: () => void;
@@ -147,7 +203,7 @@ function CategoryChip({
   count: number;
   dotColor?: string;
   icon?: React.ReactNode;
-}) {
+} & React.ComponentPropsWithoutRef<"button">) { // Extend props for button
   return (
     <button
       type="button"
@@ -159,6 +215,7 @@ function CategoryChip({
           ? "border-primary/40 bg-primary text-primary-foreground shadow-soft dark:bg-primary/90"
           : "border-border/70 text-foreground hover:border-border hover:bg-muted",
       )}
+      {...props} // Pass additional props
     >
       {icon ? <span className={cn(active && "text-primary-foreground")}>{icon}</span> : null}
       {dotColor ? (
