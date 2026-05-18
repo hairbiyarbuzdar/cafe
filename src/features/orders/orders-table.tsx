@@ -352,7 +352,7 @@ function ScrollableTabs({
         <div
           ref={scrollRef}
           onScroll={checkScrollability}
-          className="overflow-x-auto scroll-smooth [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className="overflow-x-auto overflow-y-hidden scroll-smooth [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
           <TabsList className="h-9 w-max justify-start gap-0.5 rounded-md bg-secondary/60 p-0.5">
             {TABS.map((t) => (
