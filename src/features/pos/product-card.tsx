@@ -5,15 +5,15 @@ import { Plus, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { getCategoryIcon } from "@/constants/category-icons";
 import { cn, formatCurrency } from "@/lib/utils";
-import { useCart } from "@/store/cart-store";
 import type { Product } from "@/types";
 
 type Props = {
   product: Product;
+  /** Parent decides what happens on click (typically: open quantity dialog) */
+  onSelect: (product: Product) => void;
 };
 
-export function ProductCard({ product }: Props) {
-  const add = useCart((s) => s.add);
+export function ProductCard({ product, onSelect }: Props) {
   const disabled = !product.available;
   const Icon = getCategoryIcon(product.categoryId);
 
@@ -21,16 +21,14 @@ export function ProductCard({ product }: Props) {
     <button
       type="button"
       disabled={disabled}
-      onClick={() => add(product)}
+      onClick={() => onSelect(product)}
       className={cn(
         "group ring-highlight relative flex min-h-[208px] flex-col gap-2.5 rounded-xl border border-border/70 bg-card p-3 text-left transition-all md:min-h-0",
         "hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-hover focus-visible:border-primary/50 active:scale-[0.99]",
         disabled && "cursor-not-allowed opacity-55 hover:translate-y-0 hover:border-border hover:shadow-none",
       )}
     >
-      <div
-        className="relative aspect-[5/3] overflow-hidden rounded-md border border-border/40 bg-gradient-to-br from-secondary/60 via-card to-primary-soft/40"
-      >
+      <div className="relative aspect-[5/3] overflow-hidden rounded-md border border-border/40 bg-gradient-to-br from-secondary/60 via-card to-primary-soft/40">
         <div className="absolute inset-0 flex items-center justify-center">
           <Icon
             className="size-9 text-primary/55 transition-transform duration-300 group-hover:scale-110 group-hover:text-primary/75"

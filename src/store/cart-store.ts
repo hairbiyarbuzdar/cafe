@@ -8,18 +8,24 @@ type CartState = {
   items: CartItem[];
   channel: OrderChannel;
   payment: PaymentMethod;
-  table?: string;
+  tableId?: string;
   note: string;
   discountPct: number;
   taxRate: number;
-  add: (product: Product, modifiers?: ProductModifier[]) => void;
+  /**
+   * Adds `quantity` of `product` to the cart. If the same product
+   * is already there, increments the existing line.
+   */
+  add: (product: Product, quantity?: number, modifiers?: ProductModifier[]) => void;
   increment: (productId: string) => void;
   decrement: (productId: string) => void;
+  setQuantity: (productId: string, quantity: number) => void;
   remove: (productId: string) => void;
   clear: () => void;
+  /** Switching away from dine-in unassigns any selected table. */
   setChannel: (channel: OrderChannel) => void;
   setPayment: (payment: PaymentMethod) => void;
-  setTable: (table: string | undefined) => void;
+  setTableId: (tableId: string | undefined) => void;
   setNote: (note: string) => void;
   setDiscountPct: (pct: number) => void;
 };
@@ -28,18 +34,21 @@ export const useCart = create<CartState>((set) => ({
   items: [],
   channel: "dine-in",
   payment: "card",
-  table: undefined,
+  tableId: undefined,
   note: "",
   discountPct: 0,
   taxRate: 0.085,
 
-  add: (product, modifiers = []) =>
+  add: (product, quantity = 1, modifiers = []) =>
     set((state) => {
+      const qty = Math.max(1, Math.floor(quantity));
       const existing = state.items.find((i) => i.productId === product.id);
       if (existing) {
         return {
           items: state.items.map((i) =>
-            i.productId === product.id ? { ...i, quantity: i.quantity + 1 } : i,
+            i.productId === product.id
+              ? { ...i, quantity: i.quantity + qty }
+              : i,
           ),
         };
       }
@@ -50,7 +59,7 @@ export const useCart = create<CartState>((set) => ({
             productId: product.id,
             name: product.name,
             unitPrice: product.price,
-            quantity: 1,
+            quantity: qty,
             modifiers,
           },
         ],
@@ -73,6 +82,19 @@ export const useCart = create<CartState>((set) => ({
         .filter((i) => i.quantity > 0),
     })),
 
+  setQuantity: (productId, quantity) =>
+    set((state) => {
+      const q = Math.max(0, Math.floor(quantity));
+      if (q === 0) {
+        return { items: state.items.filter((i) => i.productId !== productId) };
+      }
+      return {
+        items: state.items.map((i) =>
+          i.productId === productId ? { ...i, quantity: q } : i,
+        ),
+      };
+    }),
+
   remove: (productId) =>
     set((state) => ({ items: state.items.filter((i) => i.productId !== productId) })),
 
@@ -81,12 +103,17 @@ export const useCart = create<CartState>((set) => ({
       items: [],
       note: "",
       discountPct: 0,
-      table: undefined,
+      tableId: undefined,
     }),
 
-  setChannel: (channel) => set({ channel }),
+  setChannel: (channel) =>
+    set((state) => ({
+      channel,
+      // tables only apply to dine-in service
+      tableId: channel === "dine-in" ? state.tableId : undefined,
+    })),
   setPayment: (payment) => set({ payment }),
-  setTable: (table) => set({ table }),
+  setTableId: (tableId) => set({ tableId }),
   setNote: (note) => set({ note }),
   setDiscountPct: (discountPct) => set({ discountPct }),
 }));

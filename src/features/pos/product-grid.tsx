@@ -1,76 +1,24 @@
 "use client";
 
 import * as React from "react";
-import { ChevronLeft, ChevronRight, Search, Sparkles } from "lucide-react";
-import { motion, type HTMLMotionProps } from "framer-motion";
+import { Bike, Search, ShoppingBag, Sparkles, Utensils } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { CATEGORIES } from "@/mock/categories";
 import { PRODUCTS } from "@/mock/products";
 import { ProductCard } from "@/features/pos/product-card";
+import { QuantityDialog } from "@/features/pos/quantity-dialog";
+import { useCart } from "@/store/cart-store";
+import type { OrderChannel, Product } from "@/types";
 
 type Filter = "all" | "popular" | string;
 
 export function ProductGrid() {
   const [activeFilter, setActiveFilter] = React.useState<Filter>("all");
   const [query, setQuery] = React.useState("");
-  const scrollRef = React.useRef<HTMLDivElement>(null);
-  const [canScrollLeft, setCanScrollLeft] = React.useState(false);
-  const [canScrollRight, setCanScrollRight] = React.useState(false);
-
-  const scroll = (direction: "left" | "right") => {
-    if (scrollRef.current) {
-      const amount = 240;
-      scrollRef.current.scrollBy({
-        left: direction === "left" ? -amount : amount,
-        behavior: "smooth",
-      });
-    }
-  };
-
-  // Function to check scrollability and update state
-  const checkScrollability = React.useCallback(() => {
-    if (scrollRef.current) {
-      const { scrollWidth, clientWidth, scrollLeft } = scrollRef.current;
-      setCanScrollLeft(scrollLeft > 0);
-      setCanScrollRight(scrollLeft + clientWidth < scrollWidth);
-    }
-  }, []);
-
-  // Effect to check scrollability on mount and resize
-  React.useEffect(() => {
-    checkScrollability(); // Initial check
-
-    const handleResize = () => {
-      checkScrollability();
-    };
-
-    window.addEventListener("resize", handleResize);
-    // Also re-check after a short delay to ensure all elements are rendered and measured
-    const timeoutId = setTimeout(checkScrollability, 100);
-
-    return () => {
-      window.removeEventListener("resize", handleResize);
-      clearTimeout(timeoutId);
-    };
-  }, [checkScrollability]);
-
-  // Effect to scroll to active chip when activeFilter changes
-  React.useEffect(() => {
-    if (scrollRef.current) {
-      const activeChip = scrollRef.current.querySelector(
-        `[data-category-id="${activeFilter}"]`
-      ) as HTMLElement;
-      if (activeChip) {
-        activeChip.scrollIntoView({
-          behavior: "smooth",
-          inline: "center", // Scrolls to the center of the view
-        });
-      }
-    }
-  }, [activeFilter]);
+  const [pickProduct, setPickProduct] = React.useState<Product | null>(null);
 
   const popularCount = React.useMemo(
     () => PRODUCTS.filter((p) => p.popular).length,
@@ -96,67 +44,34 @@ export function ProductGrid() {
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-3">
-      <div className="flex flex-col gap-2 px-3 pt-3 md:px-4 md:pt-4">
-        <div className="relative">
-          <Search className="pointer-events-none absolute start-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search by product name or SKU…"
-            className="h-9 rounded-md bg-card ps-9 text-[13px]"
-          />
+      <div className="flex flex-col gap-3 px-3 pt-3 md:px-4 md:pt-4">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <div className="relative flex-1">
+            <Search className="pointer-events-none absolute start-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search by product name or SKU…"
+              className="h-10 rounded-md bg-card ps-9 text-[13.5px]"
+            />
+          </div>
+          <ChannelToggle />
         </div>
-        <div className="group relative flex items-center">
-          <button
-            type="button"
-            onClick={() => scroll("left")}
-            className={cn(
-              "absolute -left-2 z-20 flex size-7 items-center justify-center rounded-full border bg-card/90 shadow-soft transition-opacity md:-left-3",
-              canScrollLeft ? "opacity-0 group-hover:opacity-100" : "opacity-0 pointer-events-none"
-            )}
-            aria-label="Scroll categories left"
-            disabled={!canScrollLeft}
-          >
-            <ChevronLeft className="size-4" />
-          </button>
 
-          <div
-            className={cn(
-              "pointer-events-none absolute left-0 top-0 bottom-0 z-10 w-10 bg-gradient-to-r from-card via-card/50 to-transparent transition-opacity duration-300",
-              canScrollLeft ? "opacity-100" : "opacity-0"
-            )}
-          />
-          <div
-            className={cn(
-              "pointer-events-none absolute right-0 top-0 bottom-0 z-10 w-10 bg-gradient-to-l from-card via-card/50 to-transparent transition-opacity duration-300",
-              canScrollRight ? "opacity-100" : "opacity-0"
-            )}
-          />
-
-          <motion.div
-            ref={scrollRef}
-            onScroll={checkScrollability} // Add onScroll event listener
-            className="flex w-full gap-1.5 overflow-x-auto scroll-smooth pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-            initial="hidden"
-            animate="visible"
-            variants={{
-              hidden: { opacity: 0 },
-              visible: { opacity: 1, transition: { staggerChildren: 0.05 } },
-            }}
-          >
+        <ScrollArea className="w-full">
+          <div className="flex gap-1.5 pb-1">
+            <CategoryChip
+              active={activeFilter === "all"}
+              onClick={() => setActiveFilter("all")}
+              label="All"
+              count={PRODUCTS.length}
+            />
             <CategoryChip
               active={activeFilter === "popular"}
               onClick={() => setActiveFilter("popular")}
               label="Popular"
               count={popularCount}
               icon={<Sparkles className="size-3" />}
-            />
-            <CategoryChip
-              active={activeFilter === "all"}
-              onClick={() => setActiveFilter("all")}
-              label="All"
-              count={PRODUCTS.length}
-              data-category-id="all" // Add data attribute for identification
             />
             {CATEGORIES.map((c) => (
               <CategoryChip
@@ -166,24 +81,11 @@ export function ProductGrid() {
                 label={c.name}
                 count={c.count}
                 dotColor={c.color}
-                data-category-id={c.id} // Add data attribute for identification
               />
             ))}
-          </motion.div>
-
-          <button
-            type="button"
-            onClick={() => scroll("right")}
-            className={cn(
-              "absolute -right-2 z-20 flex size-7 items-center justify-center rounded-full border bg-card/90 shadow-soft transition-opacity md:-right-3",
-              canScrollRight ? "opacity-0 group-hover:opacity-100" : "opacity-0 pointer-events-none"
-            )}
-            aria-label="Scroll categories right"
-            disabled={!canScrollRight}
-          >
-            <ChevronRight className="size-4" />
-          </button>
-        </div>
+          </div>
+          <ScrollBar orientation="horizontal" />
+        </ScrollArea>
       </div>
 
       <ScrollArea className="min-h-0 flex-1 px-3 pb-[calc(env(safe-area-inset-bottom)+150px)] md:px-4 md:pb-4">
@@ -197,13 +99,56 @@ export function ProductGrid() {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 mt-1">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {filtered.map((p) => (
-              <ProductCard key={p.id} product={p} />
+              <ProductCard key={p.id} product={p} onSelect={setPickProduct} />
             ))}
           </div>
         )}
       </ScrollArea>
+
+      <QuantityDialog product={pickProduct} onClose={() => setPickProduct(null)} />
+    </div>
+  );
+}
+
+const CHANNELS: { value: OrderChannel; label: string; icon: typeof Utensils }[] = [
+  { value: "dine-in", label: "Dine-in", icon: Utensils },
+  { value: "takeaway", label: "Takeaway", icon: ShoppingBag },
+  { value: "delivery", label: "Delivery", icon: Bike },
+];
+
+function ChannelToggle() {
+  const channel = useCart((s) => s.channel);
+  const setChannel = useCart((s) => s.setChannel);
+  return (
+    <div
+      role="radiogroup"
+      aria-label="Order type"
+      className="inline-flex h-10 shrink-0 items-center gap-0.5 rounded-md border border-border/70 bg-card p-0.5 shadow-soft"
+    >
+      {CHANNELS.map((c) => {
+        const Icon = c.icon;
+        const active = channel === c.value;
+        return (
+          <button
+            key={c.value}
+            type="button"
+            role="radio"
+            aria-checked={active}
+            onClick={() => setChannel(c.value)}
+            className={cn(
+              "inline-flex h-full items-center gap-1.5 rounded-[6px] px-3 text-[12.5px] font-medium transition-colors",
+              active
+                ? "bg-primary text-primary-foreground shadow-soft"
+                : "text-muted-foreground hover:bg-muted hover:text-foreground",
+            )}
+          >
+            <Icon className="size-3.5" />
+            <span className="hidden sm:inline">{c.label}</span>
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -215,7 +160,6 @@ function CategoryChip({
   count,
   dotColor,
   icon,
-  ...props // Capture additional props like data-category-id
 }: {
   active: boolean;
   onClick: () => void;
@@ -223,25 +167,22 @@ function CategoryChip({
   count: number;
   dotColor?: string;
   icon?: React.ReactNode;
-} & HTMLMotionProps<"button">) { // Extend props for motion button
+}) {
   return (
-    <motion.button
+    <button
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      variants={{
-        hidden: { opacity: 0, y: 10, scale: 0.95 },
-        visible: { opacity: 1, y: 0, scale: 1 },
-      }}
       className={cn(
-        "inline-flex h-7 shrink-0 items-center gap-1.5 rounded-md border bg-card px-2.5 text-[12px] font-medium transition-all",
+        "inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md border bg-card px-2.5 text-[12.5px] font-medium transition-all",
         active
           ? "border-primary/40 bg-primary text-primary-foreground shadow-soft dark:bg-primary/90"
           : "border-border/70 text-foreground hover:border-border hover:bg-muted",
       )}
-      {...props} // Pass additional props
     >
-      {icon ? <span className={cn(active && "text-primary-foreground")}>{icon}</span> : null}
+      {icon ? (
+        <span className={cn(active && "text-primary-foreground")}>{icon}</span>
+      ) : null}
       {dotColor ? (
         <span
           aria-hidden
@@ -258,6 +199,6 @@ function CategoryChip({
       >
         {count}
       </span>
-    </motion.button>
+    </button>
   );
 }

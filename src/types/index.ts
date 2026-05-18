@@ -174,3 +174,13 @@ export type CartItem = {
   modifiers: ProductModifier[];
   note?: string;
 };
+
+export type TableStatus = "empty" | "partial" | "full";
+
+export type Table = {
+  id: string;
+  /** Auto-generated as T-1, T-2, … */
+  name: string;
+  capacity: number;
+  occupancy: number;
+};

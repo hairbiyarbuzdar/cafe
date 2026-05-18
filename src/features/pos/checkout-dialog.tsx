@@ -15,6 +15,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useCart } from "@/store/cart-store";
+import { useTables } from "@/store/tables-store";
 import { formatCurrency, sleep } from "@/lib/utils";
 
 type Props = {
@@ -29,7 +30,9 @@ type Props = {
 type Status = "review" | "processing" | "success";
 
 export function CheckoutDialog({ open, onOpenChange, total, subtotal, tax, discount }: Props) {
-  const { items, payment, channel, table, clear } = useCart();
+  const { items, payment, channel, tableId, clear } = useCart();
+  const tables = useTables((s) => s.tables);
+  const table = tables.find((t) => t.id === tableId)?.name;
   const [status, setStatus] = React.useState<Status>("review");
 
   React.useEffect(() => {
