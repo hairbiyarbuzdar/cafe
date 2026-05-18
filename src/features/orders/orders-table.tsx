@@ -340,13 +340,26 @@ function ScrollableTabs({
         type="button"
         onClick={() => scroll("left")}
         className={cn(
-          "absolute -left-2 z-10 flex size-7 items-center justify-center rounded-full border bg-card/90 shadow-soft transition-opacity md:-left-3",
+          "absolute -left-2 z-20 flex size-7 items-center justify-center rounded-full border bg-card/90 shadow-soft transition-opacity md:-left-3",
           canScrollLeft ? "opacity-0 group-hover:opacity-100" : "opacity-0 pointer-events-none"
         )}
         disabled={!canScrollLeft}
       >
         <ChevronLeft className="size-4" />
       </button>
+
+      <div
+        className={cn(
+          "pointer-events-none absolute left-0 top-0 bottom-0 z-10 w-10 bg-gradient-to-r from-card via-card/50 to-transparent transition-opacity duration-300",
+          canScrollLeft ? "opacity-100" : "opacity-0"
+        )}
+      />
+      <div
+        className={cn(
+          "pointer-events-none absolute right-0 top-0 bottom-0 z-10 w-10 bg-gradient-to-l from-card via-card/50 to-transparent transition-opacity duration-300",
+          canScrollRight ? "opacity-100" : "opacity-0"
+        )}
+      />
 
       <Tabs value={tab} onValueChange={onChange} className="w-full">
         <div
@@ -373,7 +386,7 @@ function ScrollableTabs({
         type="button"
         onClick={() => scroll("right")}
         className={cn(
-          "absolute -right-2 z-10 flex size-7 items-center justify-center rounded-full border bg-card/90 shadow-soft transition-opacity md:-right-3",
+          "absolute -right-2 z-20 flex size-7 items-center justify-center rounded-full border bg-card/90 shadow-soft transition-opacity md:-right-3",
           canScrollRight ? "opacity-0 group-hover:opacity-100" : "opacity-0 pointer-events-none"
         )}
         disabled={!canScrollRight}
