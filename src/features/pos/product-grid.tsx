@@ -120,6 +120,19 @@ export function ProductGrid() {
           </button>
 
           <div
+            className={cn(
+              "pointer-events-none absolute left-0 top-0 bottom-0 z-10 w-10 bg-gradient-to-r from-card via-card/50 to-transparent transition-opacity duration-300",
+              canScrollLeft ? "opacity-100" : "opacity-0"
+            )}
+          />
+          <div
+            className={cn(
+              "pointer-events-none absolute right-0 top-0 bottom-0 z-10 w-10 bg-gradient-to-l from-card via-card/50 to-transparent transition-opacity duration-300",
+              canScrollRight ? "opacity-100" : "opacity-0"
+            )}
+          />
+
+          <div
             ref={scrollRef}
             onScroll={checkScrollability} // Add onScroll event listener
             className="flex w-full gap-1.5 overflow-x-auto scroll-smooth pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
