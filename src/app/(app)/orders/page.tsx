@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/layouts/page-header";
 import { OrdersTable } from "@/features/orders/orders-table";
 import { ORDERS } from "@/mock/orders";
+import { formatCurrency } from "@/lib/utils";
 
 export const metadata = { title: "Orders" };
 
@@ -47,7 +48,8 @@ export default function OrdersPage() {
         <Stat label="Completed today" value={`${s.completed}`} hint="successfully fulfilled" tone="success" />
         <Stat
           label="Revenue captured"
-          value={new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(s.revenue)}
+          // value={new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(s.revenue)}
+          value={formatCurrency(s.revenue, { maximumFractionDigits: 0 })}
           hint="from completed orders"
           tone="primary"
         />
