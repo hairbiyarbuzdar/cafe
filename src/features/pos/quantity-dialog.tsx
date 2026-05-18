@@ -106,7 +106,7 @@ export function QuantityDialog({ product, onClose }: Props) {
             >
               Quantity
             </Label>
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-2.5 w-40">
               <Button
                 type="button"
                 variant="outline"
