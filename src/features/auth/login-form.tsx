@@ -11,25 +11,25 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { BRAND } from "@/constants/nav";
+import { demoSignInAction, signInAction } from "@/lib/actions/auth";
 import { ROLE_HOME, ROLE_LABEL } from "@/lib/permissions";
-import { MOCK_USERS } from "@/mock/users";
 import { useAuth } from "@/store/auth-store";
+import type { Role, SessionUser } from "@/types/auth";
 import { cn, initials } from "@/lib/utils";
 
-export function LoginForm() {
+export function LoginForm({ demoUsers }: { demoUsers: SessionUser[] }) {
   const router = useRouter();
   const params = useSearchParams();
   const next = params.get("next");
 
-  const signIn = useAuth((s) => s.signIn);
-  const signInAs = useAuth((s) => s.signInAs);
+  const setUser = useAuth((s) => s.setUser);
 
   const [email, setEmail] = React.useState("elena@brewline.co");
   const [password, setPassword] = React.useState("brewline");
   const [showPassword, setShowPassword] = React.useState(false);
   const [submitting, setSubmitting] = React.useState(false);
 
-  function navigateAfterSignIn(role: keyof typeof ROLE_HOME) {
+  function navigateAfterSignIn(role: Role) {
     const destination =
       next && !next.startsWith("/login") && !next.startsWith("/onboarding")
         ? next
@@ -42,28 +42,32 @@ export function LoginForm() {
     e.preventDefault();
     setSubmitting(true);
     try {
-      await new Promise((r) => setTimeout(r, 350));
-      const user = signIn(email, password);
-      if (!user) {
+      const result = await signInAction(email, password);
+      if (!result.ok) {
         toast.error("Invalid credentials", {
-          description: "Try one of the demo accounts below.",
+          description: result.error,
         });
         return;
       }
-      toast.success(`Welcome back, ${user.name.split(" ")[0]}`);
-      navigateAfterSignIn(user.role);
+      setUser(result.user);
+      toast.success(`Welcome back, ${result.user.name.split(" ")[0]}`);
+      navigateAfterSignIn(result.user.role);
     } finally {
       setSubmitting(false);
     }
   }
 
-  function handleDemoSignIn(userId: string) {
-    const user = signInAs(userId);
-    if (!user) return;
-    toast.success(`Signed in as ${ROLE_LABEL[user.role]}`, {
-      description: user.name,
+  async function handleDemoSignIn(userId: string) {
+    const result = await demoSignInAction(userId);
+    if (!result.ok) {
+      toast.error("Could not sign in", { description: result.error });
+      return;
+    }
+    setUser(result.user);
+    toast.success(`Signed in as ${ROLE_LABEL[result.user.role]}`, {
+      description: result.user.name,
     });
-    navigateAfterSignIn(user.role);
+    navigateAfterSignIn(result.user.role);
   }
 
   return (
@@ -165,7 +169,7 @@ export function LoginForm() {
           </div>
 
           <ul className="grid grid-cols-1 gap-1.5">
-            {MOCK_USERS.map((u) => (
+            {demoUsers.map((u) => (
               <li key={u.id}>
                 <button
                   type="button"

@@ -3,24 +3,17 @@ import { Download, Filter, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/layouts/page-header";
 import { OrdersTable } from "@/features/orders/orders-table";
-import { ORDERS } from "@/mock/orders";
+import { listOrders, ordersSummary } from "@/lib/queries/orders";
 import { formatCurrency } from "@/lib/utils";
 import Link from "next/link";
 
 export const metadata = { title: "Orders" };
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
-function summary() {
-  const completed = ORDERS.filter((o) => o.status === "completed").length;
-  const pending = ORDERS.filter((o) => o.status === "pending" || o.status === "preparing").length;
-  const revenue = ORDERS.filter((o) => o.status === "completed").reduce(
-    (s, o) => s + o.total,
-    0,
-  );
-  return { completed, pending, revenue };
-}
+export default async function OrdersPage() {
+  const [summary, orders] = await Promise.all([ordersSummary(), listOrders()]);
 
-export default function OrdersPage() {
-  const s = summary();
   return (
     <>
       <PageHeader
@@ -47,18 +40,17 @@ export default function OrdersPage() {
       />
 
       <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <Stat label="Open orders" value={`${s.pending}`} hint="in pending or preparing" tone="info" />
-        <Stat label="Completed today" value={`${s.completed}`} hint="successfully fulfilled" tone="success" />
+        <Stat label="Open orders" value={`${summary.pending}`} hint="in pending or preparing" tone="info" />
+        <Stat label="Completed today" value={`${summary.completed}`} hint="successfully fulfilled" tone="success" />
         <Stat
           label="Revenue captured"
-          // value={new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(s.revenue)}
-          value={formatCurrency(s.revenue, { maximumFractionDigits: 0 })}
+          value={formatCurrency(summary.revenue, { maximumFractionDigits: 0 })}
           hint="from completed orders"
           tone="primary"
         />
       </section>
 
-      <OrdersTable />
+      <OrdersTable orders={orders} />
     </>
   );
 }

@@ -23,7 +23,6 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ChannelBadge, OrderStatusBadge } from "@/features/orders/status-badge";
 import { OrderDetailDrawer } from "@/features/orders/order-detail-drawer";
-import { ORDERS } from "@/mock/orders";
 import { cn, formatCurrency, formatRelativeTime } from "@/lib/utils";
 import type { Order, OrderStatus } from "@/types";
 
@@ -39,7 +38,7 @@ const TABS: { value: OrderStatus | "all"; label: string }[] = [
 
 const PAGE_SIZE = 8;
 
-export function OrdersTable() {
+export function OrdersTable({ orders }: { orders: Order[] }) {
   const [tab, setTab] = React.useState<OrderStatus | "all">("all");
   const [channel, setChannel] = React.useState<string>("all");
   const [search, setSearch] = React.useState("");
@@ -47,7 +46,7 @@ export function OrdersTable() {
   const [selected, setSelected] = React.useState<Order | null>(null);
 
   const filtered = React.useMemo(() => {
-    return ORDERS.filter((o) => {
+    return orders.filter((o) => {
       if (tab !== "all" && o.status !== tab) return false;
       if (channel !== "all" && o.channel !== channel) return false;
       if (search) {
@@ -60,7 +59,7 @@ export function OrdersTable() {
       }
       return true;
     });
-  }, [tab, channel, search]);
+  }, [tab, channel, search, orders]);
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const pageItems = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);

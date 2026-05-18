@@ -1,34 +1,42 @@
 /**
  * Client- and edge-safe session helpers.
  *
- * Keep this file free of `next/headers` so it can be imported by
- * the client Zustand store and the proxy (which runs on the edge).
- * Server-only helpers (cookie reading via React) live in `auth.ts`.
+ * Keep this file free of `next/headers` and DB code so it can be
+ * imported by the proxy (edge runtime) and the client store. The
+ * cookie carries enough to authorise (`userId` + `role`); the full
+ * user record is resolved server-side via Prisma — see `lib/auth.ts`.
  */
 
-import { findUserById } from "@/mock/users";
-import type { Session } from "@/types/auth";
+import type { Role, SessionCookie } from "@/types/auth";
 
 export const SESSION_COOKIE = "brewline_session";
 export const SESSION_MAX_AGE = 60 * 60 * 24 * 7; // 7 days
 
-export function parseSession(raw: string | undefined | null): Session | null {
+const ROLES: Role[] = ["admin", "manager", "cashier", "kitchen"];
+
+function isRole(value: unknown): value is Role {
+  return typeof value === "string" && (ROLES as string[]).includes(value);
+}
+
+export function parseSession(raw: string | undefined | null): SessionCookie | null {
   if (!raw) return null;
   try {
-    const parsed = JSON.parse(decodeURIComponent(raw)) as {
-      userId: string;
-      issuedAt: number;
-    };
-    const user = findUserById(parsed.userId);
-    if (!user) return null;
-    const { password: _password, ...safe } = user;
-    void _password;
-    return { user: safe, issuedAt: parsed.issuedAt };
+    const parsed = JSON.parse(decodeURIComponent(raw)) as Partial<SessionCookie>;
+    if (
+      typeof parsed.userId !== "string" ||
+      typeof parsed.issuedAt !== "number" ||
+      !isRole(parsed.role)
+    ) {
+      return null;
+    }
+    return { userId: parsed.userId, role: parsed.role, issuedAt: parsed.issuedAt };
   } catch {
     return null;
   }
 }
 
-export function serializeSession(userId: string): string {
-  return encodeURIComponent(JSON.stringify({ userId, issuedAt: Date.now() }));
+export function serializeSession(userId: string, role: Role): string {
+  return encodeURIComponent(
+    JSON.stringify({ userId, role, issuedAt: Date.now() } satisfies SessionCookie),
+  );
 }

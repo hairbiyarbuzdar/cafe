@@ -49,8 +49,8 @@ export function AppSidebar() {
   const user = useCurrentUser();
   const signOut = useAuth((s) => s.signOut);
 
-  function handleSignOut() {
-    signOut();
+  async function handleSignOut() {
+    await signOut();
     toast.success("Signed out");
     router.replace("/login");
     router.refresh();
@@ -151,7 +151,7 @@ export function AppSidebar() {
                   className="data-[state=open]:bg-sidebar-accent"
                 >
                   <Avatar className="size-9 rounded-lg">
-                    <AvatarImage src={user?.avatar} alt={user?.name ?? ""} />
+                    <AvatarImage src={user?.avatar ?? undefined} alt={user?.name ?? ""} />
                     <AvatarFallback className="rounded-lg bg-gradient-to-br from-primary/15 to-primary/10 text-[12px] font-semibold text-primary">
                       {user ? initials(user.name) : "—"}
                     </AvatarFallback>

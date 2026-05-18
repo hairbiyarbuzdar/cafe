@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { BRAND } from "@/constants/nav";
+import { demoSignInAction } from "@/lib/actions/auth";
 import { useAuth } from "@/store/auth-store";
 import { cn } from "@/lib/utils";
 
@@ -30,7 +31,7 @@ type StepId = (typeof STEPS)[number]["id"];
 
 export function OnboardingForm() {
   const router = useRouter();
-  const signInAs = useAuth((s) => s.signInAs);
+  const setUser = useAuth((s) => s.setUser);
 
   const [step, setStep] = React.useState<StepId>("cafe");
   const [cafeName, setCafeName] = React.useState("");
@@ -56,10 +57,14 @@ export function OnboardingForm() {
     e.preventDefault();
     setSubmitting(true);
     try {
-      await new Promise((r) => setTimeout(r, 700));
-      // Phase 3 will persist the new admin to the database. For now,
-      // sign the operator in as the demo admin so they can explore.
-      signInAs("usr_elena");
+      // Onboarding writes to the DB in a future iteration; for the
+      // demo we drop the operator into the seeded admin account.
+      const result = await demoSignInAction("usr_elena");
+      if (!result.ok) {
+        toast.error("Could not provision workspace", { description: result.error });
+        return;
+      }
+      setUser(result.user);
       toast.success("Workspace ready", {
         description: `${cafeName || "Brewline"} · admin access granted`,
       });

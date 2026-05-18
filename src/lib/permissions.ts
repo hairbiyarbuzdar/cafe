@@ -1,5 +1,12 @@
 import type { Permission, Role, SessionUser } from "@/types/auth";
 
+type RoleOrUser = Role | Pick<SessionUser, "role"> | null | undefined;
+
+function toRole(input: RoleOrUser): Role | null {
+  if (!input) return null;
+  return typeof input === "string" ? input : input.role;
+}
+
 const ALL_PERMISSIONS: Permission[] = [
   "pos.access",
   "orders.view",
@@ -53,19 +60,21 @@ export const ROLE_HOME: Record<Role, string> = {
 };
 
 export function hasPermission(
-  user: Pick<SessionUser, "role"> | null | undefined,
+  subject: RoleOrUser,
   permission: Permission,
 ): boolean {
-  if (!user) return false;
-  return ROLE_PERMISSIONS[user.role].includes(permission);
+  const role = toRole(subject);
+  if (!role) return false;
+  return ROLE_PERMISSIONS[role].includes(permission);
 }
 
 export function hasAnyPermission(
-  user: Pick<SessionUser, "role"> | null | undefined,
+  subject: RoleOrUser,
   permissions: Permission[],
 ): boolean {
-  if (!user) return false;
-  const granted = ROLE_PERMISSIONS[user.role];
+  const role = toRole(subject);
+  if (!role) return false;
+  const granted = ROLE_PERMISSIONS[role];
   return permissions.some((p) => granted.includes(p));
 }
 

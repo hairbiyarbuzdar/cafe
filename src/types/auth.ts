@@ -5,8 +5,8 @@
  * checked anywhere — middleware, server components, client hooks —
  * without dragging in the full role mapping.
  *
- * Phase 3 will swap MOCK_USERS for a database, but the permission
- * matrix below remains the source of truth for what each role can do.
+ * Persisted users live in the `User` table; the auth flow hashes
+ * passwords with bcrypt (see `src/lib/actions/auth.ts`).
  */
 
 export type Role = "admin" | "manager" | "cashier" | "kitchen";
@@ -28,17 +28,27 @@ export type Permission =
   | "kitchen.view"
   | "dashboard.view";
 
-export type AuthUser = {
+/**
+ * The shape any UI surface needs to render a user. Never includes
+ * `passwordHash` — server queries strip it before serialising.
+ */
+export type SessionUser = {
   id: string;
   name: string;
   email: string;
   role: Role;
-  /** Plaintext for the demo only — Phase 3 replaces this with hashed credentials in DB */
-  password: string;
-  avatar?: string;
+  avatar?: string | null;
 };
 
-export type SessionUser = Omit<AuthUser, "password">;
+/**
+ * What's actually stored in the session cookie. Role is embedded so
+ * the edge proxy can authorise without a DB round-trip.
+ */
+export type SessionCookie = {
+  userId: string;
+  role: Role;
+  issuedAt: number;
+};
 
 export type Session = {
   user: SessionUser;

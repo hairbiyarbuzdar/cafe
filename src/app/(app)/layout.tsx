@@ -7,7 +7,13 @@ import { AppTopbar } from "@/components/layouts/app-topbar";
 import { MobileTabbar } from "@/components/layouts/mobile-tabbar";
 import { AmbientBackground } from "@/components/shared/ambient-background";
 import { getCurrentUser } from "@/lib/auth";
+import { listMenuCategories, listMenuItems } from "@/lib/queries/menu";
+import { listKitchenStations } from "@/lib/queries/stations";
+import { DataHydrator } from "@/providers/data-hydrator";
 import { SessionProvider } from "@/providers/session-provider";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 export default async function AppLayout({
   children,
@@ -19,11 +25,17 @@ export default async function AppLayout({
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
-  const cookieStore = await cookies();
+  const [cookieStore, items, stations, categories] = await Promise.all([
+    cookies(),
+    listMenuItems(),
+    listKitchenStations(),
+    listMenuCategories(),
+  ]);
   const defaultOpen = cookieStore.get("sidebar_state")?.value !== "false";
 
   return (
     <SessionProvider user={user}>
+      <DataHydrator items={items} stations={stations} categories={categories} />
       <SidebarProvider defaultOpen={defaultOpen}>
         <AmbientBackground />
         <AppSidebar />

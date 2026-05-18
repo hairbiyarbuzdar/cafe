@@ -20,7 +20,7 @@ export function SessionProvider({
   children: React.ReactNode;
 }) {
   React.useEffect(() => {
-    useAuth.setState({ user, hydrated: true });
+    useAuth.getState().setUser(user);
   }, [user]);
 
   return <SessionContext.Provider value={user}>{children}</SessionContext.Provider>;

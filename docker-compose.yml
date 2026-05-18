@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: brewline-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: brewline
+      POSTGRES_PASSWORD: brewline
+      POSTGRES_DB: brewline
+    ports:
+      - "5432:5432"
+    volumes:
+      - brewline_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U brewline -d brewline"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  brewline_pgdata:

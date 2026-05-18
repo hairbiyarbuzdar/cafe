@@ -1,14 +1,14 @@
 import { Mail, Phone, Star } from "lucide-react";
 
 import { SectionCard } from "@/components/shared/section-card";
-import { SUPPLIERS } from "@/mock/inventory";
+import type { Supplier } from "@/types";
 import { initials } from "@/lib/utils";
 
-export function SuppliersGrid() {
+export function SuppliersGrid({ suppliers }: { suppliers: Supplier[] }) {
   return (
     <SectionCard title="Suppliers" description="Active vendor relationships" contentClassName="p-0">
       <ul className="divide-y">
-        {SUPPLIERS.map((s) => (
+        {suppliers.map((s) => (
           <li
             key={s.id}
             className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/40 md:px-5"

@@ -2,10 +2,16 @@ import { AlertTriangle, Package } from "lucide-react";
 
 import { SectionCard } from "@/components/shared/section-card";
 import { Button } from "@/components/ui/button";
-import { INVENTORY, SUPPLIERS } from "@/mock/inventory";
+import type { InventoryItem, Supplier } from "@/types";
 
-export function LowStockAlerts() {
-  const low = INVENTORY.filter((it) => it.stock < it.reorderLevel).slice(0, 6);
+export function LowStockAlerts({
+  items,
+  suppliers,
+}: {
+  items: InventoryItem[];
+  suppliers: Supplier[];
+}) {
+  const low = items;
 
   return (
     <SectionCard
@@ -20,7 +26,7 @@ export function LowStockAlerts() {
     >
       <ul className="divide-y">
         {low.map((it) => {
-          const supplier = SUPPLIERS.find((s) => s.id === it.supplierId);
+          const supplier = suppliers.find((s) => s.id === it.supplierId);
           return (
             <li
               key={it.id}

@@ -36,7 +36,7 @@ import { SectionCard } from "@/components/shared/section-card";
 import { RoleBadge } from "@/features/staff/role-badge";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { ROLE_LABEL } from "@/lib/permissions";
-import { MOCK_USERS } from "@/mock/users";
+import type { SessionUser } from "@/types/auth";
 import { cn, initials } from "@/lib/utils";
 
 export function GeneralPanel() {
@@ -259,7 +259,7 @@ const MATRIX: Record<string, Record<string, boolean>> = {
   barista: { pos: true, orders: true, inventory: false, reports: false, staff: false, settings: false },
 };
 
-export function TeamPanel() {
+export function TeamPanel({ members }: { members: SessionUser[] }) {
   const currentUser = useCurrentUser();
   return (
     <div className="space-y-4">
@@ -270,7 +270,7 @@ export function TeamPanel() {
         contentClassName="p-0"
       >
         <ul className="divide-y">
-          {MOCK_USERS.map((u) => {
+          {members.map((u) => {
             const isMe = currentUser?.id === u.id;
             return (
               <li key={u.id} className="flex items-center gap-3 px-4 py-3 md:px-5">

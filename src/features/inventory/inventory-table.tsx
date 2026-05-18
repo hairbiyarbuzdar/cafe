@@ -21,7 +21,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { INVENTORY, SUPPLIERS } from "@/mock/inventory";
+import type { InventoryItem, Supplier } from "@/types";
 import { cn, formatCurrency, formatRelativeTime } from "@/lib/utils";
 
 const CATS = [
@@ -36,12 +36,18 @@ const CATS = [
   "Packaging",
 ];
 
-export function InventoryTable() {
+export function InventoryTable({
+  items,
+  suppliers,
+}: {
+  items: InventoryItem[];
+  suppliers: Supplier[];
+}) {
   const [search, setSearch] = React.useState("");
   const [category, setCategory] = React.useState("All");
 
   const filtered = React.useMemo(() => {
-    return INVENTORY.filter((it) => {
+    return items.filter((it) => {
       if (category !== "All" && it.category !== category) return false;
       if (search) {
         const q = search.toLowerCase();
@@ -49,7 +55,7 @@ export function InventoryTable() {
       }
       return true;
     });
-  }, [search, category]);
+  }, [search, category, items]);
 
   return (
     <div className="ring-highlight rounded-xl border border-border/70 bg-card">
@@ -96,7 +102,7 @@ export function InventoryTable() {
       {/* Mobile cards */}
       <ul className="divide-y divide-border/60 md:hidden">
         {filtered.map((it) => {
-          const supplier = SUPPLIERS.find((s) => s.id === it.supplierId);
+          const supplier = suppliers.find((s) => s.id === it.supplierId);
           const ratio = Math.min(1, it.stock / Math.max(1, it.reorderLevel * 2));
           const low = it.stock < it.reorderLevel;
           return (
@@ -155,7 +161,7 @@ export function InventoryTable() {
           </TableHeader>
           <TableBody>
             {filtered.map((it) => {
-              const supplier = SUPPLIERS.find((s) => s.id === it.supplierId);
+              const supplier = suppliers.find((s) => s.id === it.supplierId);
               const ratio = Math.min(1, it.stock / Math.max(1, it.reorderLevel * 2));
               const low = it.stock < it.reorderLevel;
               return (

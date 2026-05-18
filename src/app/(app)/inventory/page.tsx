@@ -6,15 +6,25 @@ import { InventoryTable } from "@/features/inventory/inventory-table";
 import { InventoryTrend } from "@/features/inventory/inventory-trend";
 import { LowStockAlerts } from "@/features/inventory/low-stock-alerts";
 import { SuppliersGrid } from "@/features/inventory/suppliers-grid";
-import { INVENTORY } from "@/mock/inventory";
+import {
+  inventorySummary,
+  listInventory,
+  listLowStock,
+  listSuppliers,
+} from "@/lib/queries/inventory";
 import { formatCurrency } from "@/lib/utils";
 
 export const metadata = { title: "Inventory" };
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
-export default function InventoryPage() {
-  const totalValue = INVENTORY.reduce((s, i) => s + i.stock * i.costPerUnit, 0);
-  const low = INVENTORY.filter((i) => i.stock < i.reorderLevel).length;
-  const sku = INVENTORY.length;
+export default async function InventoryPage() {
+  const [summary, items, suppliers, lowStock] = await Promise.all([
+    inventorySummary(),
+    listInventory(),
+    listSuppliers(),
+    listLowStock(6),
+  ]);
 
   return (
     <>
@@ -36,16 +46,16 @@ export default function InventoryPage() {
       />
 
       <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <Stat label="SKUs tracked" value={`${sku}`} icon={BoxIcon} hint="across all categories" />
+        <Stat label="SKUs tracked" value={`${summary.skuCount}`} icon={BoxIcon} hint="across all categories" />
         <Stat
           label="Inventory value"
-          value={formatCurrency(totalValue, { maximumFractionDigits: 0 })}
+          value={formatCurrency(summary.totalValue, { maximumFractionDigits: 0 })}
           icon={BoxIcon}
           hint="at cost"
         />
         <Stat
           label="Low stock"
-          value={`${low}`}
+          value={`${summary.lowCount}`}
           icon={AlertTriangle}
           hint="below reorder level"
           tone="warning"
@@ -56,12 +66,12 @@ export default function InventoryPage() {
         <div className="lg:col-span-2">
           <InventoryTrend />
         </div>
-        <LowStockAlerts />
+        <LowStockAlerts items={lowStock} suppliers={suppliers} />
       </section>
 
-      <InventoryTable />
+      <InventoryTable items={items} suppliers={suppliers} />
 
-      <SuppliersGrid />
+      <SuppliersGrid suppliers={suppliers} />
     </>
   );
 }

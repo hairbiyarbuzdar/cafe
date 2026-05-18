@@ -1,0 +1,256 @@
+// Brewline — database schema
+//
+// One canonical model per domain entity; the client- and server-
+// side stores are thin caches on top of these tables. See
+// `prisma/seed.ts` for representative data.
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+// Connection URL lives in `prisma.config.ts` (Prisma 7 requirement);
+// runtime clients pass an adapter — see `src/lib/prisma.ts`.
+datasource db {
+  provider = "postgresql"
+}
+
+// ──────────────────────────────────────────────────────────────
+// Identity & access
+// ──────────────────────────────────────────────────────────────
+
+enum Role {
+  admin
+  manager
+  cashier
+  kitchen
+}
+
+model User {
+  id           String    @id @default(cuid())
+  name         String
+  email        String    @unique
+  passwordHash String
+  role         Role
+  avatar       String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  sessions     Session[]
+  orders       Order[]
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+// ──────────────────────────────────────────────────────────────
+// Menu & kitchen routing
+// ──────────────────────────────────────────────────────────────
+
+model KitchenStation {
+  id        String          @id @default(cuid())
+  name      String          @unique
+  printer   String?
+  active    Boolean         @default(true)
+  color     String          @default("#6F4E37")
+  menuItems MenuItem[]
+  tickets   KitchenTicket[]
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+}
+
+model MenuCategory {
+  id        String     @id @default(cuid())
+  name      String
+  slug      String     @unique
+  color     String
+  items     MenuItem[]
+  createdAt DateTime   @default(now())
+}
+
+model MenuItem {
+  id              String             @id @default(cuid())
+  name            String
+  description     String?
+  price           Decimal            @db.Decimal(10, 2)
+  sku             String?            @unique
+  available       Boolean            @default(true)
+  posVisible      Boolean            @default(true)
+  popular         Boolean            @default(false)
+  prepTimeMinutes Int?
+  image           String?
+  categoryId      String
+  category        MenuCategory       @relation(fields: [categoryId], references: [id])
+  stationId       String
+  station         KitchenStation     @relation(fields: [stationId], references: [id])
+  modifiers       Json?
+  recipe          RecipeIngredient[]
+  orderItems      OrderItem[]
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  @@index([categoryId])
+  @@index([stationId])
+}
+
+// ──────────────────────────────────────────────────────────────
+// Inventory (raw materials)
+// ──────────────────────────────────────────────────────────────
+
+model Supplier {
+  id             String          @id @default(cuid())
+  name           String
+  contact        String?
+  email          String?
+  phone          String?
+  rating         Float           @default(0)
+  inventoryItems InventoryItem[]
+  createdAt      DateTime        @default(now())
+}
+
+model InventoryItem {
+  id            String              @id @default(cuid())
+  name          String
+  sku           String              @unique
+  category      String
+  unit          String
+  stock         Decimal             @db.Decimal(12, 3)
+  reorderLevel  Decimal             @db.Decimal(12, 3)
+  costPerUnit   Decimal             @db.Decimal(10, 4)
+  supplierId    String?
+  supplier      Supplier?           @relation(fields: [supplierId], references: [id])
+  lastRestocked DateTime?
+  expiresAt     DateTime?
+  recipes       RecipeIngredient[]
+  movements     InventoryMovement[]
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+}
+
+model RecipeIngredient {
+  id              String        @id @default(cuid())
+  menuItemId      String
+  menuItem        MenuItem      @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+  inventoryItemId String
+  inventoryItem   InventoryItem @relation(fields: [inventoryItemId], references: [id])
+  quantity        Decimal       @db.Decimal(10, 4)
+  unit            String
+
+  @@unique([menuItemId, inventoryItemId])
+}
+
+model InventoryMovement {
+  id              String        @id @default(cuid())
+  inventoryItemId String
+  inventoryItem   InventoryItem @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
+  delta           Decimal       @db.Decimal(12, 3) // negative for consumption, positive for restock
+  reason          String
+  orderId         String?
+  createdAt       DateTime      @default(now())
+
+  @@index([inventoryItemId])
+  @@index([orderId])
+}
+
+// ──────────────────────────────────────────────────────────────
+// Tables, orders, kitchen tickets
+// ──────────────────────────────────────────────────────────────
+
+model Table {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  capacity  Int
+  occupancy Int      @default(0)
+  orders    Order[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum OrderStatus {
+  pending
+  preparing
+  ready
+  completed
+  cancelled
+  refunded
+}
+
+enum PaymentMethod {
+  card
+  cash
+  wallet
+  online
+}
+
+model Order {
+  id            String          @id @default(cuid())
+  number        String          @unique
+  status        OrderStatus
+  /// Free-text channel ("dine-in" / "takeaway" / "delivery" / "online").
+  /// Kept as a string because "dine-in" can't appear in a Postgres enum.
+  channel       String
+  customerName  String?
+  customerPhone String?
+  tableId       String?
+  table         Table?          @relation(fields: [tableId], references: [id])
+  staffId       String?
+  staff         User?           @relation(fields: [staffId], references: [id])
+  subtotal      Decimal         @db.Decimal(10, 2)
+  tax           Decimal         @db.Decimal(10, 2)
+  tip           Decimal?        @db.Decimal(10, 2)
+  discount      Decimal?        @db.Decimal(10, 2)
+  total         Decimal         @db.Decimal(10, 2)
+  payment       PaymentMethod
+  notes         String?
+  items         OrderItem[]
+  tickets       KitchenTicket[]
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+model OrderItem {
+  id         String   @id @default(cuid())
+  orderId    String
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  menuItemId String
+  menuItem   MenuItem @relation(fields: [menuItemId], references: [id])
+  /// Denormalized at the time of sale so historical orders stay legible
+  /// even if the underlying menu item is renamed or deleted.
+  name       String
+  quantity   Int
+  unitPrice  Decimal  @db.Decimal(10, 2)
+  modifiers  Json?
+  note       String?
+
+  @@index([orderId])
+}
+
+enum TicketStatus {
+  pending
+  preparing
+  ready
+  served
+}
+
+model KitchenTicket {
+  id        String         @id @default(cuid())
+  orderId   String
+  order     Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  stationId String
+  station   KitchenStation @relation(fields: [stationId], references: [id])
+  status    TicketStatus   @default(pending)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  @@unique([orderId, stationId])
+  @@index([stationId, status])
+}
