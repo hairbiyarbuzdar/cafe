@@ -58,11 +58,11 @@ export function OrderDetailDrawer({ order, onClose }: Props) {
     <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
       <SheetContent
         side="right"
-        className="flex w-full flex-col gap-0 p-0 sm:max-w-[460px]"
+        className="flex h-full w-full flex-col gap-0 p-0 sm:max-w-[460px]"
       >
         {order ? (
           <>
-            <SheetHeader className="space-y-2 border-b p-5">
+            <SheetHeader className="shrink-0 space-y-2 border-b p-5">
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <SheetTitle className="flex items-center gap-2 text-[16px] font-semibold">
@@ -112,7 +112,7 @@ export function OrderDetailDrawer({ order, onClose }: Props) {
             <ScrollArea className="flex-1">
               <div className="space-y-5 p-5">
                 <Section title="Timeline">
-                  <ol className="space-y-3 ps-1">
+                  <ol className="space-y-3 ps-1 grid sm:grid-cols-2">
                     {STAGES.map((stage, idx) => {
                       const stageIndex = STAGES.findIndex((s) => s.status === order.status);
                       const done = idx <= stageIndex && order.status !== "cancelled";
@@ -212,7 +212,7 @@ export function OrderDetailDrawer({ order, onClose }: Props) {
               </div>
             </ScrollArea>
 
-            <div className="grid grid-cols-3 gap-2 border-t bg-surface-1 px-5 py-3">
+            <div className="grid shrink-0 grid-cols-3 gap-2 border-t bg-surface-1 px-5 pt-3 pb-[calc(12px+env(safe-area-inset-bottom))]">
               <Button variant="outline" size="sm" className="h-9 rounded-md text-[12px]">
                 <Printer className="size-3.5" />
                 Print
