@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/layouts/page-header";
 import { OrdersTable } from "@/features/orders/orders-table";
 import { ORDERS } from "@/mock/orders";
 import { formatCurrency } from "@/lib/utils";
+import Link from "next/link";
 
 export const metadata = { title: "Orders" };
 
@@ -35,10 +36,12 @@ export default function OrdersPage() {
               <Download className="size-3.5" />
               Export CSV
             </Button>
-            <Button size="sm" className="h-8 rounded-md text-[12.5px]">
-              <Plus className="size-3.5" />
-              New order
-            </Button>
+            <Link href="/pos" className="flex items-center">
+              <Button size="sm" variant="default" className="h-8 rounded-md text-[12.5px]">
+                <Plus className="size-3.5" />
+                New order
+              </Button>
+            </Link>
           </>
         }
       />
