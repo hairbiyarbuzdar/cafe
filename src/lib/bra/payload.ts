@@ -118,7 +118,10 @@ export function buildBraInvoicePayload(args: BuildArgs): BraInvoicePayload {
     TotalTaxCharged: round2(order.tax),
     Discount: round2(order.discount ?? 0),
     FurtherTax: 0,
-    PaymentMode: PAYMENT_MODE[order.payment],
+    // BRA needs a payment mode on the invoice. Caller guarantees the
+    // order is paid (we refuse to fiscalize held orders); the fallback
+    // to "cash" is defensive only.
+    PaymentMode: order.payment ? PAYMENT_MODE[order.payment] : 1,
     InvoiceType: invoiceType,
     Items: items,
   };

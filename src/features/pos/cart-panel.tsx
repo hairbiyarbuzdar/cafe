@@ -4,18 +4,18 @@ import * as React from "react";
 import {
   Bike,
   CircleX,
-  CreditCard,
+  Clock,
   Minus,
   Plus,
   ReceiptText,
   ShoppingBag,
-  Smartphone,
   Trash2,
+  Unlink,
   Utensils,
-  Wallet,
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,16 +27,10 @@ import { TablePicker } from "@/features/pos/table-picker";
 import { cartSubtotal, useCart } from "@/store/cart-store";
 import { useTables } from "@/store/tables-store";
 import { cn, formatCurrency } from "@/lib/utils";
-import type { OrderChannel, PaymentMethod } from "@/types";
-
-const PAYMENTS: { value: PaymentMethod; label: string; icon: typeof Wallet }[] = [
-  { value: "card", label: "Card", icon: CreditCard },
-  { value: "cash", label: "Cash", icon: Wallet },
-  { value: "wallet", label: "Wallet", icon: Smartphone },
-];
+import type { OrderChannel } from "@/types";
 
 type CartPanelProps = {
-  /** Fired when the user opens the checkout dialog
+  /** Fired when the user opens the place-order dialog
    *  (useful for closing a wrapping bottom sheet on mobile). */
   onChargeStart?: () => void;
 };
@@ -44,17 +38,18 @@ type CartPanelProps = {
 export function CartPanel({ onChargeStart }: CartPanelProps = {}) {
   const items = useCart((s) => s.items);
   const channel = useCart((s) => s.channel);
-  const payment = useCart((s) => s.payment);
   const note = useCart((s) => s.note);
   const discountPct = useCart((s) => s.discountPct);
   const tableId = useCart((s) => s.tableId);
   const taxRate = useCart((s) => s.taxRate);
-  const setPayment = useCart((s) => s.setPayment);
+  const attachedOrderId = useCart((s) => s.attachedOrderId);
+  const attachedOrderNumber = useCart((s) => s.attachedOrderNumber);
   const setNote = useCart((s) => s.setNote);
   const setDiscountPct = useCart((s) => s.setDiscountPct);
   const setQuantity = useCart((s) => s.setQuantity);
   const remove = useCart((s) => s.remove);
   const clear = useCart((s) => s.clear);
+  const detach = useCart((s) => s.detach);
 
   const tables = useTables((s) => s.tables);
   const selectTable = useTables((s) => s.selectTable);
@@ -62,6 +57,7 @@ export function CartPanel({ onChargeStart }: CartPanelProps = {}) {
 
   const [checkoutOpen, setCheckoutOpen] = React.useState(false);
 
+  const isAttach = Boolean(attachedOrderId);
   const subtotal = cartSubtotal(items);
   const discount = subtotal * (discountPct / 100);
   const taxable = subtotal - discount;
@@ -73,7 +69,7 @@ export function CartPanel({ onChargeStart }: CartPanelProps = {}) {
       <header className="flex items-center justify-between border-b px-4 py-3.5">
         <div className="min-w-0">
           <h2 className="text-[14px] font-semibold tracking-tight text-foreground">
-            Current order
+            {isAttach ? `Adding to ${attachedOrderNumber}` : "New order"}
           </h2>
           <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[11.5px] text-muted-foreground">
             <ChannelInline channel={channel} />
@@ -107,11 +103,35 @@ export function CartPanel({ onChargeStart }: CartPanelProps = {}) {
         </Button>
       </header>
 
-      {channel === "dine-in" ? <TablePicker /> : null}
+      {isAttach ? (
+        <div className="flex items-center justify-between gap-3 border-b border-warning/20 bg-warning/8 px-4 py-2 text-[12px]">
+          <span className="inline-flex items-center gap-1.5 text-warning-foreground/85">
+            <Badge variant="outline" className="rounded-md border-warning/40 text-warning-foreground/85">
+              Attach mode
+            </Badge>
+            New items append to{" "}
+            <span className="font-mono text-foreground">{attachedOrderNumber}</span>
+          </span>
+          <Button
+            variant="ghost"
+            size="xs"
+            className="text-[11.5px] text-muted-foreground"
+            onClick={() => {
+              detach();
+              toast.success("Detached", { description: "Starting a new order" });
+            }}
+          >
+            <Unlink className="size-3" />
+            Detach
+          </Button>
+        </div>
+      ) : null}
+
+      {channel === "dine-in" && !isAttach ? <TablePicker /> : null}
 
       <ScrollArea className="min-h-0 flex-1">
         {items.length === 0 ? (
-          <EmptyCart />
+          <EmptyCart isAttach={isAttach} />
         ) : (
           <ul className="divide-y">
             {items.map((item) => {
@@ -175,76 +195,68 @@ export function CartPanel({ onChargeStart }: CartPanelProps = {}) {
       </ScrollArea>
 
       <div className="space-y-3 border-t bg-surface-1 px-4 py-4">
-        <div className="grid grid-cols-3 gap-1.5">
-          {PAYMENTS.map((p) => {
-            const Icon = p.icon;
-            const active = payment === p.value;
-            return (
-              <button
-                key={p.value}
-                type="button"
-                onClick={() => setPayment(p.value)}
-                className={cn(
-                  "flex flex-col items-center gap-1 rounded-md border bg-card py-2 text-[11.5px] font-medium transition",
-                  active
-                    ? "border-primary/50 bg-primary/10 text-primary"
-                    : "text-muted-foreground hover:bg-muted",
-                )}
-              >
-                <Icon className="size-3.5" />
-                {p.label}
-              </button>
-            );
-          })}
-        </div>
-
-        <details className="group rounded-md border bg-card px-3 py-2 text-[12.5px]">
-          <summary className="flex cursor-pointer list-none items-center justify-between font-medium text-foreground">
-            Additional options
-            <span className="text-muted-foreground transition group-open:rotate-180">
-              ⌄
-            </span>
-          </summary>
-          <div className="mt-3 space-y-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="discount" className="text-[11.5px] text-muted-foreground">
-                Discount (%)
-              </Label>
-              <Input
-                id="discount"
-                type="number"
-                min={0}
-                max={100}
-                value={discountPct}
-                onChange={(e) => setDiscountPct(Number(e.target.value) || 0)}
-                className="h-8 rounded-md text-[12.5px]"
-              />
+        {!isAttach ? (
+          <details className="group rounded-md border bg-card px-3 py-2 text-[12.5px]">
+            <summary className="flex cursor-pointer list-none items-center justify-between font-medium text-foreground">
+              Additional options
+              <span className="text-muted-foreground transition group-open:rotate-180">
+                ⌄
+              </span>
+            </summary>
+            <div className="mt-3 space-y-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="discount" className="text-[11.5px] text-muted-foreground">
+                  Discount (%)
+                </Label>
+                <Input
+                  id="discount"
+                  type="number"
+                  min={0}
+                  max={100}
+                  value={discountPct}
+                  onChange={(e) => setDiscountPct(Number(e.target.value) || 0)}
+                  className="h-8 rounded-md text-[12.5px]"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="note" className="text-[11.5px] text-muted-foreground">
+                  Order note
+                </Label>
+                <Textarea
+                  id="note"
+                  rows={2}
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  placeholder="Allergies, prep notes…"
+                  className="rounded-md text-[12.5px]"
+                />
+              </div>
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="note" className="text-[11.5px] text-muted-foreground">
-                Order note
-              </Label>
-              <Textarea
-                id="note"
-                rows={2}
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                placeholder="Allergies, prep notes…"
-                className="rounded-md text-[12.5px]"
-              />
-            </div>
-          </div>
-        </details>
+          </details>
+        ) : null}
 
         <dl className="space-y-1.5 text-[12.5px]">
           <Row label="Subtotal" value={formatCurrency(subtotal)} />
-          {discount > 0 ? (
+          {!isAttach && discount > 0 ? (
             <Row label={`Discount (${discountPct}%)`} value={`−${formatCurrency(discount)}`} muted />
           ) : null}
-          <Row label={`Tax (${(taxRate * 100).toFixed(2)}%)`} value={formatCurrency(tax)} muted />
+          {!isAttach ? (
+            <Row label={`Tax (${(taxRate * 100).toFixed(2)}%)`} value={formatCurrency(tax)} muted />
+          ) : null}
           <Separator className="my-1.5" />
-          <Row label="Total" value={formatCurrency(total)} bold />
+          <Row
+            label={isAttach ? "New items total" : "Total (due on pickup)"}
+            value={formatCurrency(isAttach ? subtotal : total)}
+            bold
+          />
         </dl>
+
+        <p className="inline-flex items-center gap-1.5 text-[11.5px] text-muted-foreground">
+          <Clock className="size-3" />
+          {isAttach
+            ? "Additions are sent to the kitchen; payment is collected at pickup."
+            : "Sends to the kitchen on hold. Payment is collected at pickup / served."}
+        </p>
 
         <Button
           className="h-12 w-full rounded-md text-[14px] font-semibold shadow-soft"
@@ -255,7 +267,9 @@ export function CartPanel({ onChargeStart }: CartPanelProps = {}) {
           }}
         >
           <ReceiptText className="size-4" />
-          Charge {formatCurrency(total)}
+          {isAttach
+            ? `Add to ${attachedOrderNumber}`
+            : `Place order · ${formatCurrency(total)}`}
         </Button>
       </div>
 
@@ -327,15 +341,19 @@ function ChannelInline({ channel }: { channel: OrderChannel }) {
   );
 }
 
-function EmptyCart() {
+function EmptyCart({ isAttach }: { isAttach: boolean }) {
   return (
     <div className="flex h-full min-h-[260px] flex-col items-center justify-center gap-2 px-6 text-center">
       <div className="flex size-12 items-center justify-center rounded-full bg-secondary/60">
         <ReceiptText className="size-5 text-muted-foreground" />
       </div>
-      <p className="text-[13.5px] font-medium text-foreground">Cart is empty</p>
+      <p className="text-[13.5px] font-medium text-foreground">
+        {isAttach ? "No new items yet" : "Cart is empty"}
+      </p>
       <p className="text-[12.5px] text-muted-foreground">
-        Tap a product to add it to the order.
+        {isAttach
+          ? "Tap a product to append it to the held order."
+          : "Tap a product to add it to the order."}
       </p>
     </div>
   );

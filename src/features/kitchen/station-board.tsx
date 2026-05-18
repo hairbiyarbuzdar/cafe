@@ -7,7 +7,9 @@ import {
   Clock,
   Flame,
   PackageCheck,
+  TriangleAlert,
   Utensils,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -30,7 +32,7 @@ type Props = {
 };
 
 const LANE_META: Record<
-  Exclude<TicketStatus, "served">,
+  Exclude<TicketStatus, "served" | "cancelled">,
   { label: string; icon: typeof Clock; tone: string; nextLabel: string }
 > = {
   pending: {
@@ -53,7 +55,7 @@ const LANE_META: Record<
   },
 };
 
-const LANES: Exclude<TicketStatus, "served">[] = [
+const LANES: Exclude<TicketStatus, "served" | "cancelled">[] = [
   "pending",
   "preparing",
   "ready",
@@ -62,6 +64,7 @@ const LANES: Exclude<TicketStatus, "served">[] = [
 export function StationBoard({ station, tickets }: Props) {
   const setStatus = useKitchenTickets((s) => s.setStatus);
 
+  const cancelled = tickets.filter((t) => t.status === "cancelled");
   const lanes = LANES.map((lane) => ({
     lane,
     items: tickets.filter((t) => t.status === lane),
@@ -82,7 +85,69 @@ export function StationBoard({ station, tickets }: Props) {
     setStatus(ticket.id, prev);
   }
 
+  function dismiss(ticket: KitchenTicket) {
+    setStatus(ticket.id, "served");
+    toast.success(`${ticket.orderNumber} dismissed`, {
+      description: `Stop work on ${station.name}`,
+    });
+  }
+
   return (
+    <div className="space-y-3">
+      {cancelled.length > 0 ? (
+        <section
+          role="alert"
+          className="rounded-xl border border-destructive/30 bg-destructive/8 p-3"
+        >
+          <header className="flex items-center justify-between gap-2 pb-2">
+            <p className="inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-destructive">
+              <TriangleAlert className="size-3.5" />
+              Cancelled — stop preparing
+            </p>
+            <span className="text-[11.5px] font-medium tabular-nums text-destructive/80">
+              {cancelled.length}
+            </span>
+          </header>
+          <ul className="space-y-2">
+            {cancelled.map((ticket) => (
+              <li
+                key={ticket.id}
+                className="flex items-start gap-3 rounded-md border border-destructive/30 bg-card p-3"
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="flex items-center gap-1.5 text-[13.5px] font-semibold tabular-nums text-foreground">
+                    {ticket.orderNumber}
+                    <ChannelBadge channel={ticket.channel} />
+                    {ticket.table ? (
+                      <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+                        <Utensils className="size-3" />
+                        {ticket.table}
+                      </span>
+                    ) : null}
+                  </p>
+                  <ul className="mt-1 space-y-0.5 text-[12.5px] text-muted-foreground line-through">
+                    {ticket.items.map((i) => (
+                      <li key={i.id}>
+                        ×{i.quantity} {i.name}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 rounded-md text-[12px]"
+                  onClick={() => dismiss(ticket)}
+                >
+                  <X className="size-3.5" />
+                  Dismiss
+                </Button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
     <ScrollArea className="w-full">
       <div className="grid min-w-[760px] grid-cols-3 gap-3 p-1 md:min-w-0">
         {lanes.map(({ lane, items }) => {
@@ -131,6 +196,7 @@ export function StationBoard({ station, tickets }: Props) {
       </div>
       <ScrollBar orientation="horizontal" />
     </ScrollArea>
+    </div>
   );
 }
 
@@ -147,7 +213,10 @@ function TicketCard({
 }) {
   const next = NEXT_STATUS[ticket.status];
   const prev = PREV_STATUS[ticket.status];
-  const meta = ticket.status !== "served" ? LANE_META[ticket.status] : null;
+  const meta =
+    ticket.status !== "served" && ticket.status !== "cancelled"
+      ? LANE_META[ticket.status]
+      : null;
 
   return (
     <article
@@ -241,5 +310,6 @@ function TicketCard({
 
 function LANE_LABEL(s: TicketStatus): string {
   if (s === "served") return "Served";
+  if (s === "cancelled") return "Cancelled";
   return LANE_META[s].label;
 }

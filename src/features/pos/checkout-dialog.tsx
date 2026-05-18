@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Check, Loader2, Printer, Send } from "lucide-react";
+import { Check, Loader2, ReceiptText, Send } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -15,7 +15,10 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { createOrderAction } from "@/lib/actions/orders";
+import {
+  addItemsToHeldOrderAction,
+  placeOrderAction,
+} from "@/lib/actions/orders";
 import { useCart } from "@/store/cart-store";
 import { useTables } from "@/store/tables-store";
 import { formatCurrency } from "@/lib/utils";
@@ -33,10 +36,18 @@ type Status = "review" | "processing" | "success";
 
 type SuccessInfo = {
   orderNumber: string;
-  receiptNumber: string;
   total: number;
+  appended: boolean;
 };
 
+/**
+ * Renamed from "checkout" in spirit — this dialog confirms placement
+ * of a held order (no payment captured). When the cart is attached to
+ * an existing held order, it appends the new items instead.
+ *
+ * Payment happens later, from the Order Detail drawer's "Take payment"
+ * button (or the cancellation flow if the customer changes their mind).
+ */
 export function CheckoutDialog({
   open,
   onOpenChange,
@@ -48,13 +59,15 @@ export function CheckoutDialog({
   const router = useRouter();
   const {
     items,
-    payment,
     channel,
     tableId,
     note,
     discountPct,
     taxRate,
+    attachedOrderId,
+    attachedOrderNumber,
     clear,
+    detach,
   } = useCart();
   const tables = useTables((s) => s.tables);
   const table = tables.find((t) => t.id === tableId)?.name;
@@ -68,43 +81,58 @@ export function CheckoutDialog({
     }
   }, [open]);
 
-  async function charge() {
+  const isAttach = Boolean(attachedOrderId);
+
+  async function submit() {
     setStatus("processing");
-    const result = await createOrderAction({
-      items: items.map((i) => ({
-        productId: i.productId,
-        quantity: i.quantity,
-        modifiers: i.modifiers,
-      })),
-      channel,
-      payment,
-      tableId,
-      note,
-      discountPct,
-      taxRate,
-    });
+
+    const payload = items.map((i) => ({
+      productId: i.productId,
+      quantity: i.quantity,
+      modifiers: i.modifiers,
+    }));
+
+    const result = isAttach
+      ? await addItemsToHeldOrderAction(attachedOrderId!, payload)
+      : await placeOrderAction({
+          items: payload,
+          channel,
+          tableId,
+          note,
+          discountPct,
+          taxRate,
+        });
 
     if (!result.ok) {
-      toast.error("Checkout failed", { description: result.error });
+      toast.error(isAttach ? "Couldn't add items" : "Couldn't place order", {
+        description: result.error,
+      });
       setStatus("review");
       return;
     }
 
     setSuccess({
       orderNumber: result.orderNumber,
-      receiptNumber: result.receiptNumber,
       total: result.total,
+      appended: isAttach,
     });
     setStatus("success");
-    toast.success(`Order ${result.orderNumber} placed`, {
-      description: `${formatCurrency(result.total)} via ${payment}`,
-    });
-    // Refresh server components (orders, kitchen, inventory pages).
+    toast.success(
+      isAttach
+        ? `Items added to ${result.orderNumber}`
+        : `Order ${result.orderNumber} sent to kitchen`,
+      {
+        description: `Running total ${formatCurrency(result.total)} · payment due at pickup`,
+      },
+    );
     router.refresh();
   }
 
   function dismiss() {
-    if (status === "success") clear();
+    if (status === "success") {
+      clear();
+      detach();
+    }
     onOpenChange(false);
   }
 
@@ -113,12 +141,18 @@ export function CheckoutDialog({
       <DialogContent className="max-w-[440px] gap-4 rounded-lg p-0">
         <DialogHeader className="px-5 pt-5">
           <DialogTitle className="text-[15px] font-semibold tracking-tight">
-            {status === "success" ? "Order paid" : "Confirm order"}
+            {status === "success"
+              ? isAttach
+                ? "Items added"
+                : "Order on hold"
+              : isAttach
+                ? `Add to ${attachedOrderNumber ?? "held order"}`
+                : "Place order"}
           </DialogTitle>
           <DialogDescription className="text-[12.5px]">
             {status === "success"
-              ? "The receipt is ready to print or send."
-              : `Charge ${formatCurrency(total)} via ${payment.toUpperCase()} for ${channel}${table ? ` · ${table}` : ""}.`}
+              ? "Kitchen has the ticket. Collect payment from the order detail drawer when the customer's ready."
+              : `Send to kitchen — payment collected later. ${channel}${table ? ` · ${table}` : ""}.`}
           </DialogDescription>
         </DialogHeader>
 
@@ -131,7 +165,10 @@ export function CheckoutDialog({
               {formatCurrency(success.total)}
             </p>
             <p className="text-[12px] text-muted-foreground">
-              Order {success.orderNumber} · Receipt {success.receiptNumber}
+              {success.appended ? "Added to" : "Held as"} order {success.orderNumber}
+            </p>
+            <p className="text-[11.5px] text-muted-foreground">
+              Payment due at pickup / served
             </p>
           </div>
         ) : (
@@ -156,7 +193,7 @@ export function CheckoutDialog({
               ) : null}
               <Row label="Tax" value={formatCurrency(tax)} muted />
               <Separator className="my-1" />
-              <Row label="Total" value={formatCurrency(total)} bold />
+              <Row label="Total (due on pickup)" value={formatCurrency(total)} bold />
             </dl>
           </div>
         )}
@@ -164,10 +201,7 @@ export function CheckoutDialog({
         <DialogFooter className="grid grid-cols-2 gap-2 border-t bg-surface-1 px-5 py-3">
           {status === "success" ? (
             <>
-              <Button variant="outline" size="sm" className="h-9 rounded-md text-[12.5px]">
-                <Printer className="size-3.5" />
-                Print
-              </Button>
+              <span />
               <Button size="sm" className="h-9 rounded-md text-[12.5px]" onClick={dismiss}>
                 <Send className="size-3.5" />
                 Done
@@ -187,16 +221,19 @@ export function CheckoutDialog({
               <Button
                 size="sm"
                 className="h-9 rounded-md text-[12.5px]"
-                onClick={charge}
+                onClick={submit}
                 disabled={status === "processing"}
               >
                 {status === "processing" ? (
                   <>
                     <Loader2 className="size-3.5 animate-spin" />
-                    Processing…
+                    {isAttach ? "Adding…" : "Placing…"}
                   </>
                 ) : (
-                  <>Charge {formatCurrency(total)}</>
+                  <>
+                    <ReceiptText className="size-3.5" />
+                    {isAttach ? "Add to order" : "Send to kitchen"}
+                  </>
                 )}
               </Button>
             </>

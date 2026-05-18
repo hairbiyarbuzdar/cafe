@@ -272,6 +272,7 @@ exports.Prisma.OrderScalarFieldEnum = {
   discount: 'discount',
   total: 'total',
   payment: 'payment',
+  paidAt: 'paidAt',
   notes: 'notes',
   fiscalInvoiceNumber: 'fiscalInvoiceNumber',
   fiscalSubmittedAt: 'fiscalSubmittedAt',
@@ -389,7 +390,8 @@ exports.TicketStatus = exports.$Enums.TicketStatus = {
   pending: 'pending',
   preparing: 'preparing',
   ready: 'ready',
-  served: 'served'
+  served: 'served',
+  cancelled: 'cancelled'
 };
 
 exports.FiscalMode = exports.$Enums.FiscalMode = {

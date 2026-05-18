@@ -46,7 +46,8 @@ export async function listOrders(): Promise<Order[]> {
     tip: o.tip != null ? toNumber(o.tip) : undefined,
     discount: o.discount != null ? toNumber(o.discount) : undefined,
     total: toNumber(o.total),
-    payment: o.payment as PaymentMethod,
+    payment: o.payment ? (o.payment as PaymentMethod) : undefined,
+    paidAt: o.paidAt ? o.paidAt.toISOString() : undefined,
     staff: o.staff?.name ?? ANON_STAFF,
     notes: o.notes ?? undefined,
     createdAt: o.createdAt.toISOString(),
@@ -56,6 +57,52 @@ export async function listOrders(): Promise<Order[]> {
       ? o.fiscalSubmittedAt.toISOString()
       : undefined,
     fiscalLastError: o.fiscalLastError ?? undefined,
+  }));
+}
+
+/**
+ * Just the orders currently on hold (unpaid, not cancelled/refunded/completed).
+ * Used by the POS "Add to held order" picker — kept slim and ordered
+ * newest-first so cashiers grab the right one fast.
+ */
+export type HeldOrderSummary = {
+  id: string;
+  number: string;
+  channel: OrderChannel;
+  table?: string;
+  customerName?: string;
+  total: number;
+  itemCount: number;
+  createdAt: string;
+};
+
+export async function listHeldOrders(): Promise<HeldOrderSummary[]> {
+  const rows = await prisma.order.findMany({
+    where: {
+      paidAt: null,
+      status: { notIn: ["cancelled", "refunded", "completed"] },
+    },
+    orderBy: { createdAt: "desc" },
+    select: {
+      id: true,
+      number: true,
+      channel: true,
+      customerName: true,
+      total: true,
+      createdAt: true,
+      table: { select: { name: true } },
+      _count: { select: { items: true } },
+    },
+  });
+  return rows.map((o) => ({
+    id: o.id,
+    number: o.number,
+    channel: o.channel as OrderChannel,
+    table: o.table?.name,
+    customerName: o.customerName ?? undefined,
+    total: toNumber(o.total),
+    itemCount: o._count.items,
+    createdAt: o.createdAt.toISOString(),
   }));
 }
 

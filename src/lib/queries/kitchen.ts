@@ -16,8 +16,11 @@ import type {
  * station — the join through MenuItem.stationId enforces routing.
  */
 export async function listActiveKitchenTickets(): Promise<KitchenTicket[]> {
+  // Include `cancelled` so cooks see a struck-out ticket they can
+  // explicitly dismiss; without that, a cancelled order would silently
+  // disappear mid-prep.
   const tickets = await prisma.kitchenTicket.findMany({
-    where: { status: { in: ["pending", "preparing", "ready"] } },
+    where: { status: { in: ["pending", "preparing", "ready", "cancelled"] } },
     orderBy: { createdAt: "desc" },
     include: {
       order: {

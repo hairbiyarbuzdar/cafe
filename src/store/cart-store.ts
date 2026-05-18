@@ -2,42 +2,51 @@
 
 import { create } from "zustand";
 
-import type { CartItem, MenuItem, OrderChannel, PaymentMethod, ProductModifier } from "@/types";
+import type {
+  CartItem,
+  MenuItem,
+  OrderChannel,
+  ProductModifier,
+} from "@/types";
 
 type CartState = {
   items: CartItem[];
   channel: OrderChannel;
-  payment: PaymentMethod;
   tableId?: string;
   note: string;
   discountPct: number;
   taxRate: number;
   /**
-   * Adds `quantity` of a menu item to the cart. If the same item
-   * is already there, increments the existing line.
+   * When set, the cart represents *additions* to an existing held order
+   * rather than a fresh placement. The cart panel renders an "Adding to
+   * #X" badge and swaps the submit button copy.
    */
+  attachedOrderId: string | null;
+  attachedOrderNumber: string | null;
   add: (item: MenuItem, quantity?: number, modifiers?: ProductModifier[]) => void;
   increment: (productId: string) => void;
   decrement: (productId: string) => void;
   setQuantity: (productId: string, quantity: number) => void;
   remove: (productId: string) => void;
   clear: () => void;
-  /** Switching away from dine-in unassigns any selected table. */
   setChannel: (channel: OrderChannel) => void;
-  setPayment: (payment: PaymentMethod) => void;
   setTableId: (tableId: string | undefined) => void;
   setNote: (note: string) => void;
   setDiscountPct: (pct: number) => void;
+  /** Bind the cart to a held order — subsequent items are added to it. */
+  attach: (orderId: string, orderNumber: string) => void;
+  detach: () => void;
 };
 
 export const useCart = create<CartState>((set) => ({
   items: [],
   channel: "dine-in",
-  payment: "card",
   tableId: undefined,
   note: "",
   discountPct: 0,
   taxRate: 0.085,
+  attachedOrderId: null,
+  attachedOrderNumber: null,
 
   add: (item, quantity = 1, modifiers = []) =>
     set((state) => {
@@ -109,13 +118,15 @@ export const useCart = create<CartState>((set) => ({
   setChannel: (channel) =>
     set((state) => ({
       channel,
-      // tables only apply to dine-in service
       tableId: channel === "dine-in" ? state.tableId : undefined,
     })),
-  setPayment: (payment) => set({ payment }),
   setTableId: (tableId) => set({ tableId }),
   setNote: (note) => set({ note }),
   setDiscountPct: (discountPct) => set({ discountPct }),
+
+  attach: (orderId, orderNumber) =>
+    set({ attachedOrderId: orderId, attachedOrderNumber: orderNumber }),
+  detach: () => set({ attachedOrderId: null, attachedOrderNumber: null }),
 }));
 
 export function cartSubtotal(items: CartItem[]) {

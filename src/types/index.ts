@@ -55,7 +55,9 @@ export type Order = {
   tip?: number;
   discount?: number;
   total: number;
-  payment: PaymentMethod;
+  /** Nullable — held orders defer payment until pickup/served. */
+  payment?: PaymentMethod;
+  paidAt?: string;
   table?: string;
   staff: string;
   notes?: string;
@@ -66,6 +68,16 @@ export type Order = {
   fiscalSubmittedAt?: string;
   fiscalLastError?: string;
 };
+
+/** What the UI labels an "on hold" order. */
+export function isOrderHeld(order: Pick<Order, "paidAt" | "status">): boolean {
+  return (
+    !order.paidAt &&
+    order.status !== "cancelled" &&
+    order.status !== "refunded" &&
+    order.status !== "completed"
+  );
+}
 
 export type Category = {
   id: string;
@@ -136,8 +148,17 @@ export type MenuItem = {
   recipe?: RecipeIngredient[];
 };
 
-/** Kitchen ticket statuses — lifecycle independent per station. */
-export type TicketStatus = "pending" | "preparing" | "ready" | "served";
+/**
+ * Kitchen ticket statuses — lifecycle independent per station.
+ * `cancelled` is set when the parent order is cancelled; the KDS
+ * keeps the ticket visible (struck-out) until a cook dismisses it.
+ */
+export type TicketStatus =
+  | "pending"
+  | "preparing"
+  | "ready"
+  | "served"
+  | "cancelled";
 
 export type KitchenTicketItem = {
   id: string;

@@ -268,7 +268,11 @@ model Order {
   tip                 Decimal?           @db.Decimal(10, 2)
   discount            Decimal?           @db.Decimal(10, 2)
   total               Decimal            @db.Decimal(10, 2)
-  payment             PaymentMethod
+  /// Nullable: held orders accumulate items + go to the kitchen long
+  /// before the operator collects payment. `payment` and `paidAt` are
+  /// both set in the same step via `payOrderAction`.
+  payment             PaymentMethod?
+  paidAt              DateTime?
   notes               String?
   /// BRA-issued fiscal invoice number. Populated after successful
   /// submission to the BRA Software Fiscal Device (local or cloud).
@@ -308,6 +312,11 @@ enum TicketStatus {
   preparing
   ready
   served
+  /// Set when the parent order is cancelled before payment. The
+  /// kitchen surface keeps cancelled tickets visible (struck-out)
+  /// until a cook explicitly dismisses them so prep can be stopped
+  /// without surprises.
+  cancelled
 }
 
 model KitchenTicket {

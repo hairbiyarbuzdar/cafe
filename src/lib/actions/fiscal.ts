@@ -162,6 +162,12 @@ export async function submitInvoiceToBraAction(
     include: { items: true },
   });
   if (!order) return { ok: false, error: "Order not found" };
+  if (!order.payment || !order.paidAt) {
+    return {
+      ok: false,
+      error: "Order isn't paid yet — collect payment before fiscalizing.",
+    };
+  }
 
   if (order.fiscalInvoiceNumber) {
     return {
@@ -272,7 +278,8 @@ function toPayloadOrder(o: {
   tip: unknown;
   discount: unknown;
   total: unknown;
-  payment: string;
+  /** Non-null by precondition — we gate the action on `order.payment != null`. */
+  payment: string | null;
   createdAt: Date;
   items: {
     id: string;
@@ -295,7 +302,7 @@ function toPayloadOrder(o: {
     tip: o.tip != null ? toNumber(o.tip) : undefined,
     discount: o.discount != null ? toNumber(o.discount) : undefined,
     total: toNumber(o.total),
-    payment: o.payment as PaymentMethod,
+    payment: (o.payment ?? "cash") as PaymentMethod,
     createdAt: o.createdAt.toISOString(),
     items: o.items.map<OrderItem>((i) => ({
       id: i.id,

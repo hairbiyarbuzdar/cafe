@@ -8,13 +8,16 @@ import {
   CircleCheck,
   Clock,
   CreditCard,
+  Hourglass,
   Loader2,
   Mail,
+  Plus,
   Printer,
   Receipt,
   RotateCcw,
   Send,
   Smartphone,
+  Trash2,
   TriangleAlert,
   Utensils,
   Wallet,
@@ -33,10 +36,13 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { CancelHeldOrderDialog } from "@/features/orders/cancel-held-dialog";
 import { ChannelBadge, OrderStatusBadge } from "@/features/orders/status-badge";
+import { TakePaymentDialog } from "@/features/orders/take-payment-dialog";
 import { submitInvoiceToBraAction } from "@/lib/actions/fiscal";
+import { useCart } from "@/store/cart-store";
 import { cn, formatCurrency, formatRelativeTime, initials } from "@/lib/utils";
-import type { Order, OrderStatus, PaymentMethod } from "@/types";
+import { isOrderHeld, type Order, type OrderStatus, type PaymentMethod } from "@/types";
 
 const PAYMENT_ICON: Record<PaymentMethod, typeof Wallet> = {
   card: CreditCard,
@@ -59,7 +65,8 @@ type Props = {
 
 export function OrderDetailDrawer({ order, onClose }: Props) {
   const open = Boolean(order);
-  const PaymentIcon = order ? PAYMENT_ICON[order.payment] : CreditCard;
+  const PaymentIcon = order?.payment ? PAYMENT_ICON[order.payment] : CreditCard;
+  const held = order ? isOrderHeld(order) : false;
 
   return (
     <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
@@ -74,7 +81,14 @@ export function OrderDetailDrawer({ order, onClose }: Props) {
                 <div>
                   <SheetTitle className="flex items-center gap-2 text-[16px] font-semibold">
                     Order {order.number}
-                    <OrderStatusBadge status={order.status} />
+                    {held ? (
+                      <Badge className="rounded-md border-warning/30 bg-warning/12 text-warning-foreground/90">
+                        <Hourglass className="size-3" />
+                        On hold
+                      </Badge>
+                    ) : (
+                      <OrderStatusBadge status={order.status} />
+                    )}
                   </SheetTitle>
                   <SheetDescription className="mt-1 flex flex-wrap items-center gap-1.5 text-[12px]">
                     <ChannelBadge channel={order.channel} />
@@ -196,14 +210,29 @@ export function OrderDetailDrawer({ order, onClose }: Props) {
                     <Row label="Total" value={formatCurrency(order.total)} bold />
                     <Separator className="my-1" />
                     <div className="flex items-center justify-between pt-1 text-[12px]">
-                      <span className="inline-flex items-center gap-1.5 text-muted-foreground">
-                        <PaymentIcon className="size-3.5" />
-                        Paid via {order.payment}
-                      </span>
-                      <span className="inline-flex items-center gap-1.5 text-success">
-                        <CircleCheck className="size-3.5" />
-                        Captured
-                      </span>
+                      {order.payment ? (
+                        <>
+                          <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+                            <PaymentIcon className="size-3.5" />
+                            Paid via {order.payment}
+                          </span>
+                          <span className="inline-flex items-center gap-1.5 text-success">
+                            <CircleCheck className="size-3.5" />
+                            Captured
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+                            <Hourglass className="size-3.5" />
+                            Payment due on pickup / served
+                          </span>
+                          <span className="inline-flex items-center gap-1.5 text-warning-foreground/85">
+                            <Clock className="size-3.5" />
+                            Awaiting
+                          </span>
+                        </>
+                      )}
                     </div>
                   </div>
                 </Section>
@@ -223,24 +252,11 @@ export function OrderDetailDrawer({ order, onClose }: Props) {
               </div>
             </ScrollArea>
 
-            <div className="grid shrink-0 grid-cols-3 gap-2 border-t bg-surface-1 px-5 pt-3 pb-[calc(12px+env(safe-area-inset-bottom))]">
-              <Button variant="outline" size="sm" className="h-9 rounded-md text-[12px]">
-                <Printer className="size-3.5" />
-                Print
-              </Button>
-              <Button variant="outline" size="sm" className="h-9 rounded-md text-[12px]">
-                <Send className="size-3.5" />
-                Resend
-              </Button>
-              <Button
-                variant={order.status === "refunded" ? "outline" : "default"}
-                size="sm"
-                className="h-9 rounded-md text-[12px]"
-              >
-                <RotateCcw className="size-3.5" />
-                Refund
-              </Button>
-            </div>
+            <OrderDrawerFooter
+              order={order}
+              held={held}
+              onClose={onClose}
+            />
           </>
         ) : null}
       </SheetContent>
@@ -261,6 +277,96 @@ function Section({
         {title}
       </h3>
       {children}
+    </div>
+  );
+}
+
+function OrderDrawerFooter({
+  order,
+  held,
+  onClose,
+}: {
+  order: Order;
+  held: boolean;
+  onClose: () => void;
+}) {
+  const router = useRouter();
+  const attach = useCart((s) => s.attach);
+  const [payOpen, setPayOpen] = React.useState(false);
+  const [cancelOpen, setCancelOpen] = React.useState(false);
+
+  function startAddingItems() {
+    attach(order.id, order.number);
+    toast.success(`Attached cart to ${order.number}`, {
+      description: "Pick items in the POS — they'll append to this order.",
+    });
+    onClose();
+    router.push("/pos");
+  }
+
+  if (held) {
+    return (
+      <div className="grid shrink-0 grid-cols-3 gap-2 border-t bg-surface-1 px-5 pt-3 pb-[calc(12px+env(safe-area-inset-bottom))]">
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-9 rounded-md text-[12px]"
+          onClick={startAddingItems}
+        >
+          <Plus className="size-3.5" />
+          Add items
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-9 rounded-md text-[12px] text-destructive hover:bg-destructive/10 hover:text-destructive"
+          onClick={() => setCancelOpen(true)}
+        >
+          <Trash2 className="size-3.5" />
+          Cancel
+        </Button>
+        <Button
+          size="sm"
+          className="h-9 rounded-md text-[12px]"
+          onClick={() => setPayOpen(true)}
+        >
+          <Receipt className="size-3.5" />
+          Take payment
+        </Button>
+
+        <TakePaymentDialog
+          order={order}
+          open={payOpen}
+          onOpenChange={setPayOpen}
+        />
+        <CancelHeldOrderDialog
+          order={order}
+          open={cancelOpen}
+          onOpenChange={setCancelOpen}
+        />
+      </div>
+    );
+  }
+
+  // Already paid (or cancelled/refunded) — the original receipt + refund row.
+  return (
+    <div className="grid shrink-0 grid-cols-3 gap-2 border-t bg-surface-1 px-5 pt-3 pb-[calc(12px+env(safe-area-inset-bottom))]">
+      <Button variant="outline" size="sm" className="h-9 rounded-md text-[12px]">
+        <Printer className="size-3.5" />
+        Print
+      </Button>
+      <Button variant="outline" size="sm" className="h-9 rounded-md text-[12px]">
+        <Send className="size-3.5" />
+        Resend
+      </Button>
+      <Button
+        variant={order.status === "refunded" ? "outline" : "default"}
+        size="sm"
+        className="h-9 rounded-md text-[12px]"
+      >
+        <RotateCcw className="size-3.5" />
+        Refund
+      </Button>
     </div>
   );
 }

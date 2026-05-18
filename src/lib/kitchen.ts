@@ -89,12 +89,18 @@ export function splitOrderIntoTickets(
   return tickets;
 }
 
-/** Advance / regress a ticket through the lifecycle. */
+/**
+ * Advance / regress a ticket through the lifecycle. `cancelled` is a
+ * terminal state with no forward transition — the kitchen card swaps
+ * to a Dismiss action that flips straight to `served`, removing the
+ * ticket from the active view.
+ */
 export const NEXT_STATUS: Record<TicketStatus, TicketStatus | null> = {
   pending: "preparing",
   preparing: "ready",
   ready: "served",
   served: null,
+  cancelled: null,
 };
 
 export const PREV_STATUS: Record<TicketStatus, TicketStatus | null> = {
@@ -102,4 +108,5 @@ export const PREV_STATUS: Record<TicketStatus, TicketStatus | null> = {
   preparing: "pending",
   ready: "preparing",
   served: "ready",
+  cancelled: null,
 };

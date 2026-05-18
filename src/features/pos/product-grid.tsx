@@ -6,8 +6,10 @@ import { Bike, Search, ShoppingBag, Sparkles, Utensils } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import { HeldOrdersPicker } from "@/features/pos/held-orders-picker";
 import { ProductCard } from "@/features/pos/product-card";
 import { QuantityDialog } from "@/features/pos/quantity-dialog";
+import type { HeldOrderSummary } from "@/lib/queries/orders";
 import { useCart } from "@/store/cart-store";
 import { useCategories } from "@/store/categories-store";
 import { selectPosVisibleItems, useMenu } from "@/store/menu-store";
@@ -15,7 +17,11 @@ import type { MenuItem, OrderChannel } from "@/types";
 
 type Filter = "all" | "popular" | string;
 
-export function ProductGrid() {
+export function ProductGrid({
+  heldOrders = [],
+}: {
+  heldOrders?: HeldOrderSummary[];
+}) {
   const allItems = useMenu((s) => s.items);
   const categories = useCategories((s) => s.categories);
   // Only items that are toggled to appear on the POS screen
@@ -67,6 +73,7 @@ export function ProductGrid() {
             />
           </div>
           <ChannelToggle />
+          <HeldOrdersPicker orders={heldOrders} />
         </div>
 
         <ScrollArea className="w-full">

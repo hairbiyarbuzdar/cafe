@@ -29,10 +29,13 @@ import {
   type AdvancedFilters,
 } from "@/features/orders/orders-advanced-filter";
 import { cn, formatCurrency, formatRelativeTime } from "@/lib/utils";
-import type { Order, OrderStatus } from "@/types";
+import { isOrderHeld, type Order, type OrderStatus } from "@/types";
 
-const TABS: { value: OrderStatus | "all"; label: string }[] = [
+type TableTab = OrderStatus | "all" | "held";
+
+const TABS: { value: TableTab; label: string }[] = [
   { value: "all", label: "All" },
+  { value: "held", label: "On hold" },
   { value: "pending", label: "Pending" },
   { value: "preparing", label: "Preparing" },
   { value: "ready", label: "Ready" },
@@ -44,7 +47,7 @@ const TABS: { value: OrderStatus | "all"; label: string }[] = [
 const PAGE_SIZE = 8;
 
 export function OrdersTable({ orders }: { orders: Order[] }) {
-  const [tab, setTab] = React.useState<OrderStatus | "all">("all");
+  const [tab, setTab] = React.useState<TableTab>("all");
   const [channel, setChannel] = React.useState<string>("all");
   const [search, setSearch] = React.useState("");
   const [advanced, setAdvanced] = React.useState<AdvancedFilters>(
@@ -63,7 +66,11 @@ export function OrdersTable({ orders }: { orders: Order[] }) {
     const customerQ = advanced.customerName.trim().toLowerCase();
 
     return orders.filter((o) => {
-      if (tab !== "all" && o.status !== tab) return false;
+      if (tab === "held") {
+        if (!isOrderHeld(o)) return false;
+      } else if (tab !== "all" && o.status !== tab) {
+        return false;
+      }
       if (channel !== "all" && o.channel !== channel) return false;
       if (advanced.payment !== "all" && o.payment !== advanced.payment) return false;
       if (fromTs != null || toTs != null) {
@@ -100,7 +107,7 @@ export function OrdersTable({ orders }: { orders: Order[] }) {
         <div className="flex flex-col gap-3 border-b border-border/70 p-3 md:flex-row md:items-center md:justify-between md:p-4">
           <ScrollableTabs
             tab={tab}
-            onChange={(v) => setTab(v as OrderStatus | "all")}
+            onChange={(v) => setTab(v as TableTab)}
           />
           <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
             <div className="relative min-w-0 flex-1 sm:flex-initial">
@@ -147,7 +154,13 @@ export function OrdersTable({ orders }: { orders: Order[] }) {
                       <span className="text-[14px] font-semibold tabular-nums">
                         {o.number}
                       </span>
-                      <OrderStatusBadge status={o.status} />
+                      {isOrderHeld(o) ? (
+                        <span className="inline-flex items-center gap-1 rounded-md border border-warning/30 bg-warning/12 px-1.5 py-0.5 text-[10.5px] font-medium text-warning-foreground/90">
+                          On hold
+                        </span>
+                      ) : (
+                        <OrderStatusBadge status={o.status} />
+                      )}
                     </div>
                     <p className="mt-1 truncate text-[13px] text-foreground">
                       {o.customer?.name ?? "Walk-in"}
@@ -229,7 +242,13 @@ export function OrdersTable({ orders }: { orders: Order[] }) {
                       {formatCurrency(o.total)}
                     </TableCell>
                     <TableCell>
-                      <OrderStatusBadge status={o.status} />
+                      {isOrderHeld(o) ? (
+                        <span className="inline-flex items-center gap-1 rounded-md border border-warning/30 bg-warning/12 px-1.5 py-0.5 text-[10.5px] font-medium text-warning-foreground/90">
+                          On hold
+                        </span>
+                      ) : (
+                        <OrderStatusBadge status={o.status} />
+                      )}
                     </TableCell>
                     <TableCell className="text-muted-foreground">{o.staff}</TableCell>
                     <TableCell className="text-right text-muted-foreground">
@@ -310,7 +329,7 @@ function ScrollableTabs({
   tab,
   onChange,
 }: {
-  tab: OrderStatus | "all";
+  tab: TableTab;
   onChange: (v: string) => void;
 }) {
   const scrollRef = React.useRef<HTMLDivElement>(null);
