@@ -72,14 +72,18 @@ export function AppSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton
               size="lg"
-              className="data-[state=open]:bg-sidebar-accent"
+              className="data-[state=open]:bg-sidebar-accent group-data-[collapsible=icon]:justify-center"
               asChild
             >
-              <Link href="/dashboard" className="gap-3">
-                <span className="flex aspect-square size-10 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary/85 text-primary-foreground shadow-soft">
-                  <Coffee className="size-[18px]" strokeWidth={2} />
+              <Link
+                href="/dashboard"
+                className="flex items-center gap-3 group-data-[collapsible=icon]:gap-0"
+              >
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary/85 text-primary-foreground shadow-soft">
+                  <Coffee className="size-4" strokeWidth={2} />
                 </span>
-                <div className="grid flex-1 text-left leading-tight">
+
+                <div className="grid flex-1 text-left leading-tight group-data-[collapsible=icon]:hidden">
                   <span className="text-[14px] font-semibold tracking-tight">
                     {BRAND.name}
                   </span>
