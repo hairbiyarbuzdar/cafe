@@ -49,6 +49,63 @@ model Session {
   @@index([userId])
 }
 
+/// A team member added before being granted access. The Staff page
+/// creates these (name + email only). Settings → Team turns one into
+/// a real `User` by attaching a role + password; the draft is then
+/// deleted in the same transaction.
+model PendingMember {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  createdAt DateTime @default(now())
+}
+
+// ──────────────────────────────────────────────────────────────
+// Payment channels (cashbook accounts)
+// ──────────────────────────────────────────────────────────────
+
+/// A configurable money channel — Cash drawer, wallet (EasyPaisa,
+/// JazzCash), or bank account. Each one tracks an opening balance
+/// and a running current balance; the current is mutated atomically
+/// by transfers (and, in a future iteration, by sales and supplier
+/// payouts).
+///
+/// Named `PaymentChannel` at the DB layer to keep the `PaymentMethod`
+/// enum (Order.payment) unambiguous — the UI still calls these
+/// "Payment Methods" since that's the operator's mental model.
+model PaymentChannel {
+  id             String            @id @default(cuid())
+  name           String            @unique
+  openingBalance Decimal           @db.Decimal(14, 2)
+  currentBalance Decimal           @db.Decimal(14, 2)
+  archived       Boolean           @default(false)
+  archivedAt     DateTime?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  outgoing       PaymentTransfer[] @relation("transferFrom")
+  incoming       PaymentTransfer[] @relation("transferTo")
+}
+
+/// A money movement from one channel to another. The
+/// `createTransferAction` server action wraps `from -= amount`,
+/// `to += amount`, and this row in a single transaction so balances
+/// can never drift.
+model PaymentTransfer {
+  id         String         @id @default(cuid())
+  fromId     String
+  from       PaymentChannel @relation("transferFrom", fields: [fromId], references: [id])
+  toId       String
+  to         PaymentChannel @relation("transferTo", fields: [toId], references: [id])
+  amount     Decimal        @db.Decimal(14, 2)
+  occurredAt DateTime
+  note       String?
+  createdAt  DateTime       @default(now())
+
+  @@index([occurredAt])
+  @@index([fromId])
+  @@index([toId])
+}
+
 // ──────────────────────────────────────────────────────────────
 // Menu & kitchen routing
 // ──────────────────────────────────────────────────────────────
@@ -80,6 +137,9 @@ model MenuItem {
   description     String?
   price           Decimal            @db.Decimal(10, 2)
   sku             String?            @unique
+  /// Pakistan Customs Tariff code reported per line item to BRA.
+  /// Falls back to FiscalConfig.defaultPctCode at submission time.
+  pctCode         String?
   available       Boolean            @default(true)
   posVisible      Boolean            @default(true)
   popular         Boolean            @default(false)
@@ -189,29 +249,38 @@ enum PaymentMethod {
 }
 
 model Order {
-  id            String          @id @default(cuid())
-  number        String          @unique
-  status        OrderStatus
+  id                  String             @id @default(cuid())
+  number              String             @unique
+  status              OrderStatus
   /// Free-text channel ("dine-in" / "takeaway" / "delivery" / "online").
   /// Kept as a string because "dine-in" can't appear in a Postgres enum.
-  channel       String
-  customerName  String?
-  customerPhone String?
-  tableId       String?
-  table         Table?          @relation(fields: [tableId], references: [id])
-  staffId       String?
-  staff         User?           @relation(fields: [staffId], references: [id])
-  subtotal      Decimal         @db.Decimal(10, 2)
-  tax           Decimal         @db.Decimal(10, 2)
-  tip           Decimal?        @db.Decimal(10, 2)
-  discount      Decimal?        @db.Decimal(10, 2)
-  total         Decimal         @db.Decimal(10, 2)
-  payment       PaymentMethod
-  notes         String?
-  items         OrderItem[]
-  tickets       KitchenTicket[]
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime        @updatedAt
+  channel             String
+  customerName        String?
+  customerPhone       String?
+  buyerNtn            String?
+  buyerCnic           String?
+  tableId             String?
+  table               Table?             @relation(fields: [tableId], references: [id])
+  staffId             String?
+  staff               User?              @relation(fields: [staffId], references: [id], onDelete: SetNull)
+  subtotal            Decimal            @db.Decimal(10, 2)
+  tax                 Decimal            @db.Decimal(10, 2)
+  tip                 Decimal?           @db.Decimal(10, 2)
+  discount            Decimal?           @db.Decimal(10, 2)
+  total               Decimal            @db.Decimal(10, 2)
+  payment             PaymentMethod
+  notes               String?
+  /// BRA-issued fiscal invoice number. Populated after successful
+  /// submission to the BRA Software Fiscal Device (local or cloud).
+  fiscalInvoiceNumber String?
+  fiscalSubmittedAt   DateTime?
+  fiscalAttempts      Int                @default(0)
+  fiscalLastError     String?
+  fiscalSubmissions   FiscalSubmission[]
+  items               OrderItem[]
+  tickets             KitchenTicket[]
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
 
   @@index([status])
   @@index([createdAt])
@@ -253,4 +322,77 @@ model KitchenTicket {
 
   @@unique([orderId, stationId])
   @@index([stationId, status])
+}
+
+// ──────────────────────────────────────────────────────────────
+// BRA fiscal device integration
+// ──────────────────────────────────────────────────────────────
+
+enum FiscalMode {
+  disabled
+  local
+  cloud
+}
+
+enum FiscalEnvironment {
+  sandbox
+  production
+}
+
+/// Workspace-wide configuration for invoice fiscalization with the
+/// Balochistan Revenue Authority (BRA). A single row is enough — we
+/// use a fixed primary key ("default") and upsert it on save.
+///
+/// `bearerToken` and `accessCode` are sensitive; never expose either
+/// in client-bound payloads (the query helper strips them).
+model FiscalConfig {
+  id             String            @id @default("default")
+  enabled        Boolean           @default(false)
+  mode           FiscalMode        @default(disabled)
+  environment    FiscalEnvironment @default(sandbox)
+  /// BRA-issued POS Registration Number (called POSID in the spec).
+  posId          String?
+  /// Access code paired with the POS ID; used for the local fiscal device.
+  accessCode     String?
+  /// Bearer token for the cloud endpoint (sandbox/production).
+  bearerToken    String?
+  /// Override for the local device URL. Default is the spec's `http://localhost:8524`.
+  localBaseUrl   String            @default("http://localhost:8524")
+  /// PCT (Pakistan Customs Tariff) code applied to any menu item
+  /// that doesn't carry its own. BRA's documented placeholder is "00000000".
+  defaultPctCode String            @default("00000000")
+  /// Optional display-only metadata (helps operators sanity-check the config).
+  businessName   String?
+  bntn           String?
+  /// Auto-submit invoices to BRA when a POS order is placed.
+  /// When false, operators submit manually from the order detail drawer.
+  autoSubmit     Boolean           @default(true)
+  updatedAt      DateTime          @updatedAt
+}
+
+/// One row per submission attempt against the BRA fiscal device.
+/// Keeps a forensic audit so failed submissions can be re-driven and
+/// successful ones can be reconciled with BRA's portal later.
+model FiscalSubmission {
+  id                  String            @id @default(cuid())
+  orderId             String
+  order               Order             @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  mode                FiscalMode
+  environment         FiscalEnvironment
+  endpoint            String
+  /// Whether BRA accepted the invoice (Code == "100" in the spec).
+  succeeded           Boolean
+  /// Fiscal invoice number returned by BRA on success.
+  fiscalInvoiceNumber String?
+  /// Raw response code / message from BRA.
+  responseCode        String?
+  responseMessage     String?
+  errorMessage        String?
+  /// Payload + response captured verbatim for debugging.
+  requestBody         Json
+  responseBody        Json?
+  attemptedAt         DateTime          @default(now())
+
+  @@index([orderId])
+  @@index([attemptedAt])
 }

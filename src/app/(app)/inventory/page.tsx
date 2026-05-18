@@ -1,10 +1,11 @@
-import { AlertTriangle, BoxIcon, Download, Plus } from "lucide-react";
+import { AlertTriangle, BoxIcon, Download } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/layouts/page-header";
 import { InventoryTable } from "@/features/inventory/inventory-table";
 import { InventoryTrend } from "@/features/inventory/inventory-trend";
 import { LowStockAlerts } from "@/features/inventory/low-stock-alerts";
+import { NewInventoryItemButton } from "@/features/inventory/inventory-form-sheet";
 import { SuppliersGrid } from "@/features/inventory/suppliers-grid";
 import {
   inventorySummary,
@@ -26,6 +27,10 @@ export default async function InventoryPage() {
     listLowStock(6),
   ]);
 
+  const knownCategories = Array.from(
+    new Set(items.map((i) => i.category)),
+  ).sort();
+
   return (
     <>
       <PageHeader
@@ -37,10 +42,10 @@ export default async function InventoryPage() {
               <Download className="size-3.5" />
               Export
             </Button>
-            <Button size="sm" className="h-8 rounded-md text-[12.5px]">
-              <Plus className="size-3.5" />
-              New item
-            </Button>
+            <NewInventoryItemButton
+              suppliers={suppliers}
+              knownCategories={knownCategories}
+            />
           </>
         }
       />

@@ -138,6 +138,34 @@ exports.Prisma.SessionScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
+exports.Prisma.PendingMemberScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  email: 'email',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.PaymentChannelScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  openingBalance: 'openingBalance',
+  currentBalance: 'currentBalance',
+  archived: 'archived',
+  archivedAt: 'archivedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.PaymentTransferScalarFieldEnum = {
+  id: 'id',
+  fromId: 'fromId',
+  toId: 'toId',
+  amount: 'amount',
+  occurredAt: 'occurredAt',
+  note: 'note',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.KitchenStationScalarFieldEnum = {
   id: 'id',
   name: 'name',
@@ -162,6 +190,7 @@ exports.Prisma.MenuItemScalarFieldEnum = {
   description: 'description',
   price: 'price',
   sku: 'sku',
+  pctCode: 'pctCode',
   available: 'available',
   posVisible: 'posVisible',
   popular: 'popular',
@@ -233,6 +262,8 @@ exports.Prisma.OrderScalarFieldEnum = {
   channel: 'channel',
   customerName: 'customerName',
   customerPhone: 'customerPhone',
+  buyerNtn: 'buyerNtn',
+  buyerCnic: 'buyerCnic',
   tableId: 'tableId',
   staffId: 'staffId',
   subtotal: 'subtotal',
@@ -242,6 +273,10 @@ exports.Prisma.OrderScalarFieldEnum = {
   total: 'total',
   payment: 'payment',
   notes: 'notes',
+  fiscalInvoiceNumber: 'fiscalInvoiceNumber',
+  fiscalSubmittedAt: 'fiscalSubmittedAt',
+  fiscalAttempts: 'fiscalAttempts',
+  fiscalLastError: 'fiscalLastError',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -266,6 +301,38 @@ exports.Prisma.KitchenTicketScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.FiscalConfigScalarFieldEnum = {
+  id: 'id',
+  enabled: 'enabled',
+  mode: 'mode',
+  environment: 'environment',
+  posId: 'posId',
+  accessCode: 'accessCode',
+  bearerToken: 'bearerToken',
+  localBaseUrl: 'localBaseUrl',
+  defaultPctCode: 'defaultPctCode',
+  businessName: 'businessName',
+  bntn: 'bntn',
+  autoSubmit: 'autoSubmit',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.FiscalSubmissionScalarFieldEnum = {
+  id: 'id',
+  orderId: 'orderId',
+  mode: 'mode',
+  environment: 'environment',
+  endpoint: 'endpoint',
+  succeeded: 'succeeded',
+  fiscalInvoiceNumber: 'fiscalInvoiceNumber',
+  responseCode: 'responseCode',
+  responseMessage: 'responseMessage',
+  errorMessage: 'errorMessage',
+  requestBody: 'requestBody',
+  responseBody: 'responseBody',
+  attemptedAt: 'attemptedAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -273,6 +340,10 @@ exports.Prisma.SortOrder = {
 
 exports.Prisma.NullableJsonNullValueInput = {
   DbNull: Prisma.DbNull,
+  JsonNull: Prisma.JsonNull
+};
+
+exports.Prisma.JsonNullValueInput = {
   JsonNull: Prisma.JsonNull
 };
 
@@ -321,9 +392,23 @@ exports.TicketStatus = exports.$Enums.TicketStatus = {
   served: 'served'
 };
 
+exports.FiscalMode = exports.$Enums.FiscalMode = {
+  disabled: 'disabled',
+  local: 'local',
+  cloud: 'cloud'
+};
+
+exports.FiscalEnvironment = exports.$Enums.FiscalEnvironment = {
+  sandbox: 'sandbox',
+  production: 'production'
+};
+
 exports.Prisma.ModelName = {
   User: 'User',
   Session: 'Session',
+  PendingMember: 'PendingMember',
+  PaymentChannel: 'PaymentChannel',
+  PaymentTransfer: 'PaymentTransfer',
   KitchenStation: 'KitchenStation',
   MenuCategory: 'MenuCategory',
   MenuItem: 'MenuItem',
@@ -334,7 +419,9 @@ exports.Prisma.ModelName = {
   Table: 'Table',
   Order: 'Order',
   OrderItem: 'OrderItem',
-  KitchenTicket: 'KitchenTicket'
+  KitchenTicket: 'KitchenTicket',
+  FiscalConfig: 'FiscalConfig',
+  FiscalSubmission: 'FiscalSubmission'
 };
 
 /**

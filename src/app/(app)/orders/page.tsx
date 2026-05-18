@@ -1,4 +1,4 @@
-import { Download, Filter, Plus } from "lucide-react";
+import { Download, Plus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/layouts/page-header";
@@ -21,10 +21,6 @@ export default async function OrdersPage() {
         description="All orders across in-store, takeaway, delivery, and online channels."
         actions={
           <>
-            <Button variant="outline" size="sm" className="h-8 rounded-md text-[12.5px]">
-              <Filter className="size-3.5" />
-              Advanced
-            </Button>
             <Button variant="outline" size="sm" className="h-8 rounded-md text-[12.5px]">
               <Download className="size-3.5" />
               Export CSV

@@ -6,10 +6,10 @@ import { Bike, Search, ShoppingBag, Sparkles, Utensils } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { CATEGORIES } from "@/mock/categories";
 import { ProductCard } from "@/features/pos/product-card";
 import { QuantityDialog } from "@/features/pos/quantity-dialog";
 import { useCart } from "@/store/cart-store";
+import { useCategories } from "@/store/categories-store";
 import { selectPosVisibleItems, useMenu } from "@/store/menu-store";
 import type { MenuItem, OrderChannel } from "@/types";
 
@@ -17,6 +17,7 @@ type Filter = "all" | "popular" | string;
 
 export function ProductGrid() {
   const allItems = useMenu((s) => s.items);
+  const categories = useCategories((s) => s.categories);
   // Only items that are toggled to appear on the POS screen
   const items = React.useMemo(() => selectPosVisibleItems(allItems), [allItems]);
 
@@ -83,7 +84,7 @@ export function ProductGrid() {
               count={popularCount}
               icon={<Sparkles className="size-3" />}
             />
-            {CATEGORIES.map((c) => (
+            {categories.map((c) => (
               <CategoryChip
                 key={c.id}
                 active={activeFilter === c.id}

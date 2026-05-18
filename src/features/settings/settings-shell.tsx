@@ -2,6 +2,8 @@
 
 import * as React from "react";
 
+import { FiscalPanel } from "@/features/settings/fiscal/fiscal-panel";
+import { PaymentMethodsPanel } from "@/features/settings/payment-methods/payment-methods-panel";
 import { SettingsNav, type SettingsTab } from "@/features/settings/settings-nav";
 import {
   AppearancePanel,
@@ -12,9 +14,32 @@ import {
   SecurityPanel,
   TeamPanel,
 } from "@/features/settings/settings-panels";
+import type {
+  FiscalSubmissionSummary,
+  PublicFiscalConfig,
+} from "@/lib/queries/fiscal";
+import type {
+  PaymentChannel,
+  Transfer,
+} from "@/lib/queries/payment-channels";
+import type { PendingMember } from "@/lib/queries/users";
 import type { SessionUser } from "@/types/auth";
 
-export function SettingsShell({ teamMembers }: { teamMembers: SessionUser[] }) {
+export function SettingsShell({
+  teamMembers,
+  pendingMembers,
+  paymentChannels,
+  transfers,
+  fiscalConfig,
+  fiscalSubmissions,
+}: {
+  teamMembers: SessionUser[];
+  pendingMembers: PendingMember[];
+  paymentChannels: PaymentChannel[];
+  transfers: Transfer[];
+  fiscalConfig: PublicFiscalConfig;
+  fiscalSubmissions: FiscalSubmissionSummary[];
+}) {
   const [tab, setTab] = React.useState<SettingsTab>("general");
 
   return (
@@ -26,7 +51,18 @@ export function SettingsShell({ teamMembers }: { teamMembers: SessionUser[] }) {
       <div className="min-w-0">
         {tab === "general" ? <GeneralPanel /> : null}
         {tab === "appearance" ? <AppearancePanel /> : null}
-        {tab === "team" ? <TeamPanel members={teamMembers} /> : null}
+        {tab === "team" ? (
+          <TeamPanel members={teamMembers} pending={pendingMembers} />
+        ) : null}
+        {tab === "payment-methods" ? (
+          <PaymentMethodsPanel
+            channels={paymentChannels}
+            transfers={transfers}
+          />
+        ) : null}
+        {tab === "fiscal" ? (
+          <FiscalPanel config={fiscalConfig} submissions={fiscalSubmissions} />
+        ) : null}
         {tab === "notifications" ? <NotificationsPanel /> : null}
         {tab === "billing" ? <BillingPanel /> : null}
         {tab === "integrations" ? <IntegrationsPanel /> : null}

@@ -24,6 +24,35 @@ export type User = $Result.DefaultSelection<Prisma.$UserPayload>
  */
 export type Session = $Result.DefaultSelection<Prisma.$SessionPayload>
 /**
+ * Model PendingMember
+ * A team member added before being granted access. The Staff page
+ * creates these (name + email only). Settings → Team turns one into
+ * a real `User` by attaching a role + password; the draft is then
+ * deleted in the same transaction.
+ */
+export type PendingMember = $Result.DefaultSelection<Prisma.$PendingMemberPayload>
+/**
+ * Model PaymentChannel
+ * A configurable money channel — Cash drawer, wallet (EasyPaisa,
+ * JazzCash), or bank account. Each one tracks an opening balance
+ * and a running current balance; the current is mutated atomically
+ * by transfers (and, in a future iteration, by sales and supplier
+ * payouts).
+ * 
+ * Named `PaymentChannel` at the DB layer to keep the `PaymentMethod`
+ * enum (Order.payment) unambiguous — the UI still calls these
+ * "Payment Methods" since that's the operator's mental model.
+ */
+export type PaymentChannel = $Result.DefaultSelection<Prisma.$PaymentChannelPayload>
+/**
+ * Model PaymentTransfer
+ * A money movement from one channel to another. The
+ * `createTransferAction` server action wraps `from -= amount`,
+ * `to += amount`, and this row in a single transaction so balances
+ * can never drift.
+ */
+export type PaymentTransfer = $Result.DefaultSelection<Prisma.$PaymentTransferPayload>
+/**
  * Model KitchenStation
  * 
  */
@@ -78,6 +107,23 @@ export type OrderItem = $Result.DefaultSelection<Prisma.$OrderItemPayload>
  * 
  */
 export type KitchenTicket = $Result.DefaultSelection<Prisma.$KitchenTicketPayload>
+/**
+ * Model FiscalConfig
+ * Workspace-wide configuration for invoice fiscalization with the
+ * Balochistan Revenue Authority (BRA). A single row is enough — we
+ * use a fixed primary key ("default") and upsert it on save.
+ * 
+ * `bearerToken` and `accessCode` are sensitive; never expose either
+ * in client-bound payloads (the query helper strips them).
+ */
+export type FiscalConfig = $Result.DefaultSelection<Prisma.$FiscalConfigPayload>
+/**
+ * Model FiscalSubmission
+ * One row per submission attempt against the BRA fiscal device.
+ * Keeps a forensic audit so failed submissions can be re-driven and
+ * successful ones can be reconciled with BRA's portal later.
+ */
+export type FiscalSubmission = $Result.DefaultSelection<Prisma.$FiscalSubmissionPayload>
 
 /**
  * Enums
@@ -124,6 +170,23 @@ export const TicketStatus: {
 
 export type TicketStatus = (typeof TicketStatus)[keyof typeof TicketStatus]
 
+
+export const FiscalMode: {
+  disabled: 'disabled',
+  local: 'local',
+  cloud: 'cloud'
+};
+
+export type FiscalMode = (typeof FiscalMode)[keyof typeof FiscalMode]
+
+
+export const FiscalEnvironment: {
+  sandbox: 'sandbox',
+  production: 'production'
+};
+
+export type FiscalEnvironment = (typeof FiscalEnvironment)[keyof typeof FiscalEnvironment]
+
 }
 
 export type Role = $Enums.Role
@@ -141,6 +204,14 @@ export const PaymentMethod: typeof $Enums.PaymentMethod
 export type TicketStatus = $Enums.TicketStatus
 
 export const TicketStatus: typeof $Enums.TicketStatus
+
+export type FiscalMode = $Enums.FiscalMode
+
+export const FiscalMode: typeof $Enums.FiscalMode
+
+export type FiscalEnvironment = $Enums.FiscalEnvironment
+
+export const FiscalEnvironment: typeof $Enums.FiscalEnvironment
 
 /**
  * ##  Prisma Client ʲˢ
@@ -284,6 +355,36 @@ export class PrismaClient<
   get session(): Prisma.SessionDelegate<ExtArgs, ClientOptions>;
 
   /**
+   * `prisma.pendingMember`: Exposes CRUD operations for the **PendingMember** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more PendingMembers
+    * const pendingMembers = await prisma.pendingMember.findMany()
+    * ```
+    */
+  get pendingMember(): Prisma.PendingMemberDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.paymentChannel`: Exposes CRUD operations for the **PaymentChannel** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more PaymentChannels
+    * const paymentChannels = await prisma.paymentChannel.findMany()
+    * ```
+    */
+  get paymentChannel(): Prisma.PaymentChannelDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.paymentTransfer`: Exposes CRUD operations for the **PaymentTransfer** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more PaymentTransfers
+    * const paymentTransfers = await prisma.paymentTransfer.findMany()
+    * ```
+    */
+  get paymentTransfer(): Prisma.PaymentTransferDelegate<ExtArgs, ClientOptions>;
+
+  /**
    * `prisma.kitchenStation`: Exposes CRUD operations for the **KitchenStation** model.
     * Example usage:
     * ```ts
@@ -392,6 +493,26 @@ export class PrismaClient<
     * ```
     */
   get kitchenTicket(): Prisma.KitchenTicketDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.fiscalConfig`: Exposes CRUD operations for the **FiscalConfig** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more FiscalConfigs
+    * const fiscalConfigs = await prisma.fiscalConfig.findMany()
+    * ```
+    */
+  get fiscalConfig(): Prisma.FiscalConfigDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.fiscalSubmission`: Exposes CRUD operations for the **FiscalSubmission** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more FiscalSubmissions
+    * const fiscalSubmissions = await prisma.fiscalSubmission.findMany()
+    * ```
+    */
+  get fiscalSubmission(): Prisma.FiscalSubmissionDelegate<ExtArgs, ClientOptions>;
 }
 
 export namespace Prisma {
@@ -828,6 +949,9 @@ export namespace Prisma {
   export const ModelName: {
     User: 'User',
     Session: 'Session',
+    PendingMember: 'PendingMember',
+    PaymentChannel: 'PaymentChannel',
+    PaymentTransfer: 'PaymentTransfer',
     KitchenStation: 'KitchenStation',
     MenuCategory: 'MenuCategory',
     MenuItem: 'MenuItem',
@@ -838,7 +962,9 @@ export namespace Prisma {
     Table: 'Table',
     Order: 'Order',
     OrderItem: 'OrderItem',
-    KitchenTicket: 'KitchenTicket'
+    KitchenTicket: 'KitchenTicket',
+    FiscalConfig: 'FiscalConfig',
+    FiscalSubmission: 'FiscalSubmission'
   };
 
   export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -854,7 +980,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "user" | "session" | "kitchenStation" | "menuCategory" | "menuItem" | "supplier" | "inventoryItem" | "recipeIngredient" | "inventoryMovement" | "table" | "order" | "orderItem" | "kitchenTicket"
+      modelProps: "user" | "session" | "pendingMember" | "paymentChannel" | "paymentTransfer" | "kitchenStation" | "menuCategory" | "menuItem" | "supplier" | "inventoryItem" | "recipeIngredient" | "inventoryMovement" | "table" | "order" | "orderItem" | "kitchenTicket" | "fiscalConfig" | "fiscalSubmission"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -1003,6 +1129,228 @@ export namespace Prisma {
           count: {
             args: Prisma.SessionCountArgs<ExtArgs>
             result: $Utils.Optional<SessionCountAggregateOutputType> | number
+          }
+        }
+      }
+      PendingMember: {
+        payload: Prisma.$PendingMemberPayload<ExtArgs>
+        fields: Prisma.PendingMemberFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.PendingMemberFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PendingMemberPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.PendingMemberFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PendingMemberPayload>
+          }
+          findFirst: {
+            args: Prisma.PendingMemberFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PendingMemberPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.PendingMemberFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PendingMemberPayload>
+          }
+          findMany: {
+            args: Prisma.PendingMemberFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PendingMemberPayload>[]
+          }
+          create: {
+            args: Prisma.PendingMemberCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PendingMemberPayload>
+          }
+          createMany: {
+            args: Prisma.PendingMemberCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.PendingMemberCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PendingMemberPayload>[]
+          }
+          delete: {
+            args: Prisma.PendingMemberDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PendingMemberPayload>
+          }
+          update: {
+            args: Prisma.PendingMemberUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PendingMemberPayload>
+          }
+          deleteMany: {
+            args: Prisma.PendingMemberDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.PendingMemberUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.PendingMemberUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PendingMemberPayload>[]
+          }
+          upsert: {
+            args: Prisma.PendingMemberUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PendingMemberPayload>
+          }
+          aggregate: {
+            args: Prisma.PendingMemberAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregatePendingMember>
+          }
+          groupBy: {
+            args: Prisma.PendingMemberGroupByArgs<ExtArgs>
+            result: $Utils.Optional<PendingMemberGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.PendingMemberCountArgs<ExtArgs>
+            result: $Utils.Optional<PendingMemberCountAggregateOutputType> | number
+          }
+        }
+      }
+      PaymentChannel: {
+        payload: Prisma.$PaymentChannelPayload<ExtArgs>
+        fields: Prisma.PaymentChannelFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.PaymentChannelFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PaymentChannelPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.PaymentChannelFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PaymentChannelPayload>
+          }
+          findFirst: {
+            args: Prisma.PaymentChannelFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PaymentChannelPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.PaymentChannelFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PaymentChannelPayload>
+          }
+          findMany: {
+            args: Prisma.PaymentChannelFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PaymentChannelPayload>[]
+          }
+          create: {
+            args: Prisma.PaymentChannelCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PaymentChannelPayload>
+          }
+          createMany: {
+            args: Prisma.PaymentChannelCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.PaymentChannelCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PaymentChannelPayload>[]
+          }
+          delete: {
+            args: Prisma.PaymentChannelDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PaymentChannelPayload>
+          }
+          update: {
+            args: Prisma.PaymentChannelUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PaymentChannelPayload>
+          }
+          deleteMany: {
+            args: Prisma.PaymentChannelDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.PaymentChannelUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.PaymentChannelUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PaymentChannelPayload>[]
+          }
+          upsert: {
+            args: Prisma.PaymentChannelUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PaymentChannelPayload>
+          }
+          aggregate: {
+            args: Prisma.PaymentChannelAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregatePaymentChannel>
+          }
+          groupBy: {
+            args: Prisma.PaymentChannelGroupByArgs<ExtArgs>
+            result: $Utils.Optional<PaymentChannelGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.PaymentChannelCountArgs<ExtArgs>
+            result: $Utils.Optional<PaymentChannelCountAggregateOutputType> | number
+          }
+        }
+      }
+      PaymentTransfer: {
+        payload: Prisma.$PaymentTransferPayload<ExtArgs>
+        fields: Prisma.PaymentTransferFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.PaymentTransferFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PaymentTransferPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.PaymentTransferFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PaymentTransferPayload>
+          }
+          findFirst: {
+            args: Prisma.PaymentTransferFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PaymentTransferPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.PaymentTransferFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PaymentTransferPayload>
+          }
+          findMany: {
+            args: Prisma.PaymentTransferFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PaymentTransferPayload>[]
+          }
+          create: {
+            args: Prisma.PaymentTransferCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PaymentTransferPayload>
+          }
+          createMany: {
+            args: Prisma.PaymentTransferCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.PaymentTransferCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PaymentTransferPayload>[]
+          }
+          delete: {
+            args: Prisma.PaymentTransferDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PaymentTransferPayload>
+          }
+          update: {
+            args: Prisma.PaymentTransferUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PaymentTransferPayload>
+          }
+          deleteMany: {
+            args: Prisma.PaymentTransferDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.PaymentTransferUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.PaymentTransferUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PaymentTransferPayload>[]
+          }
+          upsert: {
+            args: Prisma.PaymentTransferUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PaymentTransferPayload>
+          }
+          aggregate: {
+            args: Prisma.PaymentTransferAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregatePaymentTransfer>
+          }
+          groupBy: {
+            args: Prisma.PaymentTransferGroupByArgs<ExtArgs>
+            result: $Utils.Optional<PaymentTransferGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.PaymentTransferCountArgs<ExtArgs>
+            result: $Utils.Optional<PaymentTransferCountAggregateOutputType> | number
           }
         }
       }
@@ -1820,6 +2168,154 @@ export namespace Prisma {
           }
         }
       }
+      FiscalConfig: {
+        payload: Prisma.$FiscalConfigPayload<ExtArgs>
+        fields: Prisma.FiscalConfigFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.FiscalConfigFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$FiscalConfigPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.FiscalConfigFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$FiscalConfigPayload>
+          }
+          findFirst: {
+            args: Prisma.FiscalConfigFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$FiscalConfigPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.FiscalConfigFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$FiscalConfigPayload>
+          }
+          findMany: {
+            args: Prisma.FiscalConfigFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$FiscalConfigPayload>[]
+          }
+          create: {
+            args: Prisma.FiscalConfigCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$FiscalConfigPayload>
+          }
+          createMany: {
+            args: Prisma.FiscalConfigCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.FiscalConfigCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$FiscalConfigPayload>[]
+          }
+          delete: {
+            args: Prisma.FiscalConfigDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$FiscalConfigPayload>
+          }
+          update: {
+            args: Prisma.FiscalConfigUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$FiscalConfigPayload>
+          }
+          deleteMany: {
+            args: Prisma.FiscalConfigDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.FiscalConfigUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.FiscalConfigUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$FiscalConfigPayload>[]
+          }
+          upsert: {
+            args: Prisma.FiscalConfigUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$FiscalConfigPayload>
+          }
+          aggregate: {
+            args: Prisma.FiscalConfigAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateFiscalConfig>
+          }
+          groupBy: {
+            args: Prisma.FiscalConfigGroupByArgs<ExtArgs>
+            result: $Utils.Optional<FiscalConfigGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.FiscalConfigCountArgs<ExtArgs>
+            result: $Utils.Optional<FiscalConfigCountAggregateOutputType> | number
+          }
+        }
+      }
+      FiscalSubmission: {
+        payload: Prisma.$FiscalSubmissionPayload<ExtArgs>
+        fields: Prisma.FiscalSubmissionFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.FiscalSubmissionFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$FiscalSubmissionPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.FiscalSubmissionFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$FiscalSubmissionPayload>
+          }
+          findFirst: {
+            args: Prisma.FiscalSubmissionFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$FiscalSubmissionPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.FiscalSubmissionFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$FiscalSubmissionPayload>
+          }
+          findMany: {
+            args: Prisma.FiscalSubmissionFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$FiscalSubmissionPayload>[]
+          }
+          create: {
+            args: Prisma.FiscalSubmissionCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$FiscalSubmissionPayload>
+          }
+          createMany: {
+            args: Prisma.FiscalSubmissionCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.FiscalSubmissionCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$FiscalSubmissionPayload>[]
+          }
+          delete: {
+            args: Prisma.FiscalSubmissionDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$FiscalSubmissionPayload>
+          }
+          update: {
+            args: Prisma.FiscalSubmissionUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$FiscalSubmissionPayload>
+          }
+          deleteMany: {
+            args: Prisma.FiscalSubmissionDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.FiscalSubmissionUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.FiscalSubmissionUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$FiscalSubmissionPayload>[]
+          }
+          upsert: {
+            args: Prisma.FiscalSubmissionUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$FiscalSubmissionPayload>
+          }
+          aggregate: {
+            args: Prisma.FiscalSubmissionAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateFiscalSubmission>
+          }
+          groupBy: {
+            args: Prisma.FiscalSubmissionGroupByArgs<ExtArgs>
+            result: $Utils.Optional<FiscalSubmissionGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.FiscalSubmissionCountArgs<ExtArgs>
+            result: $Utils.Optional<FiscalSubmissionCountAggregateOutputType> | number
+          }
+        }
+      }
     }
   } & {
     other: {
@@ -1930,6 +2426,9 @@ export namespace Prisma {
   export type GlobalOmitConfig = {
     user?: UserOmit
     session?: SessionOmit
+    pendingMember?: PendingMemberOmit
+    paymentChannel?: PaymentChannelOmit
+    paymentTransfer?: PaymentTransferOmit
     kitchenStation?: KitchenStationOmit
     menuCategory?: MenuCategoryOmit
     menuItem?: MenuItemOmit
@@ -1941,6 +2440,8 @@ export namespace Prisma {
     order?: OrderOmit
     orderItem?: OrderItemOmit
     kitchenTicket?: KitchenTicketOmit
+    fiscalConfig?: FiscalConfigOmit
+    fiscalSubmission?: FiscalSubmissionOmit
   }
 
   /* Types for Logging */
@@ -2053,6 +2554,46 @@ export namespace Prisma {
    */
   export type UserCountOutputTypeCountOrdersArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: OrderWhereInput
+  }
+
+
+  /**
+   * Count Type PaymentChannelCountOutputType
+   */
+
+  export type PaymentChannelCountOutputType = {
+    outgoing: number
+    incoming: number
+  }
+
+  export type PaymentChannelCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    outgoing?: boolean | PaymentChannelCountOutputTypeCountOutgoingArgs
+    incoming?: boolean | PaymentChannelCountOutputTypeCountIncomingArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * PaymentChannelCountOutputType without action
+   */
+  export type PaymentChannelCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PaymentChannelCountOutputType
+     */
+    select?: PaymentChannelCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * PaymentChannelCountOutputType without action
+   */
+  export type PaymentChannelCountOutputTypeCountOutgoingArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PaymentTransferWhereInput
+  }
+
+  /**
+   * PaymentChannelCountOutputType without action
+   */
+  export type PaymentChannelCountOutputTypeCountIncomingArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PaymentTransferWhereInput
   }
 
 
@@ -2274,11 +2815,13 @@ export namespace Prisma {
    */
 
   export type OrderCountOutputType = {
+    fiscalSubmissions: number
     items: number
     tickets: number
   }
 
   export type OrderCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    fiscalSubmissions?: boolean | OrderCountOutputTypeCountFiscalSubmissionsArgs
     items?: boolean | OrderCountOutputTypeCountItemsArgs
     tickets?: boolean | OrderCountOutputTypeCountTicketsArgs
   }
@@ -2292,6 +2835,13 @@ export namespace Prisma {
      * Select specific fields to fetch from the OrderCountOutputType
      */
     select?: OrderCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * OrderCountOutputType without action
+   */
+  export type OrderCountOutputTypeCountFiscalSubmissionsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: FiscalSubmissionWhereInput
   }
 
   /**
@@ -4502,6 +5052,3304 @@ export namespace Prisma {
      * Choose, which related nodes to fetch as well
      */
     include?: SessionInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model PendingMember
+   */
+
+  export type AggregatePendingMember = {
+    _count: PendingMemberCountAggregateOutputType | null
+    _min: PendingMemberMinAggregateOutputType | null
+    _max: PendingMemberMaxAggregateOutputType | null
+  }
+
+  export type PendingMemberMinAggregateOutputType = {
+    id: string | null
+    name: string | null
+    email: string | null
+    createdAt: Date | null
+  }
+
+  export type PendingMemberMaxAggregateOutputType = {
+    id: string | null
+    name: string | null
+    email: string | null
+    createdAt: Date | null
+  }
+
+  export type PendingMemberCountAggregateOutputType = {
+    id: number
+    name: number
+    email: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type PendingMemberMinAggregateInputType = {
+    id?: true
+    name?: true
+    email?: true
+    createdAt?: true
+  }
+
+  export type PendingMemberMaxAggregateInputType = {
+    id?: true
+    name?: true
+    email?: true
+    createdAt?: true
+  }
+
+  export type PendingMemberCountAggregateInputType = {
+    id?: true
+    name?: true
+    email?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type PendingMemberAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PendingMember to aggregate.
+     */
+    where?: PendingMemberWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PendingMembers to fetch.
+     */
+    orderBy?: PendingMemberOrderByWithRelationInput | PendingMemberOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: PendingMemberWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PendingMembers from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PendingMembers.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned PendingMembers
+    **/
+    _count?: true | PendingMemberCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: PendingMemberMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: PendingMemberMaxAggregateInputType
+  }
+
+  export type GetPendingMemberAggregateType<T extends PendingMemberAggregateArgs> = {
+        [P in keyof T & keyof AggregatePendingMember]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregatePendingMember[P]>
+      : GetScalarType<T[P], AggregatePendingMember[P]>
+  }
+
+
+
+
+  export type PendingMemberGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PendingMemberWhereInput
+    orderBy?: PendingMemberOrderByWithAggregationInput | PendingMemberOrderByWithAggregationInput[]
+    by: PendingMemberScalarFieldEnum[] | PendingMemberScalarFieldEnum
+    having?: PendingMemberScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: PendingMemberCountAggregateInputType | true
+    _min?: PendingMemberMinAggregateInputType
+    _max?: PendingMemberMaxAggregateInputType
+  }
+
+  export type PendingMemberGroupByOutputType = {
+    id: string
+    name: string
+    email: string
+    createdAt: Date
+    _count: PendingMemberCountAggregateOutputType | null
+    _min: PendingMemberMinAggregateOutputType | null
+    _max: PendingMemberMaxAggregateOutputType | null
+  }
+
+  type GetPendingMemberGroupByPayload<T extends PendingMemberGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<PendingMemberGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof PendingMemberGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], PendingMemberGroupByOutputType[P]>
+            : GetScalarType<T[P], PendingMemberGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type PendingMemberSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    name?: boolean
+    email?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["pendingMember"]>
+
+  export type PendingMemberSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    name?: boolean
+    email?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["pendingMember"]>
+
+  export type PendingMemberSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    name?: boolean
+    email?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["pendingMember"]>
+
+  export type PendingMemberSelectScalar = {
+    id?: boolean
+    name?: boolean
+    email?: boolean
+    createdAt?: boolean
+  }
+
+  export type PendingMemberOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "email" | "createdAt", ExtArgs["result"]["pendingMember"]>
+
+  export type $PendingMemberPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "PendingMember"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      name: string
+      email: string
+      createdAt: Date
+    }, ExtArgs["result"]["pendingMember"]>
+    composites: {}
+  }
+
+  type PendingMemberGetPayload<S extends boolean | null | undefined | PendingMemberDefaultArgs> = $Result.GetResult<Prisma.$PendingMemberPayload, S>
+
+  type PendingMemberCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<PendingMemberFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: PendingMemberCountAggregateInputType | true
+    }
+
+  export interface PendingMemberDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['PendingMember'], meta: { name: 'PendingMember' } }
+    /**
+     * Find zero or one PendingMember that matches the filter.
+     * @param {PendingMemberFindUniqueArgs} args - Arguments to find a PendingMember
+     * @example
+     * // Get one PendingMember
+     * const pendingMember = await prisma.pendingMember.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends PendingMemberFindUniqueArgs>(args: SelectSubset<T, PendingMemberFindUniqueArgs<ExtArgs>>): Prisma__PendingMemberClient<$Result.GetResult<Prisma.$PendingMemberPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one PendingMember that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {PendingMemberFindUniqueOrThrowArgs} args - Arguments to find a PendingMember
+     * @example
+     * // Get one PendingMember
+     * const pendingMember = await prisma.pendingMember.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends PendingMemberFindUniqueOrThrowArgs>(args: SelectSubset<T, PendingMemberFindUniqueOrThrowArgs<ExtArgs>>): Prisma__PendingMemberClient<$Result.GetResult<Prisma.$PendingMemberPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first PendingMember that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PendingMemberFindFirstArgs} args - Arguments to find a PendingMember
+     * @example
+     * // Get one PendingMember
+     * const pendingMember = await prisma.pendingMember.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends PendingMemberFindFirstArgs>(args?: SelectSubset<T, PendingMemberFindFirstArgs<ExtArgs>>): Prisma__PendingMemberClient<$Result.GetResult<Prisma.$PendingMemberPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first PendingMember that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PendingMemberFindFirstOrThrowArgs} args - Arguments to find a PendingMember
+     * @example
+     * // Get one PendingMember
+     * const pendingMember = await prisma.pendingMember.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends PendingMemberFindFirstOrThrowArgs>(args?: SelectSubset<T, PendingMemberFindFirstOrThrowArgs<ExtArgs>>): Prisma__PendingMemberClient<$Result.GetResult<Prisma.$PendingMemberPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more PendingMembers that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PendingMemberFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all PendingMembers
+     * const pendingMembers = await prisma.pendingMember.findMany()
+     * 
+     * // Get first 10 PendingMembers
+     * const pendingMembers = await prisma.pendingMember.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const pendingMemberWithIdOnly = await prisma.pendingMember.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends PendingMemberFindManyArgs>(args?: SelectSubset<T, PendingMemberFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PendingMemberPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a PendingMember.
+     * @param {PendingMemberCreateArgs} args - Arguments to create a PendingMember.
+     * @example
+     * // Create one PendingMember
+     * const PendingMember = await prisma.pendingMember.create({
+     *   data: {
+     *     // ... data to create a PendingMember
+     *   }
+     * })
+     * 
+     */
+    create<T extends PendingMemberCreateArgs>(args: SelectSubset<T, PendingMemberCreateArgs<ExtArgs>>): Prisma__PendingMemberClient<$Result.GetResult<Prisma.$PendingMemberPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many PendingMembers.
+     * @param {PendingMemberCreateManyArgs} args - Arguments to create many PendingMembers.
+     * @example
+     * // Create many PendingMembers
+     * const pendingMember = await prisma.pendingMember.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends PendingMemberCreateManyArgs>(args?: SelectSubset<T, PendingMemberCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many PendingMembers and returns the data saved in the database.
+     * @param {PendingMemberCreateManyAndReturnArgs} args - Arguments to create many PendingMembers.
+     * @example
+     * // Create many PendingMembers
+     * const pendingMember = await prisma.pendingMember.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many PendingMembers and only return the `id`
+     * const pendingMemberWithIdOnly = await prisma.pendingMember.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends PendingMemberCreateManyAndReturnArgs>(args?: SelectSubset<T, PendingMemberCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PendingMemberPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a PendingMember.
+     * @param {PendingMemberDeleteArgs} args - Arguments to delete one PendingMember.
+     * @example
+     * // Delete one PendingMember
+     * const PendingMember = await prisma.pendingMember.delete({
+     *   where: {
+     *     // ... filter to delete one PendingMember
+     *   }
+     * })
+     * 
+     */
+    delete<T extends PendingMemberDeleteArgs>(args: SelectSubset<T, PendingMemberDeleteArgs<ExtArgs>>): Prisma__PendingMemberClient<$Result.GetResult<Prisma.$PendingMemberPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one PendingMember.
+     * @param {PendingMemberUpdateArgs} args - Arguments to update one PendingMember.
+     * @example
+     * // Update one PendingMember
+     * const pendingMember = await prisma.pendingMember.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends PendingMemberUpdateArgs>(args: SelectSubset<T, PendingMemberUpdateArgs<ExtArgs>>): Prisma__PendingMemberClient<$Result.GetResult<Prisma.$PendingMemberPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more PendingMembers.
+     * @param {PendingMemberDeleteManyArgs} args - Arguments to filter PendingMembers to delete.
+     * @example
+     * // Delete a few PendingMembers
+     * const { count } = await prisma.pendingMember.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends PendingMemberDeleteManyArgs>(args?: SelectSubset<T, PendingMemberDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more PendingMembers.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PendingMemberUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many PendingMembers
+     * const pendingMember = await prisma.pendingMember.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends PendingMemberUpdateManyArgs>(args: SelectSubset<T, PendingMemberUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more PendingMembers and returns the data updated in the database.
+     * @param {PendingMemberUpdateManyAndReturnArgs} args - Arguments to update many PendingMembers.
+     * @example
+     * // Update many PendingMembers
+     * const pendingMember = await prisma.pendingMember.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more PendingMembers and only return the `id`
+     * const pendingMemberWithIdOnly = await prisma.pendingMember.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends PendingMemberUpdateManyAndReturnArgs>(args: SelectSubset<T, PendingMemberUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PendingMemberPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one PendingMember.
+     * @param {PendingMemberUpsertArgs} args - Arguments to update or create a PendingMember.
+     * @example
+     * // Update or create a PendingMember
+     * const pendingMember = await prisma.pendingMember.upsert({
+     *   create: {
+     *     // ... data to create a PendingMember
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the PendingMember we want to update
+     *   }
+     * })
+     */
+    upsert<T extends PendingMemberUpsertArgs>(args: SelectSubset<T, PendingMemberUpsertArgs<ExtArgs>>): Prisma__PendingMemberClient<$Result.GetResult<Prisma.$PendingMemberPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of PendingMembers.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PendingMemberCountArgs} args - Arguments to filter PendingMembers to count.
+     * @example
+     * // Count the number of PendingMembers
+     * const count = await prisma.pendingMember.count({
+     *   where: {
+     *     // ... the filter for the PendingMembers we want to count
+     *   }
+     * })
+    **/
+    count<T extends PendingMemberCountArgs>(
+      args?: Subset<T, PendingMemberCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], PendingMemberCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a PendingMember.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PendingMemberAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends PendingMemberAggregateArgs>(args: Subset<T, PendingMemberAggregateArgs>): Prisma.PrismaPromise<GetPendingMemberAggregateType<T>>
+
+    /**
+     * Group by PendingMember.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PendingMemberGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends PendingMemberGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: PendingMemberGroupByArgs['orderBy'] }
+        : { orderBy?: PendingMemberGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, PendingMemberGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetPendingMemberGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the PendingMember model
+   */
+  readonly fields: PendingMemberFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for PendingMember.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__PendingMemberClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the PendingMember model
+   */
+  interface PendingMemberFieldRefs {
+    readonly id: FieldRef<"PendingMember", 'String'>
+    readonly name: FieldRef<"PendingMember", 'String'>
+    readonly email: FieldRef<"PendingMember", 'String'>
+    readonly createdAt: FieldRef<"PendingMember", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * PendingMember findUnique
+   */
+  export type PendingMemberFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PendingMember
+     */
+    select?: PendingMemberSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PendingMember
+     */
+    omit?: PendingMemberOmit<ExtArgs> | null
+    /**
+     * Filter, which PendingMember to fetch.
+     */
+    where: PendingMemberWhereUniqueInput
+  }
+
+  /**
+   * PendingMember findUniqueOrThrow
+   */
+  export type PendingMemberFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PendingMember
+     */
+    select?: PendingMemberSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PendingMember
+     */
+    omit?: PendingMemberOmit<ExtArgs> | null
+    /**
+     * Filter, which PendingMember to fetch.
+     */
+    where: PendingMemberWhereUniqueInput
+  }
+
+  /**
+   * PendingMember findFirst
+   */
+  export type PendingMemberFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PendingMember
+     */
+    select?: PendingMemberSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PendingMember
+     */
+    omit?: PendingMemberOmit<ExtArgs> | null
+    /**
+     * Filter, which PendingMember to fetch.
+     */
+    where?: PendingMemberWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PendingMembers to fetch.
+     */
+    orderBy?: PendingMemberOrderByWithRelationInput | PendingMemberOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PendingMembers.
+     */
+    cursor?: PendingMemberWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PendingMembers from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PendingMembers.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PendingMembers.
+     */
+    distinct?: PendingMemberScalarFieldEnum | PendingMemberScalarFieldEnum[]
+  }
+
+  /**
+   * PendingMember findFirstOrThrow
+   */
+  export type PendingMemberFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PendingMember
+     */
+    select?: PendingMemberSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PendingMember
+     */
+    omit?: PendingMemberOmit<ExtArgs> | null
+    /**
+     * Filter, which PendingMember to fetch.
+     */
+    where?: PendingMemberWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PendingMembers to fetch.
+     */
+    orderBy?: PendingMemberOrderByWithRelationInput | PendingMemberOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PendingMembers.
+     */
+    cursor?: PendingMemberWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PendingMembers from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PendingMembers.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PendingMembers.
+     */
+    distinct?: PendingMemberScalarFieldEnum | PendingMemberScalarFieldEnum[]
+  }
+
+  /**
+   * PendingMember findMany
+   */
+  export type PendingMemberFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PendingMember
+     */
+    select?: PendingMemberSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PendingMember
+     */
+    omit?: PendingMemberOmit<ExtArgs> | null
+    /**
+     * Filter, which PendingMembers to fetch.
+     */
+    where?: PendingMemberWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PendingMembers to fetch.
+     */
+    orderBy?: PendingMemberOrderByWithRelationInput | PendingMemberOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing PendingMembers.
+     */
+    cursor?: PendingMemberWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PendingMembers from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PendingMembers.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PendingMembers.
+     */
+    distinct?: PendingMemberScalarFieldEnum | PendingMemberScalarFieldEnum[]
+  }
+
+  /**
+   * PendingMember create
+   */
+  export type PendingMemberCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PendingMember
+     */
+    select?: PendingMemberSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PendingMember
+     */
+    omit?: PendingMemberOmit<ExtArgs> | null
+    /**
+     * The data needed to create a PendingMember.
+     */
+    data: XOR<PendingMemberCreateInput, PendingMemberUncheckedCreateInput>
+  }
+
+  /**
+   * PendingMember createMany
+   */
+  export type PendingMemberCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many PendingMembers.
+     */
+    data: PendingMemberCreateManyInput | PendingMemberCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * PendingMember createManyAndReturn
+   */
+  export type PendingMemberCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PendingMember
+     */
+    select?: PendingMemberSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the PendingMember
+     */
+    omit?: PendingMemberOmit<ExtArgs> | null
+    /**
+     * The data used to create many PendingMembers.
+     */
+    data: PendingMemberCreateManyInput | PendingMemberCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * PendingMember update
+   */
+  export type PendingMemberUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PendingMember
+     */
+    select?: PendingMemberSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PendingMember
+     */
+    omit?: PendingMemberOmit<ExtArgs> | null
+    /**
+     * The data needed to update a PendingMember.
+     */
+    data: XOR<PendingMemberUpdateInput, PendingMemberUncheckedUpdateInput>
+    /**
+     * Choose, which PendingMember to update.
+     */
+    where: PendingMemberWhereUniqueInput
+  }
+
+  /**
+   * PendingMember updateMany
+   */
+  export type PendingMemberUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update PendingMembers.
+     */
+    data: XOR<PendingMemberUpdateManyMutationInput, PendingMemberUncheckedUpdateManyInput>
+    /**
+     * Filter which PendingMembers to update
+     */
+    where?: PendingMemberWhereInput
+    /**
+     * Limit how many PendingMembers to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * PendingMember updateManyAndReturn
+   */
+  export type PendingMemberUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PendingMember
+     */
+    select?: PendingMemberSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the PendingMember
+     */
+    omit?: PendingMemberOmit<ExtArgs> | null
+    /**
+     * The data used to update PendingMembers.
+     */
+    data: XOR<PendingMemberUpdateManyMutationInput, PendingMemberUncheckedUpdateManyInput>
+    /**
+     * Filter which PendingMembers to update
+     */
+    where?: PendingMemberWhereInput
+    /**
+     * Limit how many PendingMembers to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * PendingMember upsert
+   */
+  export type PendingMemberUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PendingMember
+     */
+    select?: PendingMemberSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PendingMember
+     */
+    omit?: PendingMemberOmit<ExtArgs> | null
+    /**
+     * The filter to search for the PendingMember to update in case it exists.
+     */
+    where: PendingMemberWhereUniqueInput
+    /**
+     * In case the PendingMember found by the `where` argument doesn't exist, create a new PendingMember with this data.
+     */
+    create: XOR<PendingMemberCreateInput, PendingMemberUncheckedCreateInput>
+    /**
+     * In case the PendingMember was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<PendingMemberUpdateInput, PendingMemberUncheckedUpdateInput>
+  }
+
+  /**
+   * PendingMember delete
+   */
+  export type PendingMemberDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PendingMember
+     */
+    select?: PendingMemberSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PendingMember
+     */
+    omit?: PendingMemberOmit<ExtArgs> | null
+    /**
+     * Filter which PendingMember to delete.
+     */
+    where: PendingMemberWhereUniqueInput
+  }
+
+  /**
+   * PendingMember deleteMany
+   */
+  export type PendingMemberDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PendingMembers to delete
+     */
+    where?: PendingMemberWhereInput
+    /**
+     * Limit how many PendingMembers to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * PendingMember without action
+   */
+  export type PendingMemberDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PendingMember
+     */
+    select?: PendingMemberSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PendingMember
+     */
+    omit?: PendingMemberOmit<ExtArgs> | null
+  }
+
+
+  /**
+   * Model PaymentChannel
+   */
+
+  export type AggregatePaymentChannel = {
+    _count: PaymentChannelCountAggregateOutputType | null
+    _avg: PaymentChannelAvgAggregateOutputType | null
+    _sum: PaymentChannelSumAggregateOutputType | null
+    _min: PaymentChannelMinAggregateOutputType | null
+    _max: PaymentChannelMaxAggregateOutputType | null
+  }
+
+  export type PaymentChannelAvgAggregateOutputType = {
+    openingBalance: Decimal | null
+    currentBalance: Decimal | null
+  }
+
+  export type PaymentChannelSumAggregateOutputType = {
+    openingBalance: Decimal | null
+    currentBalance: Decimal | null
+  }
+
+  export type PaymentChannelMinAggregateOutputType = {
+    id: string | null
+    name: string | null
+    openingBalance: Decimal | null
+    currentBalance: Decimal | null
+    archived: boolean | null
+    archivedAt: Date | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type PaymentChannelMaxAggregateOutputType = {
+    id: string | null
+    name: string | null
+    openingBalance: Decimal | null
+    currentBalance: Decimal | null
+    archived: boolean | null
+    archivedAt: Date | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type PaymentChannelCountAggregateOutputType = {
+    id: number
+    name: number
+    openingBalance: number
+    currentBalance: number
+    archived: number
+    archivedAt: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type PaymentChannelAvgAggregateInputType = {
+    openingBalance?: true
+    currentBalance?: true
+  }
+
+  export type PaymentChannelSumAggregateInputType = {
+    openingBalance?: true
+    currentBalance?: true
+  }
+
+  export type PaymentChannelMinAggregateInputType = {
+    id?: true
+    name?: true
+    openingBalance?: true
+    currentBalance?: true
+    archived?: true
+    archivedAt?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type PaymentChannelMaxAggregateInputType = {
+    id?: true
+    name?: true
+    openingBalance?: true
+    currentBalance?: true
+    archived?: true
+    archivedAt?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type PaymentChannelCountAggregateInputType = {
+    id?: true
+    name?: true
+    openingBalance?: true
+    currentBalance?: true
+    archived?: true
+    archivedAt?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type PaymentChannelAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PaymentChannel to aggregate.
+     */
+    where?: PaymentChannelWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PaymentChannels to fetch.
+     */
+    orderBy?: PaymentChannelOrderByWithRelationInput | PaymentChannelOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: PaymentChannelWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PaymentChannels from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PaymentChannels.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned PaymentChannels
+    **/
+    _count?: true | PaymentChannelCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: PaymentChannelAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: PaymentChannelSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: PaymentChannelMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: PaymentChannelMaxAggregateInputType
+  }
+
+  export type GetPaymentChannelAggregateType<T extends PaymentChannelAggregateArgs> = {
+        [P in keyof T & keyof AggregatePaymentChannel]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregatePaymentChannel[P]>
+      : GetScalarType<T[P], AggregatePaymentChannel[P]>
+  }
+
+
+
+
+  export type PaymentChannelGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PaymentChannelWhereInput
+    orderBy?: PaymentChannelOrderByWithAggregationInput | PaymentChannelOrderByWithAggregationInput[]
+    by: PaymentChannelScalarFieldEnum[] | PaymentChannelScalarFieldEnum
+    having?: PaymentChannelScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: PaymentChannelCountAggregateInputType | true
+    _avg?: PaymentChannelAvgAggregateInputType
+    _sum?: PaymentChannelSumAggregateInputType
+    _min?: PaymentChannelMinAggregateInputType
+    _max?: PaymentChannelMaxAggregateInputType
+  }
+
+  export type PaymentChannelGroupByOutputType = {
+    id: string
+    name: string
+    openingBalance: Decimal
+    currentBalance: Decimal
+    archived: boolean
+    archivedAt: Date | null
+    createdAt: Date
+    updatedAt: Date
+    _count: PaymentChannelCountAggregateOutputType | null
+    _avg: PaymentChannelAvgAggregateOutputType | null
+    _sum: PaymentChannelSumAggregateOutputType | null
+    _min: PaymentChannelMinAggregateOutputType | null
+    _max: PaymentChannelMaxAggregateOutputType | null
+  }
+
+  type GetPaymentChannelGroupByPayload<T extends PaymentChannelGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<PaymentChannelGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof PaymentChannelGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], PaymentChannelGroupByOutputType[P]>
+            : GetScalarType<T[P], PaymentChannelGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type PaymentChannelSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    name?: boolean
+    openingBalance?: boolean
+    currentBalance?: boolean
+    archived?: boolean
+    archivedAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    outgoing?: boolean | PaymentChannel$outgoingArgs<ExtArgs>
+    incoming?: boolean | PaymentChannel$incomingArgs<ExtArgs>
+    _count?: boolean | PaymentChannelCountOutputTypeDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["paymentChannel"]>
+
+  export type PaymentChannelSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    name?: boolean
+    openingBalance?: boolean
+    currentBalance?: boolean
+    archived?: boolean
+    archivedAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["paymentChannel"]>
+
+  export type PaymentChannelSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    name?: boolean
+    openingBalance?: boolean
+    currentBalance?: boolean
+    archived?: boolean
+    archivedAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["paymentChannel"]>
+
+  export type PaymentChannelSelectScalar = {
+    id?: boolean
+    name?: boolean
+    openingBalance?: boolean
+    currentBalance?: boolean
+    archived?: boolean
+    archivedAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type PaymentChannelOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "openingBalance" | "currentBalance" | "archived" | "archivedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["paymentChannel"]>
+  export type PaymentChannelInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    outgoing?: boolean | PaymentChannel$outgoingArgs<ExtArgs>
+    incoming?: boolean | PaymentChannel$incomingArgs<ExtArgs>
+    _count?: boolean | PaymentChannelCountOutputTypeDefaultArgs<ExtArgs>
+  }
+  export type PaymentChannelIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
+  export type PaymentChannelIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
+
+  export type $PaymentChannelPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "PaymentChannel"
+    objects: {
+      outgoing: Prisma.$PaymentTransferPayload<ExtArgs>[]
+      incoming: Prisma.$PaymentTransferPayload<ExtArgs>[]
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      name: string
+      openingBalance: Prisma.Decimal
+      currentBalance: Prisma.Decimal
+      archived: boolean
+      archivedAt: Date | null
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["paymentChannel"]>
+    composites: {}
+  }
+
+  type PaymentChannelGetPayload<S extends boolean | null | undefined | PaymentChannelDefaultArgs> = $Result.GetResult<Prisma.$PaymentChannelPayload, S>
+
+  type PaymentChannelCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<PaymentChannelFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: PaymentChannelCountAggregateInputType | true
+    }
+
+  export interface PaymentChannelDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['PaymentChannel'], meta: { name: 'PaymentChannel' } }
+    /**
+     * Find zero or one PaymentChannel that matches the filter.
+     * @param {PaymentChannelFindUniqueArgs} args - Arguments to find a PaymentChannel
+     * @example
+     * // Get one PaymentChannel
+     * const paymentChannel = await prisma.paymentChannel.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends PaymentChannelFindUniqueArgs>(args: SelectSubset<T, PaymentChannelFindUniqueArgs<ExtArgs>>): Prisma__PaymentChannelClient<$Result.GetResult<Prisma.$PaymentChannelPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one PaymentChannel that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {PaymentChannelFindUniqueOrThrowArgs} args - Arguments to find a PaymentChannel
+     * @example
+     * // Get one PaymentChannel
+     * const paymentChannel = await prisma.paymentChannel.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends PaymentChannelFindUniqueOrThrowArgs>(args: SelectSubset<T, PaymentChannelFindUniqueOrThrowArgs<ExtArgs>>): Prisma__PaymentChannelClient<$Result.GetResult<Prisma.$PaymentChannelPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first PaymentChannel that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PaymentChannelFindFirstArgs} args - Arguments to find a PaymentChannel
+     * @example
+     * // Get one PaymentChannel
+     * const paymentChannel = await prisma.paymentChannel.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends PaymentChannelFindFirstArgs>(args?: SelectSubset<T, PaymentChannelFindFirstArgs<ExtArgs>>): Prisma__PaymentChannelClient<$Result.GetResult<Prisma.$PaymentChannelPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first PaymentChannel that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PaymentChannelFindFirstOrThrowArgs} args - Arguments to find a PaymentChannel
+     * @example
+     * // Get one PaymentChannel
+     * const paymentChannel = await prisma.paymentChannel.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends PaymentChannelFindFirstOrThrowArgs>(args?: SelectSubset<T, PaymentChannelFindFirstOrThrowArgs<ExtArgs>>): Prisma__PaymentChannelClient<$Result.GetResult<Prisma.$PaymentChannelPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more PaymentChannels that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PaymentChannelFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all PaymentChannels
+     * const paymentChannels = await prisma.paymentChannel.findMany()
+     * 
+     * // Get first 10 PaymentChannels
+     * const paymentChannels = await prisma.paymentChannel.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const paymentChannelWithIdOnly = await prisma.paymentChannel.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends PaymentChannelFindManyArgs>(args?: SelectSubset<T, PaymentChannelFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PaymentChannelPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a PaymentChannel.
+     * @param {PaymentChannelCreateArgs} args - Arguments to create a PaymentChannel.
+     * @example
+     * // Create one PaymentChannel
+     * const PaymentChannel = await prisma.paymentChannel.create({
+     *   data: {
+     *     // ... data to create a PaymentChannel
+     *   }
+     * })
+     * 
+     */
+    create<T extends PaymentChannelCreateArgs>(args: SelectSubset<T, PaymentChannelCreateArgs<ExtArgs>>): Prisma__PaymentChannelClient<$Result.GetResult<Prisma.$PaymentChannelPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many PaymentChannels.
+     * @param {PaymentChannelCreateManyArgs} args - Arguments to create many PaymentChannels.
+     * @example
+     * // Create many PaymentChannels
+     * const paymentChannel = await prisma.paymentChannel.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends PaymentChannelCreateManyArgs>(args?: SelectSubset<T, PaymentChannelCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many PaymentChannels and returns the data saved in the database.
+     * @param {PaymentChannelCreateManyAndReturnArgs} args - Arguments to create many PaymentChannels.
+     * @example
+     * // Create many PaymentChannels
+     * const paymentChannel = await prisma.paymentChannel.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many PaymentChannels and only return the `id`
+     * const paymentChannelWithIdOnly = await prisma.paymentChannel.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends PaymentChannelCreateManyAndReturnArgs>(args?: SelectSubset<T, PaymentChannelCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PaymentChannelPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a PaymentChannel.
+     * @param {PaymentChannelDeleteArgs} args - Arguments to delete one PaymentChannel.
+     * @example
+     * // Delete one PaymentChannel
+     * const PaymentChannel = await prisma.paymentChannel.delete({
+     *   where: {
+     *     // ... filter to delete one PaymentChannel
+     *   }
+     * })
+     * 
+     */
+    delete<T extends PaymentChannelDeleteArgs>(args: SelectSubset<T, PaymentChannelDeleteArgs<ExtArgs>>): Prisma__PaymentChannelClient<$Result.GetResult<Prisma.$PaymentChannelPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one PaymentChannel.
+     * @param {PaymentChannelUpdateArgs} args - Arguments to update one PaymentChannel.
+     * @example
+     * // Update one PaymentChannel
+     * const paymentChannel = await prisma.paymentChannel.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends PaymentChannelUpdateArgs>(args: SelectSubset<T, PaymentChannelUpdateArgs<ExtArgs>>): Prisma__PaymentChannelClient<$Result.GetResult<Prisma.$PaymentChannelPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more PaymentChannels.
+     * @param {PaymentChannelDeleteManyArgs} args - Arguments to filter PaymentChannels to delete.
+     * @example
+     * // Delete a few PaymentChannels
+     * const { count } = await prisma.paymentChannel.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends PaymentChannelDeleteManyArgs>(args?: SelectSubset<T, PaymentChannelDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more PaymentChannels.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PaymentChannelUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many PaymentChannels
+     * const paymentChannel = await prisma.paymentChannel.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends PaymentChannelUpdateManyArgs>(args: SelectSubset<T, PaymentChannelUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more PaymentChannels and returns the data updated in the database.
+     * @param {PaymentChannelUpdateManyAndReturnArgs} args - Arguments to update many PaymentChannels.
+     * @example
+     * // Update many PaymentChannels
+     * const paymentChannel = await prisma.paymentChannel.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more PaymentChannels and only return the `id`
+     * const paymentChannelWithIdOnly = await prisma.paymentChannel.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends PaymentChannelUpdateManyAndReturnArgs>(args: SelectSubset<T, PaymentChannelUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PaymentChannelPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one PaymentChannel.
+     * @param {PaymentChannelUpsertArgs} args - Arguments to update or create a PaymentChannel.
+     * @example
+     * // Update or create a PaymentChannel
+     * const paymentChannel = await prisma.paymentChannel.upsert({
+     *   create: {
+     *     // ... data to create a PaymentChannel
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the PaymentChannel we want to update
+     *   }
+     * })
+     */
+    upsert<T extends PaymentChannelUpsertArgs>(args: SelectSubset<T, PaymentChannelUpsertArgs<ExtArgs>>): Prisma__PaymentChannelClient<$Result.GetResult<Prisma.$PaymentChannelPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of PaymentChannels.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PaymentChannelCountArgs} args - Arguments to filter PaymentChannels to count.
+     * @example
+     * // Count the number of PaymentChannels
+     * const count = await prisma.paymentChannel.count({
+     *   where: {
+     *     // ... the filter for the PaymentChannels we want to count
+     *   }
+     * })
+    **/
+    count<T extends PaymentChannelCountArgs>(
+      args?: Subset<T, PaymentChannelCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], PaymentChannelCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a PaymentChannel.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PaymentChannelAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends PaymentChannelAggregateArgs>(args: Subset<T, PaymentChannelAggregateArgs>): Prisma.PrismaPromise<GetPaymentChannelAggregateType<T>>
+
+    /**
+     * Group by PaymentChannel.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PaymentChannelGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends PaymentChannelGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: PaymentChannelGroupByArgs['orderBy'] }
+        : { orderBy?: PaymentChannelGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, PaymentChannelGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetPaymentChannelGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the PaymentChannel model
+   */
+  readonly fields: PaymentChannelFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for PaymentChannel.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__PaymentChannelClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    outgoing<T extends PaymentChannel$outgoingArgs<ExtArgs> = {}>(args?: Subset<T, PaymentChannel$outgoingArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PaymentTransferPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    incoming<T extends PaymentChannel$incomingArgs<ExtArgs> = {}>(args?: Subset<T, PaymentChannel$incomingArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PaymentTransferPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the PaymentChannel model
+   */
+  interface PaymentChannelFieldRefs {
+    readonly id: FieldRef<"PaymentChannel", 'String'>
+    readonly name: FieldRef<"PaymentChannel", 'String'>
+    readonly openingBalance: FieldRef<"PaymentChannel", 'Decimal'>
+    readonly currentBalance: FieldRef<"PaymentChannel", 'Decimal'>
+    readonly archived: FieldRef<"PaymentChannel", 'Boolean'>
+    readonly archivedAt: FieldRef<"PaymentChannel", 'DateTime'>
+    readonly createdAt: FieldRef<"PaymentChannel", 'DateTime'>
+    readonly updatedAt: FieldRef<"PaymentChannel", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * PaymentChannel findUnique
+   */
+  export type PaymentChannelFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PaymentChannel
+     */
+    select?: PaymentChannelSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PaymentChannel
+     */
+    omit?: PaymentChannelOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PaymentChannelInclude<ExtArgs> | null
+    /**
+     * Filter, which PaymentChannel to fetch.
+     */
+    where: PaymentChannelWhereUniqueInput
+  }
+
+  /**
+   * PaymentChannel findUniqueOrThrow
+   */
+  export type PaymentChannelFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PaymentChannel
+     */
+    select?: PaymentChannelSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PaymentChannel
+     */
+    omit?: PaymentChannelOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PaymentChannelInclude<ExtArgs> | null
+    /**
+     * Filter, which PaymentChannel to fetch.
+     */
+    where: PaymentChannelWhereUniqueInput
+  }
+
+  /**
+   * PaymentChannel findFirst
+   */
+  export type PaymentChannelFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PaymentChannel
+     */
+    select?: PaymentChannelSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PaymentChannel
+     */
+    omit?: PaymentChannelOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PaymentChannelInclude<ExtArgs> | null
+    /**
+     * Filter, which PaymentChannel to fetch.
+     */
+    where?: PaymentChannelWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PaymentChannels to fetch.
+     */
+    orderBy?: PaymentChannelOrderByWithRelationInput | PaymentChannelOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PaymentChannels.
+     */
+    cursor?: PaymentChannelWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PaymentChannels from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PaymentChannels.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PaymentChannels.
+     */
+    distinct?: PaymentChannelScalarFieldEnum | PaymentChannelScalarFieldEnum[]
+  }
+
+  /**
+   * PaymentChannel findFirstOrThrow
+   */
+  export type PaymentChannelFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PaymentChannel
+     */
+    select?: PaymentChannelSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PaymentChannel
+     */
+    omit?: PaymentChannelOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PaymentChannelInclude<ExtArgs> | null
+    /**
+     * Filter, which PaymentChannel to fetch.
+     */
+    where?: PaymentChannelWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PaymentChannels to fetch.
+     */
+    orderBy?: PaymentChannelOrderByWithRelationInput | PaymentChannelOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PaymentChannels.
+     */
+    cursor?: PaymentChannelWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PaymentChannels from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PaymentChannels.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PaymentChannels.
+     */
+    distinct?: PaymentChannelScalarFieldEnum | PaymentChannelScalarFieldEnum[]
+  }
+
+  /**
+   * PaymentChannel findMany
+   */
+  export type PaymentChannelFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PaymentChannel
+     */
+    select?: PaymentChannelSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PaymentChannel
+     */
+    omit?: PaymentChannelOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PaymentChannelInclude<ExtArgs> | null
+    /**
+     * Filter, which PaymentChannels to fetch.
+     */
+    where?: PaymentChannelWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PaymentChannels to fetch.
+     */
+    orderBy?: PaymentChannelOrderByWithRelationInput | PaymentChannelOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing PaymentChannels.
+     */
+    cursor?: PaymentChannelWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PaymentChannels from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PaymentChannels.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PaymentChannels.
+     */
+    distinct?: PaymentChannelScalarFieldEnum | PaymentChannelScalarFieldEnum[]
+  }
+
+  /**
+   * PaymentChannel create
+   */
+  export type PaymentChannelCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PaymentChannel
+     */
+    select?: PaymentChannelSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PaymentChannel
+     */
+    omit?: PaymentChannelOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PaymentChannelInclude<ExtArgs> | null
+    /**
+     * The data needed to create a PaymentChannel.
+     */
+    data: XOR<PaymentChannelCreateInput, PaymentChannelUncheckedCreateInput>
+  }
+
+  /**
+   * PaymentChannel createMany
+   */
+  export type PaymentChannelCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many PaymentChannels.
+     */
+    data: PaymentChannelCreateManyInput | PaymentChannelCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * PaymentChannel createManyAndReturn
+   */
+  export type PaymentChannelCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PaymentChannel
+     */
+    select?: PaymentChannelSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the PaymentChannel
+     */
+    omit?: PaymentChannelOmit<ExtArgs> | null
+    /**
+     * The data used to create many PaymentChannels.
+     */
+    data: PaymentChannelCreateManyInput | PaymentChannelCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * PaymentChannel update
+   */
+  export type PaymentChannelUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PaymentChannel
+     */
+    select?: PaymentChannelSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PaymentChannel
+     */
+    omit?: PaymentChannelOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PaymentChannelInclude<ExtArgs> | null
+    /**
+     * The data needed to update a PaymentChannel.
+     */
+    data: XOR<PaymentChannelUpdateInput, PaymentChannelUncheckedUpdateInput>
+    /**
+     * Choose, which PaymentChannel to update.
+     */
+    where: PaymentChannelWhereUniqueInput
+  }
+
+  /**
+   * PaymentChannel updateMany
+   */
+  export type PaymentChannelUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update PaymentChannels.
+     */
+    data: XOR<PaymentChannelUpdateManyMutationInput, PaymentChannelUncheckedUpdateManyInput>
+    /**
+     * Filter which PaymentChannels to update
+     */
+    where?: PaymentChannelWhereInput
+    /**
+     * Limit how many PaymentChannels to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * PaymentChannel updateManyAndReturn
+   */
+  export type PaymentChannelUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PaymentChannel
+     */
+    select?: PaymentChannelSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the PaymentChannel
+     */
+    omit?: PaymentChannelOmit<ExtArgs> | null
+    /**
+     * The data used to update PaymentChannels.
+     */
+    data: XOR<PaymentChannelUpdateManyMutationInput, PaymentChannelUncheckedUpdateManyInput>
+    /**
+     * Filter which PaymentChannels to update
+     */
+    where?: PaymentChannelWhereInput
+    /**
+     * Limit how many PaymentChannels to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * PaymentChannel upsert
+   */
+  export type PaymentChannelUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PaymentChannel
+     */
+    select?: PaymentChannelSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PaymentChannel
+     */
+    omit?: PaymentChannelOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PaymentChannelInclude<ExtArgs> | null
+    /**
+     * The filter to search for the PaymentChannel to update in case it exists.
+     */
+    where: PaymentChannelWhereUniqueInput
+    /**
+     * In case the PaymentChannel found by the `where` argument doesn't exist, create a new PaymentChannel with this data.
+     */
+    create: XOR<PaymentChannelCreateInput, PaymentChannelUncheckedCreateInput>
+    /**
+     * In case the PaymentChannel was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<PaymentChannelUpdateInput, PaymentChannelUncheckedUpdateInput>
+  }
+
+  /**
+   * PaymentChannel delete
+   */
+  export type PaymentChannelDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PaymentChannel
+     */
+    select?: PaymentChannelSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PaymentChannel
+     */
+    omit?: PaymentChannelOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PaymentChannelInclude<ExtArgs> | null
+    /**
+     * Filter which PaymentChannel to delete.
+     */
+    where: PaymentChannelWhereUniqueInput
+  }
+
+  /**
+   * PaymentChannel deleteMany
+   */
+  export type PaymentChannelDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PaymentChannels to delete
+     */
+    where?: PaymentChannelWhereInput
+    /**
+     * Limit how many PaymentChannels to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * PaymentChannel.outgoing
+   */
+  export type PaymentChannel$outgoingArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PaymentTransfer
+     */
+    select?: PaymentTransferSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PaymentTransfer
+     */
+    omit?: PaymentTransferOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PaymentTransferInclude<ExtArgs> | null
+    where?: PaymentTransferWhereInput
+    orderBy?: PaymentTransferOrderByWithRelationInput | PaymentTransferOrderByWithRelationInput[]
+    cursor?: PaymentTransferWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: PaymentTransferScalarFieldEnum | PaymentTransferScalarFieldEnum[]
+  }
+
+  /**
+   * PaymentChannel.incoming
+   */
+  export type PaymentChannel$incomingArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PaymentTransfer
+     */
+    select?: PaymentTransferSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PaymentTransfer
+     */
+    omit?: PaymentTransferOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PaymentTransferInclude<ExtArgs> | null
+    where?: PaymentTransferWhereInput
+    orderBy?: PaymentTransferOrderByWithRelationInput | PaymentTransferOrderByWithRelationInput[]
+    cursor?: PaymentTransferWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: PaymentTransferScalarFieldEnum | PaymentTransferScalarFieldEnum[]
+  }
+
+  /**
+   * PaymentChannel without action
+   */
+  export type PaymentChannelDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PaymentChannel
+     */
+    select?: PaymentChannelSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PaymentChannel
+     */
+    omit?: PaymentChannelOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PaymentChannelInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model PaymentTransfer
+   */
+
+  export type AggregatePaymentTransfer = {
+    _count: PaymentTransferCountAggregateOutputType | null
+    _avg: PaymentTransferAvgAggregateOutputType | null
+    _sum: PaymentTransferSumAggregateOutputType | null
+    _min: PaymentTransferMinAggregateOutputType | null
+    _max: PaymentTransferMaxAggregateOutputType | null
+  }
+
+  export type PaymentTransferAvgAggregateOutputType = {
+    amount: Decimal | null
+  }
+
+  export type PaymentTransferSumAggregateOutputType = {
+    amount: Decimal | null
+  }
+
+  export type PaymentTransferMinAggregateOutputType = {
+    id: string | null
+    fromId: string | null
+    toId: string | null
+    amount: Decimal | null
+    occurredAt: Date | null
+    note: string | null
+    createdAt: Date | null
+  }
+
+  export type PaymentTransferMaxAggregateOutputType = {
+    id: string | null
+    fromId: string | null
+    toId: string | null
+    amount: Decimal | null
+    occurredAt: Date | null
+    note: string | null
+    createdAt: Date | null
+  }
+
+  export type PaymentTransferCountAggregateOutputType = {
+    id: number
+    fromId: number
+    toId: number
+    amount: number
+    occurredAt: number
+    note: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type PaymentTransferAvgAggregateInputType = {
+    amount?: true
+  }
+
+  export type PaymentTransferSumAggregateInputType = {
+    amount?: true
+  }
+
+  export type PaymentTransferMinAggregateInputType = {
+    id?: true
+    fromId?: true
+    toId?: true
+    amount?: true
+    occurredAt?: true
+    note?: true
+    createdAt?: true
+  }
+
+  export type PaymentTransferMaxAggregateInputType = {
+    id?: true
+    fromId?: true
+    toId?: true
+    amount?: true
+    occurredAt?: true
+    note?: true
+    createdAt?: true
+  }
+
+  export type PaymentTransferCountAggregateInputType = {
+    id?: true
+    fromId?: true
+    toId?: true
+    amount?: true
+    occurredAt?: true
+    note?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type PaymentTransferAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PaymentTransfer to aggregate.
+     */
+    where?: PaymentTransferWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PaymentTransfers to fetch.
+     */
+    orderBy?: PaymentTransferOrderByWithRelationInput | PaymentTransferOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: PaymentTransferWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PaymentTransfers from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PaymentTransfers.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned PaymentTransfers
+    **/
+    _count?: true | PaymentTransferCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: PaymentTransferAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: PaymentTransferSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: PaymentTransferMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: PaymentTransferMaxAggregateInputType
+  }
+
+  export type GetPaymentTransferAggregateType<T extends PaymentTransferAggregateArgs> = {
+        [P in keyof T & keyof AggregatePaymentTransfer]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregatePaymentTransfer[P]>
+      : GetScalarType<T[P], AggregatePaymentTransfer[P]>
+  }
+
+
+
+
+  export type PaymentTransferGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PaymentTransferWhereInput
+    orderBy?: PaymentTransferOrderByWithAggregationInput | PaymentTransferOrderByWithAggregationInput[]
+    by: PaymentTransferScalarFieldEnum[] | PaymentTransferScalarFieldEnum
+    having?: PaymentTransferScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: PaymentTransferCountAggregateInputType | true
+    _avg?: PaymentTransferAvgAggregateInputType
+    _sum?: PaymentTransferSumAggregateInputType
+    _min?: PaymentTransferMinAggregateInputType
+    _max?: PaymentTransferMaxAggregateInputType
+  }
+
+  export type PaymentTransferGroupByOutputType = {
+    id: string
+    fromId: string
+    toId: string
+    amount: Decimal
+    occurredAt: Date
+    note: string | null
+    createdAt: Date
+    _count: PaymentTransferCountAggregateOutputType | null
+    _avg: PaymentTransferAvgAggregateOutputType | null
+    _sum: PaymentTransferSumAggregateOutputType | null
+    _min: PaymentTransferMinAggregateOutputType | null
+    _max: PaymentTransferMaxAggregateOutputType | null
+  }
+
+  type GetPaymentTransferGroupByPayload<T extends PaymentTransferGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<PaymentTransferGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof PaymentTransferGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], PaymentTransferGroupByOutputType[P]>
+            : GetScalarType<T[P], PaymentTransferGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type PaymentTransferSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    fromId?: boolean
+    toId?: boolean
+    amount?: boolean
+    occurredAt?: boolean
+    note?: boolean
+    createdAt?: boolean
+    from?: boolean | PaymentChannelDefaultArgs<ExtArgs>
+    to?: boolean | PaymentChannelDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["paymentTransfer"]>
+
+  export type PaymentTransferSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    fromId?: boolean
+    toId?: boolean
+    amount?: boolean
+    occurredAt?: boolean
+    note?: boolean
+    createdAt?: boolean
+    from?: boolean | PaymentChannelDefaultArgs<ExtArgs>
+    to?: boolean | PaymentChannelDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["paymentTransfer"]>
+
+  export type PaymentTransferSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    fromId?: boolean
+    toId?: boolean
+    amount?: boolean
+    occurredAt?: boolean
+    note?: boolean
+    createdAt?: boolean
+    from?: boolean | PaymentChannelDefaultArgs<ExtArgs>
+    to?: boolean | PaymentChannelDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["paymentTransfer"]>
+
+  export type PaymentTransferSelectScalar = {
+    id?: boolean
+    fromId?: boolean
+    toId?: boolean
+    amount?: boolean
+    occurredAt?: boolean
+    note?: boolean
+    createdAt?: boolean
+  }
+
+  export type PaymentTransferOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "fromId" | "toId" | "amount" | "occurredAt" | "note" | "createdAt", ExtArgs["result"]["paymentTransfer"]>
+  export type PaymentTransferInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    from?: boolean | PaymentChannelDefaultArgs<ExtArgs>
+    to?: boolean | PaymentChannelDefaultArgs<ExtArgs>
+  }
+  export type PaymentTransferIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    from?: boolean | PaymentChannelDefaultArgs<ExtArgs>
+    to?: boolean | PaymentChannelDefaultArgs<ExtArgs>
+  }
+  export type PaymentTransferIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    from?: boolean | PaymentChannelDefaultArgs<ExtArgs>
+    to?: boolean | PaymentChannelDefaultArgs<ExtArgs>
+  }
+
+  export type $PaymentTransferPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "PaymentTransfer"
+    objects: {
+      from: Prisma.$PaymentChannelPayload<ExtArgs>
+      to: Prisma.$PaymentChannelPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      fromId: string
+      toId: string
+      amount: Prisma.Decimal
+      occurredAt: Date
+      note: string | null
+      createdAt: Date
+    }, ExtArgs["result"]["paymentTransfer"]>
+    composites: {}
+  }
+
+  type PaymentTransferGetPayload<S extends boolean | null | undefined | PaymentTransferDefaultArgs> = $Result.GetResult<Prisma.$PaymentTransferPayload, S>
+
+  type PaymentTransferCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<PaymentTransferFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: PaymentTransferCountAggregateInputType | true
+    }
+
+  export interface PaymentTransferDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['PaymentTransfer'], meta: { name: 'PaymentTransfer' } }
+    /**
+     * Find zero or one PaymentTransfer that matches the filter.
+     * @param {PaymentTransferFindUniqueArgs} args - Arguments to find a PaymentTransfer
+     * @example
+     * // Get one PaymentTransfer
+     * const paymentTransfer = await prisma.paymentTransfer.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends PaymentTransferFindUniqueArgs>(args: SelectSubset<T, PaymentTransferFindUniqueArgs<ExtArgs>>): Prisma__PaymentTransferClient<$Result.GetResult<Prisma.$PaymentTransferPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one PaymentTransfer that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {PaymentTransferFindUniqueOrThrowArgs} args - Arguments to find a PaymentTransfer
+     * @example
+     * // Get one PaymentTransfer
+     * const paymentTransfer = await prisma.paymentTransfer.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends PaymentTransferFindUniqueOrThrowArgs>(args: SelectSubset<T, PaymentTransferFindUniqueOrThrowArgs<ExtArgs>>): Prisma__PaymentTransferClient<$Result.GetResult<Prisma.$PaymentTransferPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first PaymentTransfer that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PaymentTransferFindFirstArgs} args - Arguments to find a PaymentTransfer
+     * @example
+     * // Get one PaymentTransfer
+     * const paymentTransfer = await prisma.paymentTransfer.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends PaymentTransferFindFirstArgs>(args?: SelectSubset<T, PaymentTransferFindFirstArgs<ExtArgs>>): Prisma__PaymentTransferClient<$Result.GetResult<Prisma.$PaymentTransferPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first PaymentTransfer that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PaymentTransferFindFirstOrThrowArgs} args - Arguments to find a PaymentTransfer
+     * @example
+     * // Get one PaymentTransfer
+     * const paymentTransfer = await prisma.paymentTransfer.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends PaymentTransferFindFirstOrThrowArgs>(args?: SelectSubset<T, PaymentTransferFindFirstOrThrowArgs<ExtArgs>>): Prisma__PaymentTransferClient<$Result.GetResult<Prisma.$PaymentTransferPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more PaymentTransfers that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PaymentTransferFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all PaymentTransfers
+     * const paymentTransfers = await prisma.paymentTransfer.findMany()
+     * 
+     * // Get first 10 PaymentTransfers
+     * const paymentTransfers = await prisma.paymentTransfer.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const paymentTransferWithIdOnly = await prisma.paymentTransfer.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends PaymentTransferFindManyArgs>(args?: SelectSubset<T, PaymentTransferFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PaymentTransferPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a PaymentTransfer.
+     * @param {PaymentTransferCreateArgs} args - Arguments to create a PaymentTransfer.
+     * @example
+     * // Create one PaymentTransfer
+     * const PaymentTransfer = await prisma.paymentTransfer.create({
+     *   data: {
+     *     // ... data to create a PaymentTransfer
+     *   }
+     * })
+     * 
+     */
+    create<T extends PaymentTransferCreateArgs>(args: SelectSubset<T, PaymentTransferCreateArgs<ExtArgs>>): Prisma__PaymentTransferClient<$Result.GetResult<Prisma.$PaymentTransferPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many PaymentTransfers.
+     * @param {PaymentTransferCreateManyArgs} args - Arguments to create many PaymentTransfers.
+     * @example
+     * // Create many PaymentTransfers
+     * const paymentTransfer = await prisma.paymentTransfer.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends PaymentTransferCreateManyArgs>(args?: SelectSubset<T, PaymentTransferCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many PaymentTransfers and returns the data saved in the database.
+     * @param {PaymentTransferCreateManyAndReturnArgs} args - Arguments to create many PaymentTransfers.
+     * @example
+     * // Create many PaymentTransfers
+     * const paymentTransfer = await prisma.paymentTransfer.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many PaymentTransfers and only return the `id`
+     * const paymentTransferWithIdOnly = await prisma.paymentTransfer.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends PaymentTransferCreateManyAndReturnArgs>(args?: SelectSubset<T, PaymentTransferCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PaymentTransferPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a PaymentTransfer.
+     * @param {PaymentTransferDeleteArgs} args - Arguments to delete one PaymentTransfer.
+     * @example
+     * // Delete one PaymentTransfer
+     * const PaymentTransfer = await prisma.paymentTransfer.delete({
+     *   where: {
+     *     // ... filter to delete one PaymentTransfer
+     *   }
+     * })
+     * 
+     */
+    delete<T extends PaymentTransferDeleteArgs>(args: SelectSubset<T, PaymentTransferDeleteArgs<ExtArgs>>): Prisma__PaymentTransferClient<$Result.GetResult<Prisma.$PaymentTransferPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one PaymentTransfer.
+     * @param {PaymentTransferUpdateArgs} args - Arguments to update one PaymentTransfer.
+     * @example
+     * // Update one PaymentTransfer
+     * const paymentTransfer = await prisma.paymentTransfer.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends PaymentTransferUpdateArgs>(args: SelectSubset<T, PaymentTransferUpdateArgs<ExtArgs>>): Prisma__PaymentTransferClient<$Result.GetResult<Prisma.$PaymentTransferPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more PaymentTransfers.
+     * @param {PaymentTransferDeleteManyArgs} args - Arguments to filter PaymentTransfers to delete.
+     * @example
+     * // Delete a few PaymentTransfers
+     * const { count } = await prisma.paymentTransfer.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends PaymentTransferDeleteManyArgs>(args?: SelectSubset<T, PaymentTransferDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more PaymentTransfers.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PaymentTransferUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many PaymentTransfers
+     * const paymentTransfer = await prisma.paymentTransfer.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends PaymentTransferUpdateManyArgs>(args: SelectSubset<T, PaymentTransferUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more PaymentTransfers and returns the data updated in the database.
+     * @param {PaymentTransferUpdateManyAndReturnArgs} args - Arguments to update many PaymentTransfers.
+     * @example
+     * // Update many PaymentTransfers
+     * const paymentTransfer = await prisma.paymentTransfer.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more PaymentTransfers and only return the `id`
+     * const paymentTransferWithIdOnly = await prisma.paymentTransfer.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends PaymentTransferUpdateManyAndReturnArgs>(args: SelectSubset<T, PaymentTransferUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PaymentTransferPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one PaymentTransfer.
+     * @param {PaymentTransferUpsertArgs} args - Arguments to update or create a PaymentTransfer.
+     * @example
+     * // Update or create a PaymentTransfer
+     * const paymentTransfer = await prisma.paymentTransfer.upsert({
+     *   create: {
+     *     // ... data to create a PaymentTransfer
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the PaymentTransfer we want to update
+     *   }
+     * })
+     */
+    upsert<T extends PaymentTransferUpsertArgs>(args: SelectSubset<T, PaymentTransferUpsertArgs<ExtArgs>>): Prisma__PaymentTransferClient<$Result.GetResult<Prisma.$PaymentTransferPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of PaymentTransfers.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PaymentTransferCountArgs} args - Arguments to filter PaymentTransfers to count.
+     * @example
+     * // Count the number of PaymentTransfers
+     * const count = await prisma.paymentTransfer.count({
+     *   where: {
+     *     // ... the filter for the PaymentTransfers we want to count
+     *   }
+     * })
+    **/
+    count<T extends PaymentTransferCountArgs>(
+      args?: Subset<T, PaymentTransferCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], PaymentTransferCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a PaymentTransfer.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PaymentTransferAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends PaymentTransferAggregateArgs>(args: Subset<T, PaymentTransferAggregateArgs>): Prisma.PrismaPromise<GetPaymentTransferAggregateType<T>>
+
+    /**
+     * Group by PaymentTransfer.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PaymentTransferGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends PaymentTransferGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: PaymentTransferGroupByArgs['orderBy'] }
+        : { orderBy?: PaymentTransferGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, PaymentTransferGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetPaymentTransferGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the PaymentTransfer model
+   */
+  readonly fields: PaymentTransferFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for PaymentTransfer.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__PaymentTransferClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    from<T extends PaymentChannelDefaultArgs<ExtArgs> = {}>(args?: Subset<T, PaymentChannelDefaultArgs<ExtArgs>>): Prisma__PaymentChannelClient<$Result.GetResult<Prisma.$PaymentChannelPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    to<T extends PaymentChannelDefaultArgs<ExtArgs> = {}>(args?: Subset<T, PaymentChannelDefaultArgs<ExtArgs>>): Prisma__PaymentChannelClient<$Result.GetResult<Prisma.$PaymentChannelPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the PaymentTransfer model
+   */
+  interface PaymentTransferFieldRefs {
+    readonly id: FieldRef<"PaymentTransfer", 'String'>
+    readonly fromId: FieldRef<"PaymentTransfer", 'String'>
+    readonly toId: FieldRef<"PaymentTransfer", 'String'>
+    readonly amount: FieldRef<"PaymentTransfer", 'Decimal'>
+    readonly occurredAt: FieldRef<"PaymentTransfer", 'DateTime'>
+    readonly note: FieldRef<"PaymentTransfer", 'String'>
+    readonly createdAt: FieldRef<"PaymentTransfer", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * PaymentTransfer findUnique
+   */
+  export type PaymentTransferFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PaymentTransfer
+     */
+    select?: PaymentTransferSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PaymentTransfer
+     */
+    omit?: PaymentTransferOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PaymentTransferInclude<ExtArgs> | null
+    /**
+     * Filter, which PaymentTransfer to fetch.
+     */
+    where: PaymentTransferWhereUniqueInput
+  }
+
+  /**
+   * PaymentTransfer findUniqueOrThrow
+   */
+  export type PaymentTransferFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PaymentTransfer
+     */
+    select?: PaymentTransferSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PaymentTransfer
+     */
+    omit?: PaymentTransferOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PaymentTransferInclude<ExtArgs> | null
+    /**
+     * Filter, which PaymentTransfer to fetch.
+     */
+    where: PaymentTransferWhereUniqueInput
+  }
+
+  /**
+   * PaymentTransfer findFirst
+   */
+  export type PaymentTransferFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PaymentTransfer
+     */
+    select?: PaymentTransferSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PaymentTransfer
+     */
+    omit?: PaymentTransferOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PaymentTransferInclude<ExtArgs> | null
+    /**
+     * Filter, which PaymentTransfer to fetch.
+     */
+    where?: PaymentTransferWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PaymentTransfers to fetch.
+     */
+    orderBy?: PaymentTransferOrderByWithRelationInput | PaymentTransferOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PaymentTransfers.
+     */
+    cursor?: PaymentTransferWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PaymentTransfers from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PaymentTransfers.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PaymentTransfers.
+     */
+    distinct?: PaymentTransferScalarFieldEnum | PaymentTransferScalarFieldEnum[]
+  }
+
+  /**
+   * PaymentTransfer findFirstOrThrow
+   */
+  export type PaymentTransferFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PaymentTransfer
+     */
+    select?: PaymentTransferSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PaymentTransfer
+     */
+    omit?: PaymentTransferOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PaymentTransferInclude<ExtArgs> | null
+    /**
+     * Filter, which PaymentTransfer to fetch.
+     */
+    where?: PaymentTransferWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PaymentTransfers to fetch.
+     */
+    orderBy?: PaymentTransferOrderByWithRelationInput | PaymentTransferOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PaymentTransfers.
+     */
+    cursor?: PaymentTransferWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PaymentTransfers from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PaymentTransfers.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PaymentTransfers.
+     */
+    distinct?: PaymentTransferScalarFieldEnum | PaymentTransferScalarFieldEnum[]
+  }
+
+  /**
+   * PaymentTransfer findMany
+   */
+  export type PaymentTransferFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PaymentTransfer
+     */
+    select?: PaymentTransferSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PaymentTransfer
+     */
+    omit?: PaymentTransferOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PaymentTransferInclude<ExtArgs> | null
+    /**
+     * Filter, which PaymentTransfers to fetch.
+     */
+    where?: PaymentTransferWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PaymentTransfers to fetch.
+     */
+    orderBy?: PaymentTransferOrderByWithRelationInput | PaymentTransferOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing PaymentTransfers.
+     */
+    cursor?: PaymentTransferWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PaymentTransfers from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PaymentTransfers.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PaymentTransfers.
+     */
+    distinct?: PaymentTransferScalarFieldEnum | PaymentTransferScalarFieldEnum[]
+  }
+
+  /**
+   * PaymentTransfer create
+   */
+  export type PaymentTransferCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PaymentTransfer
+     */
+    select?: PaymentTransferSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PaymentTransfer
+     */
+    omit?: PaymentTransferOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PaymentTransferInclude<ExtArgs> | null
+    /**
+     * The data needed to create a PaymentTransfer.
+     */
+    data: XOR<PaymentTransferCreateInput, PaymentTransferUncheckedCreateInput>
+  }
+
+  /**
+   * PaymentTransfer createMany
+   */
+  export type PaymentTransferCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many PaymentTransfers.
+     */
+    data: PaymentTransferCreateManyInput | PaymentTransferCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * PaymentTransfer createManyAndReturn
+   */
+  export type PaymentTransferCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PaymentTransfer
+     */
+    select?: PaymentTransferSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the PaymentTransfer
+     */
+    omit?: PaymentTransferOmit<ExtArgs> | null
+    /**
+     * The data used to create many PaymentTransfers.
+     */
+    data: PaymentTransferCreateManyInput | PaymentTransferCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PaymentTransferIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * PaymentTransfer update
+   */
+  export type PaymentTransferUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PaymentTransfer
+     */
+    select?: PaymentTransferSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PaymentTransfer
+     */
+    omit?: PaymentTransferOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PaymentTransferInclude<ExtArgs> | null
+    /**
+     * The data needed to update a PaymentTransfer.
+     */
+    data: XOR<PaymentTransferUpdateInput, PaymentTransferUncheckedUpdateInput>
+    /**
+     * Choose, which PaymentTransfer to update.
+     */
+    where: PaymentTransferWhereUniqueInput
+  }
+
+  /**
+   * PaymentTransfer updateMany
+   */
+  export type PaymentTransferUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update PaymentTransfers.
+     */
+    data: XOR<PaymentTransferUpdateManyMutationInput, PaymentTransferUncheckedUpdateManyInput>
+    /**
+     * Filter which PaymentTransfers to update
+     */
+    where?: PaymentTransferWhereInput
+    /**
+     * Limit how many PaymentTransfers to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * PaymentTransfer updateManyAndReturn
+   */
+  export type PaymentTransferUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PaymentTransfer
+     */
+    select?: PaymentTransferSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the PaymentTransfer
+     */
+    omit?: PaymentTransferOmit<ExtArgs> | null
+    /**
+     * The data used to update PaymentTransfers.
+     */
+    data: XOR<PaymentTransferUpdateManyMutationInput, PaymentTransferUncheckedUpdateManyInput>
+    /**
+     * Filter which PaymentTransfers to update
+     */
+    where?: PaymentTransferWhereInput
+    /**
+     * Limit how many PaymentTransfers to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PaymentTransferIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * PaymentTransfer upsert
+   */
+  export type PaymentTransferUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PaymentTransfer
+     */
+    select?: PaymentTransferSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PaymentTransfer
+     */
+    omit?: PaymentTransferOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PaymentTransferInclude<ExtArgs> | null
+    /**
+     * The filter to search for the PaymentTransfer to update in case it exists.
+     */
+    where: PaymentTransferWhereUniqueInput
+    /**
+     * In case the PaymentTransfer found by the `where` argument doesn't exist, create a new PaymentTransfer with this data.
+     */
+    create: XOR<PaymentTransferCreateInput, PaymentTransferUncheckedCreateInput>
+    /**
+     * In case the PaymentTransfer was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<PaymentTransferUpdateInput, PaymentTransferUncheckedUpdateInput>
+  }
+
+  /**
+   * PaymentTransfer delete
+   */
+  export type PaymentTransferDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PaymentTransfer
+     */
+    select?: PaymentTransferSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PaymentTransfer
+     */
+    omit?: PaymentTransferOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PaymentTransferInclude<ExtArgs> | null
+    /**
+     * Filter which PaymentTransfer to delete.
+     */
+    where: PaymentTransferWhereUniqueInput
+  }
+
+  /**
+   * PaymentTransfer deleteMany
+   */
+  export type PaymentTransferDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PaymentTransfers to delete
+     */
+    where?: PaymentTransferWhereInput
+    /**
+     * Limit how many PaymentTransfers to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * PaymentTransfer without action
+   */
+  export type PaymentTransferDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PaymentTransfer
+     */
+    select?: PaymentTransferSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PaymentTransfer
+     */
+    omit?: PaymentTransferOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PaymentTransferInclude<ExtArgs> | null
   }
 
 
@@ -6737,6 +10585,7 @@ export namespace Prisma {
     description: string | null
     price: Decimal | null
     sku: string | null
+    pctCode: string | null
     available: boolean | null
     posVisible: boolean | null
     popular: boolean | null
@@ -6754,6 +10603,7 @@ export namespace Prisma {
     description: string | null
     price: Decimal | null
     sku: string | null
+    pctCode: string | null
     available: boolean | null
     posVisible: boolean | null
     popular: boolean | null
@@ -6771,6 +10621,7 @@ export namespace Prisma {
     description: number
     price: number
     sku: number
+    pctCode: number
     available: number
     posVisible: number
     popular: number
@@ -6801,6 +10652,7 @@ export namespace Prisma {
     description?: true
     price?: true
     sku?: true
+    pctCode?: true
     available?: true
     posVisible?: true
     popular?: true
@@ -6818,6 +10670,7 @@ export namespace Prisma {
     description?: true
     price?: true
     sku?: true
+    pctCode?: true
     available?: true
     posVisible?: true
     popular?: true
@@ -6835,6 +10688,7 @@ export namespace Prisma {
     description?: true
     price?: true
     sku?: true
+    pctCode?: true
     available?: true
     posVisible?: true
     popular?: true
@@ -6940,6 +10794,7 @@ export namespace Prisma {
     description: string | null
     price: Decimal
     sku: string | null
+    pctCode: string | null
     available: boolean
     posVisible: boolean
     popular: boolean
@@ -6977,6 +10832,7 @@ export namespace Prisma {
     description?: boolean
     price?: boolean
     sku?: boolean
+    pctCode?: boolean
     available?: boolean
     posVisible?: boolean
     popular?: boolean
@@ -7000,6 +10856,7 @@ export namespace Prisma {
     description?: boolean
     price?: boolean
     sku?: boolean
+    pctCode?: boolean
     available?: boolean
     posVisible?: boolean
     popular?: boolean
@@ -7020,6 +10877,7 @@ export namespace Prisma {
     description?: boolean
     price?: boolean
     sku?: boolean
+    pctCode?: boolean
     available?: boolean
     posVisible?: boolean
     popular?: boolean
@@ -7040,6 +10898,7 @@ export namespace Prisma {
     description?: boolean
     price?: boolean
     sku?: boolean
+    pctCode?: boolean
     available?: boolean
     posVisible?: boolean
     popular?: boolean
@@ -7052,7 +10911,7 @@ export namespace Prisma {
     updatedAt?: boolean
   }
 
-  export type MenuItemOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "description" | "price" | "sku" | "available" | "posVisible" | "popular" | "prepTimeMinutes" | "image" | "categoryId" | "stationId" | "modifiers" | "createdAt" | "updatedAt", ExtArgs["result"]["menuItem"]>
+  export type MenuItemOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "description" | "price" | "sku" | "pctCode" | "available" | "posVisible" | "popular" | "prepTimeMinutes" | "image" | "categoryId" | "stationId" | "modifiers" | "createdAt" | "updatedAt", ExtArgs["result"]["menuItem"]>
   export type MenuItemInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     category?: boolean | MenuCategoryDefaultArgs<ExtArgs>
     station?: boolean | KitchenStationDefaultArgs<ExtArgs>
@@ -7083,6 +10942,11 @@ export namespace Prisma {
       description: string | null
       price: Prisma.Decimal
       sku: string | null
+      /**
+       * Pakistan Customs Tariff code reported per line item to BRA.
+       * Falls back to FiscalConfig.defaultPctCode at submission time.
+       */
+      pctCode: string | null
       available: boolean
       posVisible: boolean
       popular: boolean
@@ -7525,6 +11389,7 @@ export namespace Prisma {
     readonly description: FieldRef<"MenuItem", 'String'>
     readonly price: FieldRef<"MenuItem", 'Decimal'>
     readonly sku: FieldRef<"MenuItem", 'String'>
+    readonly pctCode: FieldRef<"MenuItem", 'String'>
     readonly available: FieldRef<"MenuItem", 'Boolean'>
     readonly posVisible: FieldRef<"MenuItem", 'Boolean'>
     readonly popular: FieldRef<"MenuItem", 'Boolean'>
@@ -13782,6 +17647,7 @@ export namespace Prisma {
     tip: Decimal | null
     discount: Decimal | null
     total: Decimal | null
+    fiscalAttempts: number | null
   }
 
   export type OrderSumAggregateOutputType = {
@@ -13790,6 +17656,7 @@ export namespace Prisma {
     tip: Decimal | null
     discount: Decimal | null
     total: Decimal | null
+    fiscalAttempts: number | null
   }
 
   export type OrderMinAggregateOutputType = {
@@ -13799,6 +17666,8 @@ export namespace Prisma {
     channel: string | null
     customerName: string | null
     customerPhone: string | null
+    buyerNtn: string | null
+    buyerCnic: string | null
     tableId: string | null
     staffId: string | null
     subtotal: Decimal | null
@@ -13808,6 +17677,10 @@ export namespace Prisma {
     total: Decimal | null
     payment: $Enums.PaymentMethod | null
     notes: string | null
+    fiscalInvoiceNumber: string | null
+    fiscalSubmittedAt: Date | null
+    fiscalAttempts: number | null
+    fiscalLastError: string | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -13819,6 +17692,8 @@ export namespace Prisma {
     channel: string | null
     customerName: string | null
     customerPhone: string | null
+    buyerNtn: string | null
+    buyerCnic: string | null
     tableId: string | null
     staffId: string | null
     subtotal: Decimal | null
@@ -13828,6 +17703,10 @@ export namespace Prisma {
     total: Decimal | null
     payment: $Enums.PaymentMethod | null
     notes: string | null
+    fiscalInvoiceNumber: string | null
+    fiscalSubmittedAt: Date | null
+    fiscalAttempts: number | null
+    fiscalLastError: string | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -13839,6 +17718,8 @@ export namespace Prisma {
     channel: number
     customerName: number
     customerPhone: number
+    buyerNtn: number
+    buyerCnic: number
     tableId: number
     staffId: number
     subtotal: number
@@ -13848,6 +17729,10 @@ export namespace Prisma {
     total: number
     payment: number
     notes: number
+    fiscalInvoiceNumber: number
+    fiscalSubmittedAt: number
+    fiscalAttempts: number
+    fiscalLastError: number
     createdAt: number
     updatedAt: number
     _all: number
@@ -13860,6 +17745,7 @@ export namespace Prisma {
     tip?: true
     discount?: true
     total?: true
+    fiscalAttempts?: true
   }
 
   export type OrderSumAggregateInputType = {
@@ -13868,6 +17754,7 @@ export namespace Prisma {
     tip?: true
     discount?: true
     total?: true
+    fiscalAttempts?: true
   }
 
   export type OrderMinAggregateInputType = {
@@ -13877,6 +17764,8 @@ export namespace Prisma {
     channel?: true
     customerName?: true
     customerPhone?: true
+    buyerNtn?: true
+    buyerCnic?: true
     tableId?: true
     staffId?: true
     subtotal?: true
@@ -13886,6 +17775,10 @@ export namespace Prisma {
     total?: true
     payment?: true
     notes?: true
+    fiscalInvoiceNumber?: true
+    fiscalSubmittedAt?: true
+    fiscalAttempts?: true
+    fiscalLastError?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -13897,6 +17790,8 @@ export namespace Prisma {
     channel?: true
     customerName?: true
     customerPhone?: true
+    buyerNtn?: true
+    buyerCnic?: true
     tableId?: true
     staffId?: true
     subtotal?: true
@@ -13906,6 +17801,10 @@ export namespace Prisma {
     total?: true
     payment?: true
     notes?: true
+    fiscalInvoiceNumber?: true
+    fiscalSubmittedAt?: true
+    fiscalAttempts?: true
+    fiscalLastError?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -13917,6 +17816,8 @@ export namespace Prisma {
     channel?: true
     customerName?: true
     customerPhone?: true
+    buyerNtn?: true
+    buyerCnic?: true
     tableId?: true
     staffId?: true
     subtotal?: true
@@ -13926,6 +17827,10 @@ export namespace Prisma {
     total?: true
     payment?: true
     notes?: true
+    fiscalInvoiceNumber?: true
+    fiscalSubmittedAt?: true
+    fiscalAttempts?: true
+    fiscalLastError?: true
     createdAt?: true
     updatedAt?: true
     _all?: true
@@ -14024,6 +17929,8 @@ export namespace Prisma {
     channel: string
     customerName: string | null
     customerPhone: string | null
+    buyerNtn: string | null
+    buyerCnic: string | null
     tableId: string | null
     staffId: string | null
     subtotal: Decimal
@@ -14033,6 +17940,10 @@ export namespace Prisma {
     total: Decimal
     payment: $Enums.PaymentMethod
     notes: string | null
+    fiscalInvoiceNumber: string | null
+    fiscalSubmittedAt: Date | null
+    fiscalAttempts: number
+    fiscalLastError: string | null
     createdAt: Date
     updatedAt: Date
     _count: OrderCountAggregateOutputType | null
@@ -14063,6 +17974,8 @@ export namespace Prisma {
     channel?: boolean
     customerName?: boolean
     customerPhone?: boolean
+    buyerNtn?: boolean
+    buyerCnic?: boolean
     tableId?: boolean
     staffId?: boolean
     subtotal?: boolean
@@ -14072,10 +17985,15 @@ export namespace Prisma {
     total?: boolean
     payment?: boolean
     notes?: boolean
+    fiscalInvoiceNumber?: boolean
+    fiscalSubmittedAt?: boolean
+    fiscalAttempts?: boolean
+    fiscalLastError?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     table?: boolean | Order$tableArgs<ExtArgs>
     staff?: boolean | Order$staffArgs<ExtArgs>
+    fiscalSubmissions?: boolean | Order$fiscalSubmissionsArgs<ExtArgs>
     items?: boolean | Order$itemsArgs<ExtArgs>
     tickets?: boolean | Order$ticketsArgs<ExtArgs>
     _count?: boolean | OrderCountOutputTypeDefaultArgs<ExtArgs>
@@ -14088,6 +18006,8 @@ export namespace Prisma {
     channel?: boolean
     customerName?: boolean
     customerPhone?: boolean
+    buyerNtn?: boolean
+    buyerCnic?: boolean
     tableId?: boolean
     staffId?: boolean
     subtotal?: boolean
@@ -14097,6 +18017,10 @@ export namespace Prisma {
     total?: boolean
     payment?: boolean
     notes?: boolean
+    fiscalInvoiceNumber?: boolean
+    fiscalSubmittedAt?: boolean
+    fiscalAttempts?: boolean
+    fiscalLastError?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     table?: boolean | Order$tableArgs<ExtArgs>
@@ -14110,6 +18034,8 @@ export namespace Prisma {
     channel?: boolean
     customerName?: boolean
     customerPhone?: boolean
+    buyerNtn?: boolean
+    buyerCnic?: boolean
     tableId?: boolean
     staffId?: boolean
     subtotal?: boolean
@@ -14119,6 +18045,10 @@ export namespace Prisma {
     total?: boolean
     payment?: boolean
     notes?: boolean
+    fiscalInvoiceNumber?: boolean
+    fiscalSubmittedAt?: boolean
+    fiscalAttempts?: boolean
+    fiscalLastError?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     table?: boolean | Order$tableArgs<ExtArgs>
@@ -14132,6 +18062,8 @@ export namespace Prisma {
     channel?: boolean
     customerName?: boolean
     customerPhone?: boolean
+    buyerNtn?: boolean
+    buyerCnic?: boolean
     tableId?: boolean
     staffId?: boolean
     subtotal?: boolean
@@ -14141,14 +18073,19 @@ export namespace Prisma {
     total?: boolean
     payment?: boolean
     notes?: boolean
+    fiscalInvoiceNumber?: boolean
+    fiscalSubmittedAt?: boolean
+    fiscalAttempts?: boolean
+    fiscalLastError?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
 
-  export type OrderOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "number" | "status" | "channel" | "customerName" | "customerPhone" | "tableId" | "staffId" | "subtotal" | "tax" | "tip" | "discount" | "total" | "payment" | "notes" | "createdAt" | "updatedAt", ExtArgs["result"]["order"]>
+  export type OrderOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "number" | "status" | "channel" | "customerName" | "customerPhone" | "buyerNtn" | "buyerCnic" | "tableId" | "staffId" | "subtotal" | "tax" | "tip" | "discount" | "total" | "payment" | "notes" | "fiscalInvoiceNumber" | "fiscalSubmittedAt" | "fiscalAttempts" | "fiscalLastError" | "createdAt" | "updatedAt", ExtArgs["result"]["order"]>
   export type OrderInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     table?: boolean | Order$tableArgs<ExtArgs>
     staff?: boolean | Order$staffArgs<ExtArgs>
+    fiscalSubmissions?: boolean | Order$fiscalSubmissionsArgs<ExtArgs>
     items?: boolean | Order$itemsArgs<ExtArgs>
     tickets?: boolean | Order$ticketsArgs<ExtArgs>
     _count?: boolean | OrderCountOutputTypeDefaultArgs<ExtArgs>
@@ -14167,6 +18104,7 @@ export namespace Prisma {
     objects: {
       table: Prisma.$TablePayload<ExtArgs> | null
       staff: Prisma.$UserPayload<ExtArgs> | null
+      fiscalSubmissions: Prisma.$FiscalSubmissionPayload<ExtArgs>[]
       items: Prisma.$OrderItemPayload<ExtArgs>[]
       tickets: Prisma.$KitchenTicketPayload<ExtArgs>[]
     }
@@ -14181,6 +18119,8 @@ export namespace Prisma {
       channel: string
       customerName: string | null
       customerPhone: string | null
+      buyerNtn: string | null
+      buyerCnic: string | null
       tableId: string | null
       staffId: string | null
       subtotal: Prisma.Decimal
@@ -14190,6 +18130,14 @@ export namespace Prisma {
       total: Prisma.Decimal
       payment: $Enums.PaymentMethod
       notes: string | null
+      /**
+       * BRA-issued fiscal invoice number. Populated after successful
+       * submission to the BRA Software Fiscal Device (local or cloud).
+       */
+      fiscalInvoiceNumber: string | null
+      fiscalSubmittedAt: Date | null
+      fiscalAttempts: number
+      fiscalLastError: string | null
       createdAt: Date
       updatedAt: Date
     }, ExtArgs["result"]["order"]>
@@ -14588,6 +18536,7 @@ export namespace Prisma {
     readonly [Symbol.toStringTag]: "PrismaPromise"
     table<T extends Order$tableArgs<ExtArgs> = {}>(args?: Subset<T, Order$tableArgs<ExtArgs>>): Prisma__TableClient<$Result.GetResult<Prisma.$TablePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
     staff<T extends Order$staffArgs<ExtArgs> = {}>(args?: Subset<T, Order$staffArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+    fiscalSubmissions<T extends Order$fiscalSubmissionsArgs<ExtArgs> = {}>(args?: Subset<T, Order$fiscalSubmissionsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$FiscalSubmissionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     items<T extends Order$itemsArgs<ExtArgs> = {}>(args?: Subset<T, Order$itemsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$OrderItemPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     tickets<T extends Order$ticketsArgs<ExtArgs> = {}>(args?: Subset<T, Order$ticketsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$KitchenTicketPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
@@ -14625,6 +18574,8 @@ export namespace Prisma {
     readonly channel: FieldRef<"Order", 'String'>
     readonly customerName: FieldRef<"Order", 'String'>
     readonly customerPhone: FieldRef<"Order", 'String'>
+    readonly buyerNtn: FieldRef<"Order", 'String'>
+    readonly buyerCnic: FieldRef<"Order", 'String'>
     readonly tableId: FieldRef<"Order", 'String'>
     readonly staffId: FieldRef<"Order", 'String'>
     readonly subtotal: FieldRef<"Order", 'Decimal'>
@@ -14634,6 +18585,10 @@ export namespace Prisma {
     readonly total: FieldRef<"Order", 'Decimal'>
     readonly payment: FieldRef<"Order", 'PaymentMethod'>
     readonly notes: FieldRef<"Order", 'String'>
+    readonly fiscalInvoiceNumber: FieldRef<"Order", 'String'>
+    readonly fiscalSubmittedAt: FieldRef<"Order", 'DateTime'>
+    readonly fiscalAttempts: FieldRef<"Order", 'Int'>
+    readonly fiscalLastError: FieldRef<"Order", 'String'>
     readonly createdAt: FieldRef<"Order", 'DateTime'>
     readonly updatedAt: FieldRef<"Order", 'DateTime'>
   }
@@ -15072,6 +19027,30 @@ export namespace Prisma {
      */
     include?: UserInclude<ExtArgs> | null
     where?: UserWhereInput
+  }
+
+  /**
+   * Order.fiscalSubmissions
+   */
+  export type Order$fiscalSubmissionsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FiscalSubmission
+     */
+    select?: FiscalSubmissionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the FiscalSubmission
+     */
+    omit?: FiscalSubmissionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: FiscalSubmissionInclude<ExtArgs> | null
+    where?: FiscalSubmissionWhereInput
+    orderBy?: FiscalSubmissionOrderByWithRelationInput | FiscalSubmissionOrderByWithRelationInput[]
+    cursor?: FiscalSubmissionWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: FiscalSubmissionScalarFieldEnum | FiscalSubmissionScalarFieldEnum[]
   }
 
   /**
@@ -17374,6 +21353,2304 @@ export namespace Prisma {
 
 
   /**
+   * Model FiscalConfig
+   */
+
+  export type AggregateFiscalConfig = {
+    _count: FiscalConfigCountAggregateOutputType | null
+    _min: FiscalConfigMinAggregateOutputType | null
+    _max: FiscalConfigMaxAggregateOutputType | null
+  }
+
+  export type FiscalConfigMinAggregateOutputType = {
+    id: string | null
+    enabled: boolean | null
+    mode: $Enums.FiscalMode | null
+    environment: $Enums.FiscalEnvironment | null
+    posId: string | null
+    accessCode: string | null
+    bearerToken: string | null
+    localBaseUrl: string | null
+    defaultPctCode: string | null
+    businessName: string | null
+    bntn: string | null
+    autoSubmit: boolean | null
+    updatedAt: Date | null
+  }
+
+  export type FiscalConfigMaxAggregateOutputType = {
+    id: string | null
+    enabled: boolean | null
+    mode: $Enums.FiscalMode | null
+    environment: $Enums.FiscalEnvironment | null
+    posId: string | null
+    accessCode: string | null
+    bearerToken: string | null
+    localBaseUrl: string | null
+    defaultPctCode: string | null
+    businessName: string | null
+    bntn: string | null
+    autoSubmit: boolean | null
+    updatedAt: Date | null
+  }
+
+  export type FiscalConfigCountAggregateOutputType = {
+    id: number
+    enabled: number
+    mode: number
+    environment: number
+    posId: number
+    accessCode: number
+    bearerToken: number
+    localBaseUrl: number
+    defaultPctCode: number
+    businessName: number
+    bntn: number
+    autoSubmit: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type FiscalConfigMinAggregateInputType = {
+    id?: true
+    enabled?: true
+    mode?: true
+    environment?: true
+    posId?: true
+    accessCode?: true
+    bearerToken?: true
+    localBaseUrl?: true
+    defaultPctCode?: true
+    businessName?: true
+    bntn?: true
+    autoSubmit?: true
+    updatedAt?: true
+  }
+
+  export type FiscalConfigMaxAggregateInputType = {
+    id?: true
+    enabled?: true
+    mode?: true
+    environment?: true
+    posId?: true
+    accessCode?: true
+    bearerToken?: true
+    localBaseUrl?: true
+    defaultPctCode?: true
+    businessName?: true
+    bntn?: true
+    autoSubmit?: true
+    updatedAt?: true
+  }
+
+  export type FiscalConfigCountAggregateInputType = {
+    id?: true
+    enabled?: true
+    mode?: true
+    environment?: true
+    posId?: true
+    accessCode?: true
+    bearerToken?: true
+    localBaseUrl?: true
+    defaultPctCode?: true
+    businessName?: true
+    bntn?: true
+    autoSubmit?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type FiscalConfigAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which FiscalConfig to aggregate.
+     */
+    where?: FiscalConfigWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of FiscalConfigs to fetch.
+     */
+    orderBy?: FiscalConfigOrderByWithRelationInput | FiscalConfigOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: FiscalConfigWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` FiscalConfigs from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` FiscalConfigs.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned FiscalConfigs
+    **/
+    _count?: true | FiscalConfigCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: FiscalConfigMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: FiscalConfigMaxAggregateInputType
+  }
+
+  export type GetFiscalConfigAggregateType<T extends FiscalConfigAggregateArgs> = {
+        [P in keyof T & keyof AggregateFiscalConfig]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateFiscalConfig[P]>
+      : GetScalarType<T[P], AggregateFiscalConfig[P]>
+  }
+
+
+
+
+  export type FiscalConfigGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: FiscalConfigWhereInput
+    orderBy?: FiscalConfigOrderByWithAggregationInput | FiscalConfigOrderByWithAggregationInput[]
+    by: FiscalConfigScalarFieldEnum[] | FiscalConfigScalarFieldEnum
+    having?: FiscalConfigScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: FiscalConfigCountAggregateInputType | true
+    _min?: FiscalConfigMinAggregateInputType
+    _max?: FiscalConfigMaxAggregateInputType
+  }
+
+  export type FiscalConfigGroupByOutputType = {
+    id: string
+    enabled: boolean
+    mode: $Enums.FiscalMode
+    environment: $Enums.FiscalEnvironment
+    posId: string | null
+    accessCode: string | null
+    bearerToken: string | null
+    localBaseUrl: string
+    defaultPctCode: string
+    businessName: string | null
+    bntn: string | null
+    autoSubmit: boolean
+    updatedAt: Date
+    _count: FiscalConfigCountAggregateOutputType | null
+    _min: FiscalConfigMinAggregateOutputType | null
+    _max: FiscalConfigMaxAggregateOutputType | null
+  }
+
+  type GetFiscalConfigGroupByPayload<T extends FiscalConfigGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<FiscalConfigGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof FiscalConfigGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], FiscalConfigGroupByOutputType[P]>
+            : GetScalarType<T[P], FiscalConfigGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type FiscalConfigSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    enabled?: boolean
+    mode?: boolean
+    environment?: boolean
+    posId?: boolean
+    accessCode?: boolean
+    bearerToken?: boolean
+    localBaseUrl?: boolean
+    defaultPctCode?: boolean
+    businessName?: boolean
+    bntn?: boolean
+    autoSubmit?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["fiscalConfig"]>
+
+  export type FiscalConfigSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    enabled?: boolean
+    mode?: boolean
+    environment?: boolean
+    posId?: boolean
+    accessCode?: boolean
+    bearerToken?: boolean
+    localBaseUrl?: boolean
+    defaultPctCode?: boolean
+    businessName?: boolean
+    bntn?: boolean
+    autoSubmit?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["fiscalConfig"]>
+
+  export type FiscalConfigSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    enabled?: boolean
+    mode?: boolean
+    environment?: boolean
+    posId?: boolean
+    accessCode?: boolean
+    bearerToken?: boolean
+    localBaseUrl?: boolean
+    defaultPctCode?: boolean
+    businessName?: boolean
+    bntn?: boolean
+    autoSubmit?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["fiscalConfig"]>
+
+  export type FiscalConfigSelectScalar = {
+    id?: boolean
+    enabled?: boolean
+    mode?: boolean
+    environment?: boolean
+    posId?: boolean
+    accessCode?: boolean
+    bearerToken?: boolean
+    localBaseUrl?: boolean
+    defaultPctCode?: boolean
+    businessName?: boolean
+    bntn?: boolean
+    autoSubmit?: boolean
+    updatedAt?: boolean
+  }
+
+  export type FiscalConfigOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "enabled" | "mode" | "environment" | "posId" | "accessCode" | "bearerToken" | "localBaseUrl" | "defaultPctCode" | "businessName" | "bntn" | "autoSubmit" | "updatedAt", ExtArgs["result"]["fiscalConfig"]>
+
+  export type $FiscalConfigPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "FiscalConfig"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      enabled: boolean
+      mode: $Enums.FiscalMode
+      environment: $Enums.FiscalEnvironment
+      /**
+       * BRA-issued POS Registration Number (called POSID in the spec).
+       */
+      posId: string | null
+      /**
+       * Access code paired with the POS ID; used for the local fiscal device.
+       */
+      accessCode: string | null
+      /**
+       * Bearer token for the cloud endpoint (sandbox/production).
+       */
+      bearerToken: string | null
+      /**
+       * Override for the local device URL. Default is the spec's `http://localhost:8524`.
+       */
+      localBaseUrl: string
+      /**
+       * PCT (Pakistan Customs Tariff) code applied to any menu item
+       * that doesn't carry its own. BRA's documented placeholder is "00000000".
+       */
+      defaultPctCode: string
+      /**
+       * Optional display-only metadata (helps operators sanity-check the config).
+       */
+      businessName: string | null
+      bntn: string | null
+      /**
+       * Auto-submit invoices to BRA when a POS order is placed.
+       * When false, operators submit manually from the order detail drawer.
+       */
+      autoSubmit: boolean
+      updatedAt: Date
+    }, ExtArgs["result"]["fiscalConfig"]>
+    composites: {}
+  }
+
+  type FiscalConfigGetPayload<S extends boolean | null | undefined | FiscalConfigDefaultArgs> = $Result.GetResult<Prisma.$FiscalConfigPayload, S>
+
+  type FiscalConfigCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<FiscalConfigFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: FiscalConfigCountAggregateInputType | true
+    }
+
+  export interface FiscalConfigDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['FiscalConfig'], meta: { name: 'FiscalConfig' } }
+    /**
+     * Find zero or one FiscalConfig that matches the filter.
+     * @param {FiscalConfigFindUniqueArgs} args - Arguments to find a FiscalConfig
+     * @example
+     * // Get one FiscalConfig
+     * const fiscalConfig = await prisma.fiscalConfig.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends FiscalConfigFindUniqueArgs>(args: SelectSubset<T, FiscalConfigFindUniqueArgs<ExtArgs>>): Prisma__FiscalConfigClient<$Result.GetResult<Prisma.$FiscalConfigPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one FiscalConfig that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {FiscalConfigFindUniqueOrThrowArgs} args - Arguments to find a FiscalConfig
+     * @example
+     * // Get one FiscalConfig
+     * const fiscalConfig = await prisma.fiscalConfig.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends FiscalConfigFindUniqueOrThrowArgs>(args: SelectSubset<T, FiscalConfigFindUniqueOrThrowArgs<ExtArgs>>): Prisma__FiscalConfigClient<$Result.GetResult<Prisma.$FiscalConfigPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first FiscalConfig that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {FiscalConfigFindFirstArgs} args - Arguments to find a FiscalConfig
+     * @example
+     * // Get one FiscalConfig
+     * const fiscalConfig = await prisma.fiscalConfig.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends FiscalConfigFindFirstArgs>(args?: SelectSubset<T, FiscalConfigFindFirstArgs<ExtArgs>>): Prisma__FiscalConfigClient<$Result.GetResult<Prisma.$FiscalConfigPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first FiscalConfig that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {FiscalConfigFindFirstOrThrowArgs} args - Arguments to find a FiscalConfig
+     * @example
+     * // Get one FiscalConfig
+     * const fiscalConfig = await prisma.fiscalConfig.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends FiscalConfigFindFirstOrThrowArgs>(args?: SelectSubset<T, FiscalConfigFindFirstOrThrowArgs<ExtArgs>>): Prisma__FiscalConfigClient<$Result.GetResult<Prisma.$FiscalConfigPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more FiscalConfigs that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {FiscalConfigFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all FiscalConfigs
+     * const fiscalConfigs = await prisma.fiscalConfig.findMany()
+     * 
+     * // Get first 10 FiscalConfigs
+     * const fiscalConfigs = await prisma.fiscalConfig.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const fiscalConfigWithIdOnly = await prisma.fiscalConfig.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends FiscalConfigFindManyArgs>(args?: SelectSubset<T, FiscalConfigFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$FiscalConfigPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a FiscalConfig.
+     * @param {FiscalConfigCreateArgs} args - Arguments to create a FiscalConfig.
+     * @example
+     * // Create one FiscalConfig
+     * const FiscalConfig = await prisma.fiscalConfig.create({
+     *   data: {
+     *     // ... data to create a FiscalConfig
+     *   }
+     * })
+     * 
+     */
+    create<T extends FiscalConfigCreateArgs>(args: SelectSubset<T, FiscalConfigCreateArgs<ExtArgs>>): Prisma__FiscalConfigClient<$Result.GetResult<Prisma.$FiscalConfigPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many FiscalConfigs.
+     * @param {FiscalConfigCreateManyArgs} args - Arguments to create many FiscalConfigs.
+     * @example
+     * // Create many FiscalConfigs
+     * const fiscalConfig = await prisma.fiscalConfig.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends FiscalConfigCreateManyArgs>(args?: SelectSubset<T, FiscalConfigCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many FiscalConfigs and returns the data saved in the database.
+     * @param {FiscalConfigCreateManyAndReturnArgs} args - Arguments to create many FiscalConfigs.
+     * @example
+     * // Create many FiscalConfigs
+     * const fiscalConfig = await prisma.fiscalConfig.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many FiscalConfigs and only return the `id`
+     * const fiscalConfigWithIdOnly = await prisma.fiscalConfig.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends FiscalConfigCreateManyAndReturnArgs>(args?: SelectSubset<T, FiscalConfigCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$FiscalConfigPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a FiscalConfig.
+     * @param {FiscalConfigDeleteArgs} args - Arguments to delete one FiscalConfig.
+     * @example
+     * // Delete one FiscalConfig
+     * const FiscalConfig = await prisma.fiscalConfig.delete({
+     *   where: {
+     *     // ... filter to delete one FiscalConfig
+     *   }
+     * })
+     * 
+     */
+    delete<T extends FiscalConfigDeleteArgs>(args: SelectSubset<T, FiscalConfigDeleteArgs<ExtArgs>>): Prisma__FiscalConfigClient<$Result.GetResult<Prisma.$FiscalConfigPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one FiscalConfig.
+     * @param {FiscalConfigUpdateArgs} args - Arguments to update one FiscalConfig.
+     * @example
+     * // Update one FiscalConfig
+     * const fiscalConfig = await prisma.fiscalConfig.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends FiscalConfigUpdateArgs>(args: SelectSubset<T, FiscalConfigUpdateArgs<ExtArgs>>): Prisma__FiscalConfigClient<$Result.GetResult<Prisma.$FiscalConfigPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more FiscalConfigs.
+     * @param {FiscalConfigDeleteManyArgs} args - Arguments to filter FiscalConfigs to delete.
+     * @example
+     * // Delete a few FiscalConfigs
+     * const { count } = await prisma.fiscalConfig.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends FiscalConfigDeleteManyArgs>(args?: SelectSubset<T, FiscalConfigDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more FiscalConfigs.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {FiscalConfigUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many FiscalConfigs
+     * const fiscalConfig = await prisma.fiscalConfig.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends FiscalConfigUpdateManyArgs>(args: SelectSubset<T, FiscalConfigUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more FiscalConfigs and returns the data updated in the database.
+     * @param {FiscalConfigUpdateManyAndReturnArgs} args - Arguments to update many FiscalConfigs.
+     * @example
+     * // Update many FiscalConfigs
+     * const fiscalConfig = await prisma.fiscalConfig.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more FiscalConfigs and only return the `id`
+     * const fiscalConfigWithIdOnly = await prisma.fiscalConfig.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends FiscalConfigUpdateManyAndReturnArgs>(args: SelectSubset<T, FiscalConfigUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$FiscalConfigPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one FiscalConfig.
+     * @param {FiscalConfigUpsertArgs} args - Arguments to update or create a FiscalConfig.
+     * @example
+     * // Update or create a FiscalConfig
+     * const fiscalConfig = await prisma.fiscalConfig.upsert({
+     *   create: {
+     *     // ... data to create a FiscalConfig
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the FiscalConfig we want to update
+     *   }
+     * })
+     */
+    upsert<T extends FiscalConfigUpsertArgs>(args: SelectSubset<T, FiscalConfigUpsertArgs<ExtArgs>>): Prisma__FiscalConfigClient<$Result.GetResult<Prisma.$FiscalConfigPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of FiscalConfigs.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {FiscalConfigCountArgs} args - Arguments to filter FiscalConfigs to count.
+     * @example
+     * // Count the number of FiscalConfigs
+     * const count = await prisma.fiscalConfig.count({
+     *   where: {
+     *     // ... the filter for the FiscalConfigs we want to count
+     *   }
+     * })
+    **/
+    count<T extends FiscalConfigCountArgs>(
+      args?: Subset<T, FiscalConfigCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], FiscalConfigCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a FiscalConfig.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {FiscalConfigAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends FiscalConfigAggregateArgs>(args: Subset<T, FiscalConfigAggregateArgs>): Prisma.PrismaPromise<GetFiscalConfigAggregateType<T>>
+
+    /**
+     * Group by FiscalConfig.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {FiscalConfigGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends FiscalConfigGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: FiscalConfigGroupByArgs['orderBy'] }
+        : { orderBy?: FiscalConfigGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, FiscalConfigGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetFiscalConfigGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the FiscalConfig model
+   */
+  readonly fields: FiscalConfigFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for FiscalConfig.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__FiscalConfigClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the FiscalConfig model
+   */
+  interface FiscalConfigFieldRefs {
+    readonly id: FieldRef<"FiscalConfig", 'String'>
+    readonly enabled: FieldRef<"FiscalConfig", 'Boolean'>
+    readonly mode: FieldRef<"FiscalConfig", 'FiscalMode'>
+    readonly environment: FieldRef<"FiscalConfig", 'FiscalEnvironment'>
+    readonly posId: FieldRef<"FiscalConfig", 'String'>
+    readonly accessCode: FieldRef<"FiscalConfig", 'String'>
+    readonly bearerToken: FieldRef<"FiscalConfig", 'String'>
+    readonly localBaseUrl: FieldRef<"FiscalConfig", 'String'>
+    readonly defaultPctCode: FieldRef<"FiscalConfig", 'String'>
+    readonly businessName: FieldRef<"FiscalConfig", 'String'>
+    readonly bntn: FieldRef<"FiscalConfig", 'String'>
+    readonly autoSubmit: FieldRef<"FiscalConfig", 'Boolean'>
+    readonly updatedAt: FieldRef<"FiscalConfig", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * FiscalConfig findUnique
+   */
+  export type FiscalConfigFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FiscalConfig
+     */
+    select?: FiscalConfigSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the FiscalConfig
+     */
+    omit?: FiscalConfigOmit<ExtArgs> | null
+    /**
+     * Filter, which FiscalConfig to fetch.
+     */
+    where: FiscalConfigWhereUniqueInput
+  }
+
+  /**
+   * FiscalConfig findUniqueOrThrow
+   */
+  export type FiscalConfigFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FiscalConfig
+     */
+    select?: FiscalConfigSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the FiscalConfig
+     */
+    omit?: FiscalConfigOmit<ExtArgs> | null
+    /**
+     * Filter, which FiscalConfig to fetch.
+     */
+    where: FiscalConfigWhereUniqueInput
+  }
+
+  /**
+   * FiscalConfig findFirst
+   */
+  export type FiscalConfigFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FiscalConfig
+     */
+    select?: FiscalConfigSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the FiscalConfig
+     */
+    omit?: FiscalConfigOmit<ExtArgs> | null
+    /**
+     * Filter, which FiscalConfig to fetch.
+     */
+    where?: FiscalConfigWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of FiscalConfigs to fetch.
+     */
+    orderBy?: FiscalConfigOrderByWithRelationInput | FiscalConfigOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for FiscalConfigs.
+     */
+    cursor?: FiscalConfigWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` FiscalConfigs from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` FiscalConfigs.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of FiscalConfigs.
+     */
+    distinct?: FiscalConfigScalarFieldEnum | FiscalConfigScalarFieldEnum[]
+  }
+
+  /**
+   * FiscalConfig findFirstOrThrow
+   */
+  export type FiscalConfigFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FiscalConfig
+     */
+    select?: FiscalConfigSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the FiscalConfig
+     */
+    omit?: FiscalConfigOmit<ExtArgs> | null
+    /**
+     * Filter, which FiscalConfig to fetch.
+     */
+    where?: FiscalConfigWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of FiscalConfigs to fetch.
+     */
+    orderBy?: FiscalConfigOrderByWithRelationInput | FiscalConfigOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for FiscalConfigs.
+     */
+    cursor?: FiscalConfigWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` FiscalConfigs from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` FiscalConfigs.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of FiscalConfigs.
+     */
+    distinct?: FiscalConfigScalarFieldEnum | FiscalConfigScalarFieldEnum[]
+  }
+
+  /**
+   * FiscalConfig findMany
+   */
+  export type FiscalConfigFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FiscalConfig
+     */
+    select?: FiscalConfigSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the FiscalConfig
+     */
+    omit?: FiscalConfigOmit<ExtArgs> | null
+    /**
+     * Filter, which FiscalConfigs to fetch.
+     */
+    where?: FiscalConfigWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of FiscalConfigs to fetch.
+     */
+    orderBy?: FiscalConfigOrderByWithRelationInput | FiscalConfigOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing FiscalConfigs.
+     */
+    cursor?: FiscalConfigWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` FiscalConfigs from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` FiscalConfigs.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of FiscalConfigs.
+     */
+    distinct?: FiscalConfigScalarFieldEnum | FiscalConfigScalarFieldEnum[]
+  }
+
+  /**
+   * FiscalConfig create
+   */
+  export type FiscalConfigCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FiscalConfig
+     */
+    select?: FiscalConfigSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the FiscalConfig
+     */
+    omit?: FiscalConfigOmit<ExtArgs> | null
+    /**
+     * The data needed to create a FiscalConfig.
+     */
+    data: XOR<FiscalConfigCreateInput, FiscalConfigUncheckedCreateInput>
+  }
+
+  /**
+   * FiscalConfig createMany
+   */
+  export type FiscalConfigCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many FiscalConfigs.
+     */
+    data: FiscalConfigCreateManyInput | FiscalConfigCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * FiscalConfig createManyAndReturn
+   */
+  export type FiscalConfigCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FiscalConfig
+     */
+    select?: FiscalConfigSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the FiscalConfig
+     */
+    omit?: FiscalConfigOmit<ExtArgs> | null
+    /**
+     * The data used to create many FiscalConfigs.
+     */
+    data: FiscalConfigCreateManyInput | FiscalConfigCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * FiscalConfig update
+   */
+  export type FiscalConfigUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FiscalConfig
+     */
+    select?: FiscalConfigSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the FiscalConfig
+     */
+    omit?: FiscalConfigOmit<ExtArgs> | null
+    /**
+     * The data needed to update a FiscalConfig.
+     */
+    data: XOR<FiscalConfigUpdateInput, FiscalConfigUncheckedUpdateInput>
+    /**
+     * Choose, which FiscalConfig to update.
+     */
+    where: FiscalConfigWhereUniqueInput
+  }
+
+  /**
+   * FiscalConfig updateMany
+   */
+  export type FiscalConfigUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update FiscalConfigs.
+     */
+    data: XOR<FiscalConfigUpdateManyMutationInput, FiscalConfigUncheckedUpdateManyInput>
+    /**
+     * Filter which FiscalConfigs to update
+     */
+    where?: FiscalConfigWhereInput
+    /**
+     * Limit how many FiscalConfigs to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * FiscalConfig updateManyAndReturn
+   */
+  export type FiscalConfigUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FiscalConfig
+     */
+    select?: FiscalConfigSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the FiscalConfig
+     */
+    omit?: FiscalConfigOmit<ExtArgs> | null
+    /**
+     * The data used to update FiscalConfigs.
+     */
+    data: XOR<FiscalConfigUpdateManyMutationInput, FiscalConfigUncheckedUpdateManyInput>
+    /**
+     * Filter which FiscalConfigs to update
+     */
+    where?: FiscalConfigWhereInput
+    /**
+     * Limit how many FiscalConfigs to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * FiscalConfig upsert
+   */
+  export type FiscalConfigUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FiscalConfig
+     */
+    select?: FiscalConfigSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the FiscalConfig
+     */
+    omit?: FiscalConfigOmit<ExtArgs> | null
+    /**
+     * The filter to search for the FiscalConfig to update in case it exists.
+     */
+    where: FiscalConfigWhereUniqueInput
+    /**
+     * In case the FiscalConfig found by the `where` argument doesn't exist, create a new FiscalConfig with this data.
+     */
+    create: XOR<FiscalConfigCreateInput, FiscalConfigUncheckedCreateInput>
+    /**
+     * In case the FiscalConfig was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<FiscalConfigUpdateInput, FiscalConfigUncheckedUpdateInput>
+  }
+
+  /**
+   * FiscalConfig delete
+   */
+  export type FiscalConfigDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FiscalConfig
+     */
+    select?: FiscalConfigSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the FiscalConfig
+     */
+    omit?: FiscalConfigOmit<ExtArgs> | null
+    /**
+     * Filter which FiscalConfig to delete.
+     */
+    where: FiscalConfigWhereUniqueInput
+  }
+
+  /**
+   * FiscalConfig deleteMany
+   */
+  export type FiscalConfigDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which FiscalConfigs to delete
+     */
+    where?: FiscalConfigWhereInput
+    /**
+     * Limit how many FiscalConfigs to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * FiscalConfig without action
+   */
+  export type FiscalConfigDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FiscalConfig
+     */
+    select?: FiscalConfigSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the FiscalConfig
+     */
+    omit?: FiscalConfigOmit<ExtArgs> | null
+  }
+
+
+  /**
+   * Model FiscalSubmission
+   */
+
+  export type AggregateFiscalSubmission = {
+    _count: FiscalSubmissionCountAggregateOutputType | null
+    _min: FiscalSubmissionMinAggregateOutputType | null
+    _max: FiscalSubmissionMaxAggregateOutputType | null
+  }
+
+  export type FiscalSubmissionMinAggregateOutputType = {
+    id: string | null
+    orderId: string | null
+    mode: $Enums.FiscalMode | null
+    environment: $Enums.FiscalEnvironment | null
+    endpoint: string | null
+    succeeded: boolean | null
+    fiscalInvoiceNumber: string | null
+    responseCode: string | null
+    responseMessage: string | null
+    errorMessage: string | null
+    attemptedAt: Date | null
+  }
+
+  export type FiscalSubmissionMaxAggregateOutputType = {
+    id: string | null
+    orderId: string | null
+    mode: $Enums.FiscalMode | null
+    environment: $Enums.FiscalEnvironment | null
+    endpoint: string | null
+    succeeded: boolean | null
+    fiscalInvoiceNumber: string | null
+    responseCode: string | null
+    responseMessage: string | null
+    errorMessage: string | null
+    attemptedAt: Date | null
+  }
+
+  export type FiscalSubmissionCountAggregateOutputType = {
+    id: number
+    orderId: number
+    mode: number
+    environment: number
+    endpoint: number
+    succeeded: number
+    fiscalInvoiceNumber: number
+    responseCode: number
+    responseMessage: number
+    errorMessage: number
+    requestBody: number
+    responseBody: number
+    attemptedAt: number
+    _all: number
+  }
+
+
+  export type FiscalSubmissionMinAggregateInputType = {
+    id?: true
+    orderId?: true
+    mode?: true
+    environment?: true
+    endpoint?: true
+    succeeded?: true
+    fiscalInvoiceNumber?: true
+    responseCode?: true
+    responseMessage?: true
+    errorMessage?: true
+    attemptedAt?: true
+  }
+
+  export type FiscalSubmissionMaxAggregateInputType = {
+    id?: true
+    orderId?: true
+    mode?: true
+    environment?: true
+    endpoint?: true
+    succeeded?: true
+    fiscalInvoiceNumber?: true
+    responseCode?: true
+    responseMessage?: true
+    errorMessage?: true
+    attemptedAt?: true
+  }
+
+  export type FiscalSubmissionCountAggregateInputType = {
+    id?: true
+    orderId?: true
+    mode?: true
+    environment?: true
+    endpoint?: true
+    succeeded?: true
+    fiscalInvoiceNumber?: true
+    responseCode?: true
+    responseMessage?: true
+    errorMessage?: true
+    requestBody?: true
+    responseBody?: true
+    attemptedAt?: true
+    _all?: true
+  }
+
+  export type FiscalSubmissionAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which FiscalSubmission to aggregate.
+     */
+    where?: FiscalSubmissionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of FiscalSubmissions to fetch.
+     */
+    orderBy?: FiscalSubmissionOrderByWithRelationInput | FiscalSubmissionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: FiscalSubmissionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` FiscalSubmissions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` FiscalSubmissions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned FiscalSubmissions
+    **/
+    _count?: true | FiscalSubmissionCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: FiscalSubmissionMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: FiscalSubmissionMaxAggregateInputType
+  }
+
+  export type GetFiscalSubmissionAggregateType<T extends FiscalSubmissionAggregateArgs> = {
+        [P in keyof T & keyof AggregateFiscalSubmission]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateFiscalSubmission[P]>
+      : GetScalarType<T[P], AggregateFiscalSubmission[P]>
+  }
+
+
+
+
+  export type FiscalSubmissionGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: FiscalSubmissionWhereInput
+    orderBy?: FiscalSubmissionOrderByWithAggregationInput | FiscalSubmissionOrderByWithAggregationInput[]
+    by: FiscalSubmissionScalarFieldEnum[] | FiscalSubmissionScalarFieldEnum
+    having?: FiscalSubmissionScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: FiscalSubmissionCountAggregateInputType | true
+    _min?: FiscalSubmissionMinAggregateInputType
+    _max?: FiscalSubmissionMaxAggregateInputType
+  }
+
+  export type FiscalSubmissionGroupByOutputType = {
+    id: string
+    orderId: string
+    mode: $Enums.FiscalMode
+    environment: $Enums.FiscalEnvironment
+    endpoint: string
+    succeeded: boolean
+    fiscalInvoiceNumber: string | null
+    responseCode: string | null
+    responseMessage: string | null
+    errorMessage: string | null
+    requestBody: JsonValue
+    responseBody: JsonValue | null
+    attemptedAt: Date
+    _count: FiscalSubmissionCountAggregateOutputType | null
+    _min: FiscalSubmissionMinAggregateOutputType | null
+    _max: FiscalSubmissionMaxAggregateOutputType | null
+  }
+
+  type GetFiscalSubmissionGroupByPayload<T extends FiscalSubmissionGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<FiscalSubmissionGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof FiscalSubmissionGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], FiscalSubmissionGroupByOutputType[P]>
+            : GetScalarType<T[P], FiscalSubmissionGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type FiscalSubmissionSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    orderId?: boolean
+    mode?: boolean
+    environment?: boolean
+    endpoint?: boolean
+    succeeded?: boolean
+    fiscalInvoiceNumber?: boolean
+    responseCode?: boolean
+    responseMessage?: boolean
+    errorMessage?: boolean
+    requestBody?: boolean
+    responseBody?: boolean
+    attemptedAt?: boolean
+    order?: boolean | OrderDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["fiscalSubmission"]>
+
+  export type FiscalSubmissionSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    orderId?: boolean
+    mode?: boolean
+    environment?: boolean
+    endpoint?: boolean
+    succeeded?: boolean
+    fiscalInvoiceNumber?: boolean
+    responseCode?: boolean
+    responseMessage?: boolean
+    errorMessage?: boolean
+    requestBody?: boolean
+    responseBody?: boolean
+    attemptedAt?: boolean
+    order?: boolean | OrderDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["fiscalSubmission"]>
+
+  export type FiscalSubmissionSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    orderId?: boolean
+    mode?: boolean
+    environment?: boolean
+    endpoint?: boolean
+    succeeded?: boolean
+    fiscalInvoiceNumber?: boolean
+    responseCode?: boolean
+    responseMessage?: boolean
+    errorMessage?: boolean
+    requestBody?: boolean
+    responseBody?: boolean
+    attemptedAt?: boolean
+    order?: boolean | OrderDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["fiscalSubmission"]>
+
+  export type FiscalSubmissionSelectScalar = {
+    id?: boolean
+    orderId?: boolean
+    mode?: boolean
+    environment?: boolean
+    endpoint?: boolean
+    succeeded?: boolean
+    fiscalInvoiceNumber?: boolean
+    responseCode?: boolean
+    responseMessage?: boolean
+    errorMessage?: boolean
+    requestBody?: boolean
+    responseBody?: boolean
+    attemptedAt?: boolean
+  }
+
+  export type FiscalSubmissionOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "orderId" | "mode" | "environment" | "endpoint" | "succeeded" | "fiscalInvoiceNumber" | "responseCode" | "responseMessage" | "errorMessage" | "requestBody" | "responseBody" | "attemptedAt", ExtArgs["result"]["fiscalSubmission"]>
+  export type FiscalSubmissionInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    order?: boolean | OrderDefaultArgs<ExtArgs>
+  }
+  export type FiscalSubmissionIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    order?: boolean | OrderDefaultArgs<ExtArgs>
+  }
+  export type FiscalSubmissionIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    order?: boolean | OrderDefaultArgs<ExtArgs>
+  }
+
+  export type $FiscalSubmissionPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "FiscalSubmission"
+    objects: {
+      order: Prisma.$OrderPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      orderId: string
+      mode: $Enums.FiscalMode
+      environment: $Enums.FiscalEnvironment
+      endpoint: string
+      /**
+       * Whether BRA accepted the invoice (Code == "100" in the spec).
+       */
+      succeeded: boolean
+      /**
+       * Fiscal invoice number returned by BRA on success.
+       */
+      fiscalInvoiceNumber: string | null
+      /**
+       * Raw response code / message from BRA.
+       */
+      responseCode: string | null
+      responseMessage: string | null
+      errorMessage: string | null
+      /**
+       * Payload + response captured verbatim for debugging.
+       */
+      requestBody: Prisma.JsonValue
+      responseBody: Prisma.JsonValue | null
+      attemptedAt: Date
+    }, ExtArgs["result"]["fiscalSubmission"]>
+    composites: {}
+  }
+
+  type FiscalSubmissionGetPayload<S extends boolean | null | undefined | FiscalSubmissionDefaultArgs> = $Result.GetResult<Prisma.$FiscalSubmissionPayload, S>
+
+  type FiscalSubmissionCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<FiscalSubmissionFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: FiscalSubmissionCountAggregateInputType | true
+    }
+
+  export interface FiscalSubmissionDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['FiscalSubmission'], meta: { name: 'FiscalSubmission' } }
+    /**
+     * Find zero or one FiscalSubmission that matches the filter.
+     * @param {FiscalSubmissionFindUniqueArgs} args - Arguments to find a FiscalSubmission
+     * @example
+     * // Get one FiscalSubmission
+     * const fiscalSubmission = await prisma.fiscalSubmission.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends FiscalSubmissionFindUniqueArgs>(args: SelectSubset<T, FiscalSubmissionFindUniqueArgs<ExtArgs>>): Prisma__FiscalSubmissionClient<$Result.GetResult<Prisma.$FiscalSubmissionPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one FiscalSubmission that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {FiscalSubmissionFindUniqueOrThrowArgs} args - Arguments to find a FiscalSubmission
+     * @example
+     * // Get one FiscalSubmission
+     * const fiscalSubmission = await prisma.fiscalSubmission.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends FiscalSubmissionFindUniqueOrThrowArgs>(args: SelectSubset<T, FiscalSubmissionFindUniqueOrThrowArgs<ExtArgs>>): Prisma__FiscalSubmissionClient<$Result.GetResult<Prisma.$FiscalSubmissionPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first FiscalSubmission that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {FiscalSubmissionFindFirstArgs} args - Arguments to find a FiscalSubmission
+     * @example
+     * // Get one FiscalSubmission
+     * const fiscalSubmission = await prisma.fiscalSubmission.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends FiscalSubmissionFindFirstArgs>(args?: SelectSubset<T, FiscalSubmissionFindFirstArgs<ExtArgs>>): Prisma__FiscalSubmissionClient<$Result.GetResult<Prisma.$FiscalSubmissionPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first FiscalSubmission that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {FiscalSubmissionFindFirstOrThrowArgs} args - Arguments to find a FiscalSubmission
+     * @example
+     * // Get one FiscalSubmission
+     * const fiscalSubmission = await prisma.fiscalSubmission.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends FiscalSubmissionFindFirstOrThrowArgs>(args?: SelectSubset<T, FiscalSubmissionFindFirstOrThrowArgs<ExtArgs>>): Prisma__FiscalSubmissionClient<$Result.GetResult<Prisma.$FiscalSubmissionPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more FiscalSubmissions that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {FiscalSubmissionFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all FiscalSubmissions
+     * const fiscalSubmissions = await prisma.fiscalSubmission.findMany()
+     * 
+     * // Get first 10 FiscalSubmissions
+     * const fiscalSubmissions = await prisma.fiscalSubmission.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const fiscalSubmissionWithIdOnly = await prisma.fiscalSubmission.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends FiscalSubmissionFindManyArgs>(args?: SelectSubset<T, FiscalSubmissionFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$FiscalSubmissionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a FiscalSubmission.
+     * @param {FiscalSubmissionCreateArgs} args - Arguments to create a FiscalSubmission.
+     * @example
+     * // Create one FiscalSubmission
+     * const FiscalSubmission = await prisma.fiscalSubmission.create({
+     *   data: {
+     *     // ... data to create a FiscalSubmission
+     *   }
+     * })
+     * 
+     */
+    create<T extends FiscalSubmissionCreateArgs>(args: SelectSubset<T, FiscalSubmissionCreateArgs<ExtArgs>>): Prisma__FiscalSubmissionClient<$Result.GetResult<Prisma.$FiscalSubmissionPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many FiscalSubmissions.
+     * @param {FiscalSubmissionCreateManyArgs} args - Arguments to create many FiscalSubmissions.
+     * @example
+     * // Create many FiscalSubmissions
+     * const fiscalSubmission = await prisma.fiscalSubmission.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends FiscalSubmissionCreateManyArgs>(args?: SelectSubset<T, FiscalSubmissionCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many FiscalSubmissions and returns the data saved in the database.
+     * @param {FiscalSubmissionCreateManyAndReturnArgs} args - Arguments to create many FiscalSubmissions.
+     * @example
+     * // Create many FiscalSubmissions
+     * const fiscalSubmission = await prisma.fiscalSubmission.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many FiscalSubmissions and only return the `id`
+     * const fiscalSubmissionWithIdOnly = await prisma.fiscalSubmission.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends FiscalSubmissionCreateManyAndReturnArgs>(args?: SelectSubset<T, FiscalSubmissionCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$FiscalSubmissionPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a FiscalSubmission.
+     * @param {FiscalSubmissionDeleteArgs} args - Arguments to delete one FiscalSubmission.
+     * @example
+     * // Delete one FiscalSubmission
+     * const FiscalSubmission = await prisma.fiscalSubmission.delete({
+     *   where: {
+     *     // ... filter to delete one FiscalSubmission
+     *   }
+     * })
+     * 
+     */
+    delete<T extends FiscalSubmissionDeleteArgs>(args: SelectSubset<T, FiscalSubmissionDeleteArgs<ExtArgs>>): Prisma__FiscalSubmissionClient<$Result.GetResult<Prisma.$FiscalSubmissionPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one FiscalSubmission.
+     * @param {FiscalSubmissionUpdateArgs} args - Arguments to update one FiscalSubmission.
+     * @example
+     * // Update one FiscalSubmission
+     * const fiscalSubmission = await prisma.fiscalSubmission.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends FiscalSubmissionUpdateArgs>(args: SelectSubset<T, FiscalSubmissionUpdateArgs<ExtArgs>>): Prisma__FiscalSubmissionClient<$Result.GetResult<Prisma.$FiscalSubmissionPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more FiscalSubmissions.
+     * @param {FiscalSubmissionDeleteManyArgs} args - Arguments to filter FiscalSubmissions to delete.
+     * @example
+     * // Delete a few FiscalSubmissions
+     * const { count } = await prisma.fiscalSubmission.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends FiscalSubmissionDeleteManyArgs>(args?: SelectSubset<T, FiscalSubmissionDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more FiscalSubmissions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {FiscalSubmissionUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many FiscalSubmissions
+     * const fiscalSubmission = await prisma.fiscalSubmission.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends FiscalSubmissionUpdateManyArgs>(args: SelectSubset<T, FiscalSubmissionUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more FiscalSubmissions and returns the data updated in the database.
+     * @param {FiscalSubmissionUpdateManyAndReturnArgs} args - Arguments to update many FiscalSubmissions.
+     * @example
+     * // Update many FiscalSubmissions
+     * const fiscalSubmission = await prisma.fiscalSubmission.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more FiscalSubmissions and only return the `id`
+     * const fiscalSubmissionWithIdOnly = await prisma.fiscalSubmission.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends FiscalSubmissionUpdateManyAndReturnArgs>(args: SelectSubset<T, FiscalSubmissionUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$FiscalSubmissionPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one FiscalSubmission.
+     * @param {FiscalSubmissionUpsertArgs} args - Arguments to update or create a FiscalSubmission.
+     * @example
+     * // Update or create a FiscalSubmission
+     * const fiscalSubmission = await prisma.fiscalSubmission.upsert({
+     *   create: {
+     *     // ... data to create a FiscalSubmission
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the FiscalSubmission we want to update
+     *   }
+     * })
+     */
+    upsert<T extends FiscalSubmissionUpsertArgs>(args: SelectSubset<T, FiscalSubmissionUpsertArgs<ExtArgs>>): Prisma__FiscalSubmissionClient<$Result.GetResult<Prisma.$FiscalSubmissionPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of FiscalSubmissions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {FiscalSubmissionCountArgs} args - Arguments to filter FiscalSubmissions to count.
+     * @example
+     * // Count the number of FiscalSubmissions
+     * const count = await prisma.fiscalSubmission.count({
+     *   where: {
+     *     // ... the filter for the FiscalSubmissions we want to count
+     *   }
+     * })
+    **/
+    count<T extends FiscalSubmissionCountArgs>(
+      args?: Subset<T, FiscalSubmissionCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], FiscalSubmissionCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a FiscalSubmission.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {FiscalSubmissionAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends FiscalSubmissionAggregateArgs>(args: Subset<T, FiscalSubmissionAggregateArgs>): Prisma.PrismaPromise<GetFiscalSubmissionAggregateType<T>>
+
+    /**
+     * Group by FiscalSubmission.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {FiscalSubmissionGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends FiscalSubmissionGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: FiscalSubmissionGroupByArgs['orderBy'] }
+        : { orderBy?: FiscalSubmissionGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, FiscalSubmissionGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetFiscalSubmissionGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the FiscalSubmission model
+   */
+  readonly fields: FiscalSubmissionFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for FiscalSubmission.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__FiscalSubmissionClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    order<T extends OrderDefaultArgs<ExtArgs> = {}>(args?: Subset<T, OrderDefaultArgs<ExtArgs>>): Prisma__OrderClient<$Result.GetResult<Prisma.$OrderPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the FiscalSubmission model
+   */
+  interface FiscalSubmissionFieldRefs {
+    readonly id: FieldRef<"FiscalSubmission", 'String'>
+    readonly orderId: FieldRef<"FiscalSubmission", 'String'>
+    readonly mode: FieldRef<"FiscalSubmission", 'FiscalMode'>
+    readonly environment: FieldRef<"FiscalSubmission", 'FiscalEnvironment'>
+    readonly endpoint: FieldRef<"FiscalSubmission", 'String'>
+    readonly succeeded: FieldRef<"FiscalSubmission", 'Boolean'>
+    readonly fiscalInvoiceNumber: FieldRef<"FiscalSubmission", 'String'>
+    readonly responseCode: FieldRef<"FiscalSubmission", 'String'>
+    readonly responseMessage: FieldRef<"FiscalSubmission", 'String'>
+    readonly errorMessage: FieldRef<"FiscalSubmission", 'String'>
+    readonly requestBody: FieldRef<"FiscalSubmission", 'Json'>
+    readonly responseBody: FieldRef<"FiscalSubmission", 'Json'>
+    readonly attemptedAt: FieldRef<"FiscalSubmission", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * FiscalSubmission findUnique
+   */
+  export type FiscalSubmissionFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FiscalSubmission
+     */
+    select?: FiscalSubmissionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the FiscalSubmission
+     */
+    omit?: FiscalSubmissionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: FiscalSubmissionInclude<ExtArgs> | null
+    /**
+     * Filter, which FiscalSubmission to fetch.
+     */
+    where: FiscalSubmissionWhereUniqueInput
+  }
+
+  /**
+   * FiscalSubmission findUniqueOrThrow
+   */
+  export type FiscalSubmissionFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FiscalSubmission
+     */
+    select?: FiscalSubmissionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the FiscalSubmission
+     */
+    omit?: FiscalSubmissionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: FiscalSubmissionInclude<ExtArgs> | null
+    /**
+     * Filter, which FiscalSubmission to fetch.
+     */
+    where: FiscalSubmissionWhereUniqueInput
+  }
+
+  /**
+   * FiscalSubmission findFirst
+   */
+  export type FiscalSubmissionFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FiscalSubmission
+     */
+    select?: FiscalSubmissionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the FiscalSubmission
+     */
+    omit?: FiscalSubmissionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: FiscalSubmissionInclude<ExtArgs> | null
+    /**
+     * Filter, which FiscalSubmission to fetch.
+     */
+    where?: FiscalSubmissionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of FiscalSubmissions to fetch.
+     */
+    orderBy?: FiscalSubmissionOrderByWithRelationInput | FiscalSubmissionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for FiscalSubmissions.
+     */
+    cursor?: FiscalSubmissionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` FiscalSubmissions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` FiscalSubmissions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of FiscalSubmissions.
+     */
+    distinct?: FiscalSubmissionScalarFieldEnum | FiscalSubmissionScalarFieldEnum[]
+  }
+
+  /**
+   * FiscalSubmission findFirstOrThrow
+   */
+  export type FiscalSubmissionFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FiscalSubmission
+     */
+    select?: FiscalSubmissionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the FiscalSubmission
+     */
+    omit?: FiscalSubmissionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: FiscalSubmissionInclude<ExtArgs> | null
+    /**
+     * Filter, which FiscalSubmission to fetch.
+     */
+    where?: FiscalSubmissionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of FiscalSubmissions to fetch.
+     */
+    orderBy?: FiscalSubmissionOrderByWithRelationInput | FiscalSubmissionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for FiscalSubmissions.
+     */
+    cursor?: FiscalSubmissionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` FiscalSubmissions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` FiscalSubmissions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of FiscalSubmissions.
+     */
+    distinct?: FiscalSubmissionScalarFieldEnum | FiscalSubmissionScalarFieldEnum[]
+  }
+
+  /**
+   * FiscalSubmission findMany
+   */
+  export type FiscalSubmissionFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FiscalSubmission
+     */
+    select?: FiscalSubmissionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the FiscalSubmission
+     */
+    omit?: FiscalSubmissionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: FiscalSubmissionInclude<ExtArgs> | null
+    /**
+     * Filter, which FiscalSubmissions to fetch.
+     */
+    where?: FiscalSubmissionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of FiscalSubmissions to fetch.
+     */
+    orderBy?: FiscalSubmissionOrderByWithRelationInput | FiscalSubmissionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing FiscalSubmissions.
+     */
+    cursor?: FiscalSubmissionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` FiscalSubmissions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` FiscalSubmissions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of FiscalSubmissions.
+     */
+    distinct?: FiscalSubmissionScalarFieldEnum | FiscalSubmissionScalarFieldEnum[]
+  }
+
+  /**
+   * FiscalSubmission create
+   */
+  export type FiscalSubmissionCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FiscalSubmission
+     */
+    select?: FiscalSubmissionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the FiscalSubmission
+     */
+    omit?: FiscalSubmissionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: FiscalSubmissionInclude<ExtArgs> | null
+    /**
+     * The data needed to create a FiscalSubmission.
+     */
+    data: XOR<FiscalSubmissionCreateInput, FiscalSubmissionUncheckedCreateInput>
+  }
+
+  /**
+   * FiscalSubmission createMany
+   */
+  export type FiscalSubmissionCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many FiscalSubmissions.
+     */
+    data: FiscalSubmissionCreateManyInput | FiscalSubmissionCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * FiscalSubmission createManyAndReturn
+   */
+  export type FiscalSubmissionCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FiscalSubmission
+     */
+    select?: FiscalSubmissionSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the FiscalSubmission
+     */
+    omit?: FiscalSubmissionOmit<ExtArgs> | null
+    /**
+     * The data used to create many FiscalSubmissions.
+     */
+    data: FiscalSubmissionCreateManyInput | FiscalSubmissionCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: FiscalSubmissionIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * FiscalSubmission update
+   */
+  export type FiscalSubmissionUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FiscalSubmission
+     */
+    select?: FiscalSubmissionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the FiscalSubmission
+     */
+    omit?: FiscalSubmissionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: FiscalSubmissionInclude<ExtArgs> | null
+    /**
+     * The data needed to update a FiscalSubmission.
+     */
+    data: XOR<FiscalSubmissionUpdateInput, FiscalSubmissionUncheckedUpdateInput>
+    /**
+     * Choose, which FiscalSubmission to update.
+     */
+    where: FiscalSubmissionWhereUniqueInput
+  }
+
+  /**
+   * FiscalSubmission updateMany
+   */
+  export type FiscalSubmissionUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update FiscalSubmissions.
+     */
+    data: XOR<FiscalSubmissionUpdateManyMutationInput, FiscalSubmissionUncheckedUpdateManyInput>
+    /**
+     * Filter which FiscalSubmissions to update
+     */
+    where?: FiscalSubmissionWhereInput
+    /**
+     * Limit how many FiscalSubmissions to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * FiscalSubmission updateManyAndReturn
+   */
+  export type FiscalSubmissionUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FiscalSubmission
+     */
+    select?: FiscalSubmissionSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the FiscalSubmission
+     */
+    omit?: FiscalSubmissionOmit<ExtArgs> | null
+    /**
+     * The data used to update FiscalSubmissions.
+     */
+    data: XOR<FiscalSubmissionUpdateManyMutationInput, FiscalSubmissionUncheckedUpdateManyInput>
+    /**
+     * Filter which FiscalSubmissions to update
+     */
+    where?: FiscalSubmissionWhereInput
+    /**
+     * Limit how many FiscalSubmissions to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: FiscalSubmissionIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * FiscalSubmission upsert
+   */
+  export type FiscalSubmissionUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FiscalSubmission
+     */
+    select?: FiscalSubmissionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the FiscalSubmission
+     */
+    omit?: FiscalSubmissionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: FiscalSubmissionInclude<ExtArgs> | null
+    /**
+     * The filter to search for the FiscalSubmission to update in case it exists.
+     */
+    where: FiscalSubmissionWhereUniqueInput
+    /**
+     * In case the FiscalSubmission found by the `where` argument doesn't exist, create a new FiscalSubmission with this data.
+     */
+    create: XOR<FiscalSubmissionCreateInput, FiscalSubmissionUncheckedCreateInput>
+    /**
+     * In case the FiscalSubmission was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<FiscalSubmissionUpdateInput, FiscalSubmissionUncheckedUpdateInput>
+  }
+
+  /**
+   * FiscalSubmission delete
+   */
+  export type FiscalSubmissionDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FiscalSubmission
+     */
+    select?: FiscalSubmissionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the FiscalSubmission
+     */
+    omit?: FiscalSubmissionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: FiscalSubmissionInclude<ExtArgs> | null
+    /**
+     * Filter which FiscalSubmission to delete.
+     */
+    where: FiscalSubmissionWhereUniqueInput
+  }
+
+  /**
+   * FiscalSubmission deleteMany
+   */
+  export type FiscalSubmissionDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which FiscalSubmissions to delete
+     */
+    where?: FiscalSubmissionWhereInput
+    /**
+     * Limit how many FiscalSubmissions to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * FiscalSubmission without action
+   */
+  export type FiscalSubmissionDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FiscalSubmission
+     */
+    select?: FiscalSubmissionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the FiscalSubmission
+     */
+    omit?: FiscalSubmissionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: FiscalSubmissionInclude<ExtArgs> | null
+  }
+
+
+  /**
    * Enums
    */
 
@@ -17411,6 +23688,43 @@ export namespace Prisma {
   export type SessionScalarFieldEnum = (typeof SessionScalarFieldEnum)[keyof typeof SessionScalarFieldEnum]
 
 
+  export const PendingMemberScalarFieldEnum: {
+    id: 'id',
+    name: 'name',
+    email: 'email',
+    createdAt: 'createdAt'
+  };
+
+  export type PendingMemberScalarFieldEnum = (typeof PendingMemberScalarFieldEnum)[keyof typeof PendingMemberScalarFieldEnum]
+
+
+  export const PaymentChannelScalarFieldEnum: {
+    id: 'id',
+    name: 'name',
+    openingBalance: 'openingBalance',
+    currentBalance: 'currentBalance',
+    archived: 'archived',
+    archivedAt: 'archivedAt',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type PaymentChannelScalarFieldEnum = (typeof PaymentChannelScalarFieldEnum)[keyof typeof PaymentChannelScalarFieldEnum]
+
+
+  export const PaymentTransferScalarFieldEnum: {
+    id: 'id',
+    fromId: 'fromId',
+    toId: 'toId',
+    amount: 'amount',
+    occurredAt: 'occurredAt',
+    note: 'note',
+    createdAt: 'createdAt'
+  };
+
+  export type PaymentTransferScalarFieldEnum = (typeof PaymentTransferScalarFieldEnum)[keyof typeof PaymentTransferScalarFieldEnum]
+
+
   export const KitchenStationScalarFieldEnum: {
     id: 'id',
     name: 'name',
@@ -17441,6 +23755,7 @@ export namespace Prisma {
     description: 'description',
     price: 'price',
     sku: 'sku',
+    pctCode: 'pctCode',
     available: 'available',
     posVisible: 'posVisible',
     popular: 'popular',
@@ -17530,6 +23845,8 @@ export namespace Prisma {
     channel: 'channel',
     customerName: 'customerName',
     customerPhone: 'customerPhone',
+    buyerNtn: 'buyerNtn',
+    buyerCnic: 'buyerCnic',
     tableId: 'tableId',
     staffId: 'staffId',
     subtotal: 'subtotal',
@@ -17539,6 +23856,10 @@ export namespace Prisma {
     total: 'total',
     payment: 'payment',
     notes: 'notes',
+    fiscalInvoiceNumber: 'fiscalInvoiceNumber',
+    fiscalSubmittedAt: 'fiscalSubmittedAt',
+    fiscalAttempts: 'fiscalAttempts',
+    fiscalLastError: 'fiscalLastError',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
   };
@@ -17572,6 +23893,44 @@ export namespace Prisma {
   export type KitchenTicketScalarFieldEnum = (typeof KitchenTicketScalarFieldEnum)[keyof typeof KitchenTicketScalarFieldEnum]
 
 
+  export const FiscalConfigScalarFieldEnum: {
+    id: 'id',
+    enabled: 'enabled',
+    mode: 'mode',
+    environment: 'environment',
+    posId: 'posId',
+    accessCode: 'accessCode',
+    bearerToken: 'bearerToken',
+    localBaseUrl: 'localBaseUrl',
+    defaultPctCode: 'defaultPctCode',
+    businessName: 'businessName',
+    bntn: 'bntn',
+    autoSubmit: 'autoSubmit',
+    updatedAt: 'updatedAt'
+  };
+
+  export type FiscalConfigScalarFieldEnum = (typeof FiscalConfigScalarFieldEnum)[keyof typeof FiscalConfigScalarFieldEnum]
+
+
+  export const FiscalSubmissionScalarFieldEnum: {
+    id: 'id',
+    orderId: 'orderId',
+    mode: 'mode',
+    environment: 'environment',
+    endpoint: 'endpoint',
+    succeeded: 'succeeded',
+    fiscalInvoiceNumber: 'fiscalInvoiceNumber',
+    responseCode: 'responseCode',
+    responseMessage: 'responseMessage',
+    errorMessage: 'errorMessage',
+    requestBody: 'requestBody',
+    responseBody: 'responseBody',
+    attemptedAt: 'attemptedAt'
+  };
+
+  export type FiscalSubmissionScalarFieldEnum = (typeof FiscalSubmissionScalarFieldEnum)[keyof typeof FiscalSubmissionScalarFieldEnum]
+
+
   export const SortOrder: {
     asc: 'asc',
     desc: 'desc'
@@ -17586,6 +23945,13 @@ export namespace Prisma {
   };
 
   export type NullableJsonNullValueInput = (typeof NullableJsonNullValueInput)[keyof typeof NullableJsonNullValueInput]
+
+
+  export const JsonNullValueInput: {
+    JsonNull: typeof JsonNull
+  };
+
+  export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
 
 
   export const QueryMode: {
@@ -17661,13 +24027,6 @@ export namespace Prisma {
 
 
   /**
-   * Reference to a field of type 'Boolean'
-   */
-  export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Boolean'>
-    
-
-
-  /**
    * Reference to a field of type 'Decimal'
    */
   export type DecimalFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Decimal'>
@@ -17678,6 +24037,13 @@ export namespace Prisma {
    * Reference to a field of type 'Decimal[]'
    */
   export type ListDecimalFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Decimal[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'Boolean'
+   */
+  export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Boolean'>
     
 
 
@@ -17762,6 +24128,34 @@ export namespace Prisma {
    * Reference to a field of type 'TicketStatus[]'
    */
   export type ListEnumTicketStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'TicketStatus[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'FiscalMode'
+   */
+  export type EnumFiscalModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FiscalMode'>
+    
+
+
+  /**
+   * Reference to a field of type 'FiscalMode[]'
+   */
+  export type ListEnumFiscalModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FiscalMode[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'FiscalEnvironment'
+   */
+  export type EnumFiscalEnvironmentFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FiscalEnvironment'>
+    
+
+
+  /**
+   * Reference to a field of type 'FiscalEnvironment[]'
+   */
+  export type ListEnumFiscalEnvironmentFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FiscalEnvironment[]'>
     
   /**
    * Deep Input Types
@@ -17889,6 +24283,198 @@ export namespace Prisma {
     userId?: StringWithAggregatesFilter<"Session"> | string
     expiresAt?: DateTimeWithAggregatesFilter<"Session"> | Date | string
     createdAt?: DateTimeWithAggregatesFilter<"Session"> | Date | string
+  }
+
+  export type PendingMemberWhereInput = {
+    AND?: PendingMemberWhereInput | PendingMemberWhereInput[]
+    OR?: PendingMemberWhereInput[]
+    NOT?: PendingMemberWhereInput | PendingMemberWhereInput[]
+    id?: StringFilter<"PendingMember"> | string
+    name?: StringFilter<"PendingMember"> | string
+    email?: StringFilter<"PendingMember"> | string
+    createdAt?: DateTimeFilter<"PendingMember"> | Date | string
+  }
+
+  export type PendingMemberOrderByWithRelationInput = {
+    id?: SortOrder
+    name?: SortOrder
+    email?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type PendingMemberWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    email?: string
+    AND?: PendingMemberWhereInput | PendingMemberWhereInput[]
+    OR?: PendingMemberWhereInput[]
+    NOT?: PendingMemberWhereInput | PendingMemberWhereInput[]
+    name?: StringFilter<"PendingMember"> | string
+    createdAt?: DateTimeFilter<"PendingMember"> | Date | string
+  }, "id" | "email">
+
+  export type PendingMemberOrderByWithAggregationInput = {
+    id?: SortOrder
+    name?: SortOrder
+    email?: SortOrder
+    createdAt?: SortOrder
+    _count?: PendingMemberCountOrderByAggregateInput
+    _max?: PendingMemberMaxOrderByAggregateInput
+    _min?: PendingMemberMinOrderByAggregateInput
+  }
+
+  export type PendingMemberScalarWhereWithAggregatesInput = {
+    AND?: PendingMemberScalarWhereWithAggregatesInput | PendingMemberScalarWhereWithAggregatesInput[]
+    OR?: PendingMemberScalarWhereWithAggregatesInput[]
+    NOT?: PendingMemberScalarWhereWithAggregatesInput | PendingMemberScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"PendingMember"> | string
+    name?: StringWithAggregatesFilter<"PendingMember"> | string
+    email?: StringWithAggregatesFilter<"PendingMember"> | string
+    createdAt?: DateTimeWithAggregatesFilter<"PendingMember"> | Date | string
+  }
+
+  export type PaymentChannelWhereInput = {
+    AND?: PaymentChannelWhereInput | PaymentChannelWhereInput[]
+    OR?: PaymentChannelWhereInput[]
+    NOT?: PaymentChannelWhereInput | PaymentChannelWhereInput[]
+    id?: StringFilter<"PaymentChannel"> | string
+    name?: StringFilter<"PaymentChannel"> | string
+    openingBalance?: DecimalFilter<"PaymentChannel"> | Decimal | DecimalJsLike | number | string
+    currentBalance?: DecimalFilter<"PaymentChannel"> | Decimal | DecimalJsLike | number | string
+    archived?: BoolFilter<"PaymentChannel"> | boolean
+    archivedAt?: DateTimeNullableFilter<"PaymentChannel"> | Date | string | null
+    createdAt?: DateTimeFilter<"PaymentChannel"> | Date | string
+    updatedAt?: DateTimeFilter<"PaymentChannel"> | Date | string
+    outgoing?: PaymentTransferListRelationFilter
+    incoming?: PaymentTransferListRelationFilter
+  }
+
+  export type PaymentChannelOrderByWithRelationInput = {
+    id?: SortOrder
+    name?: SortOrder
+    openingBalance?: SortOrder
+    currentBalance?: SortOrder
+    archived?: SortOrder
+    archivedAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    outgoing?: PaymentTransferOrderByRelationAggregateInput
+    incoming?: PaymentTransferOrderByRelationAggregateInput
+  }
+
+  export type PaymentChannelWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    name?: string
+    AND?: PaymentChannelWhereInput | PaymentChannelWhereInput[]
+    OR?: PaymentChannelWhereInput[]
+    NOT?: PaymentChannelWhereInput | PaymentChannelWhereInput[]
+    openingBalance?: DecimalFilter<"PaymentChannel"> | Decimal | DecimalJsLike | number | string
+    currentBalance?: DecimalFilter<"PaymentChannel"> | Decimal | DecimalJsLike | number | string
+    archived?: BoolFilter<"PaymentChannel"> | boolean
+    archivedAt?: DateTimeNullableFilter<"PaymentChannel"> | Date | string | null
+    createdAt?: DateTimeFilter<"PaymentChannel"> | Date | string
+    updatedAt?: DateTimeFilter<"PaymentChannel"> | Date | string
+    outgoing?: PaymentTransferListRelationFilter
+    incoming?: PaymentTransferListRelationFilter
+  }, "id" | "name">
+
+  export type PaymentChannelOrderByWithAggregationInput = {
+    id?: SortOrder
+    name?: SortOrder
+    openingBalance?: SortOrder
+    currentBalance?: SortOrder
+    archived?: SortOrder
+    archivedAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: PaymentChannelCountOrderByAggregateInput
+    _avg?: PaymentChannelAvgOrderByAggregateInput
+    _max?: PaymentChannelMaxOrderByAggregateInput
+    _min?: PaymentChannelMinOrderByAggregateInput
+    _sum?: PaymentChannelSumOrderByAggregateInput
+  }
+
+  export type PaymentChannelScalarWhereWithAggregatesInput = {
+    AND?: PaymentChannelScalarWhereWithAggregatesInput | PaymentChannelScalarWhereWithAggregatesInput[]
+    OR?: PaymentChannelScalarWhereWithAggregatesInput[]
+    NOT?: PaymentChannelScalarWhereWithAggregatesInput | PaymentChannelScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"PaymentChannel"> | string
+    name?: StringWithAggregatesFilter<"PaymentChannel"> | string
+    openingBalance?: DecimalWithAggregatesFilter<"PaymentChannel"> | Decimal | DecimalJsLike | number | string
+    currentBalance?: DecimalWithAggregatesFilter<"PaymentChannel"> | Decimal | DecimalJsLike | number | string
+    archived?: BoolWithAggregatesFilter<"PaymentChannel"> | boolean
+    archivedAt?: DateTimeNullableWithAggregatesFilter<"PaymentChannel"> | Date | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"PaymentChannel"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"PaymentChannel"> | Date | string
+  }
+
+  export type PaymentTransferWhereInput = {
+    AND?: PaymentTransferWhereInput | PaymentTransferWhereInput[]
+    OR?: PaymentTransferWhereInput[]
+    NOT?: PaymentTransferWhereInput | PaymentTransferWhereInput[]
+    id?: StringFilter<"PaymentTransfer"> | string
+    fromId?: StringFilter<"PaymentTransfer"> | string
+    toId?: StringFilter<"PaymentTransfer"> | string
+    amount?: DecimalFilter<"PaymentTransfer"> | Decimal | DecimalJsLike | number | string
+    occurredAt?: DateTimeFilter<"PaymentTransfer"> | Date | string
+    note?: StringNullableFilter<"PaymentTransfer"> | string | null
+    createdAt?: DateTimeFilter<"PaymentTransfer"> | Date | string
+    from?: XOR<PaymentChannelScalarRelationFilter, PaymentChannelWhereInput>
+    to?: XOR<PaymentChannelScalarRelationFilter, PaymentChannelWhereInput>
+  }
+
+  export type PaymentTransferOrderByWithRelationInput = {
+    id?: SortOrder
+    fromId?: SortOrder
+    toId?: SortOrder
+    amount?: SortOrder
+    occurredAt?: SortOrder
+    note?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    from?: PaymentChannelOrderByWithRelationInput
+    to?: PaymentChannelOrderByWithRelationInput
+  }
+
+  export type PaymentTransferWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: PaymentTransferWhereInput | PaymentTransferWhereInput[]
+    OR?: PaymentTransferWhereInput[]
+    NOT?: PaymentTransferWhereInput | PaymentTransferWhereInput[]
+    fromId?: StringFilter<"PaymentTransfer"> | string
+    toId?: StringFilter<"PaymentTransfer"> | string
+    amount?: DecimalFilter<"PaymentTransfer"> | Decimal | DecimalJsLike | number | string
+    occurredAt?: DateTimeFilter<"PaymentTransfer"> | Date | string
+    note?: StringNullableFilter<"PaymentTransfer"> | string | null
+    createdAt?: DateTimeFilter<"PaymentTransfer"> | Date | string
+    from?: XOR<PaymentChannelScalarRelationFilter, PaymentChannelWhereInput>
+    to?: XOR<PaymentChannelScalarRelationFilter, PaymentChannelWhereInput>
+  }, "id">
+
+  export type PaymentTransferOrderByWithAggregationInput = {
+    id?: SortOrder
+    fromId?: SortOrder
+    toId?: SortOrder
+    amount?: SortOrder
+    occurredAt?: SortOrder
+    note?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    _count?: PaymentTransferCountOrderByAggregateInput
+    _avg?: PaymentTransferAvgOrderByAggregateInput
+    _max?: PaymentTransferMaxOrderByAggregateInput
+    _min?: PaymentTransferMinOrderByAggregateInput
+    _sum?: PaymentTransferSumOrderByAggregateInput
+  }
+
+  export type PaymentTransferScalarWhereWithAggregatesInput = {
+    AND?: PaymentTransferScalarWhereWithAggregatesInput | PaymentTransferScalarWhereWithAggregatesInput[]
+    OR?: PaymentTransferScalarWhereWithAggregatesInput[]
+    NOT?: PaymentTransferScalarWhereWithAggregatesInput | PaymentTransferScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"PaymentTransfer"> | string
+    fromId?: StringWithAggregatesFilter<"PaymentTransfer"> | string
+    toId?: StringWithAggregatesFilter<"PaymentTransfer"> | string
+    amount?: DecimalWithAggregatesFilter<"PaymentTransfer"> | Decimal | DecimalJsLike | number | string
+    occurredAt?: DateTimeWithAggregatesFilter<"PaymentTransfer"> | Date | string
+    note?: StringNullableWithAggregatesFilter<"PaymentTransfer"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"PaymentTransfer"> | Date | string
   }
 
   export type KitchenStationWhereInput = {
@@ -18023,6 +24609,7 @@ export namespace Prisma {
     description?: StringNullableFilter<"MenuItem"> | string | null
     price?: DecimalFilter<"MenuItem"> | Decimal | DecimalJsLike | number | string
     sku?: StringNullableFilter<"MenuItem"> | string | null
+    pctCode?: StringNullableFilter<"MenuItem"> | string | null
     available?: BoolFilter<"MenuItem"> | boolean
     posVisible?: BoolFilter<"MenuItem"> | boolean
     popular?: BoolFilter<"MenuItem"> | boolean
@@ -18045,6 +24632,7 @@ export namespace Prisma {
     description?: SortOrderInput | SortOrder
     price?: SortOrder
     sku?: SortOrderInput | SortOrder
+    pctCode?: SortOrderInput | SortOrder
     available?: SortOrder
     posVisible?: SortOrder
     popular?: SortOrder
@@ -18070,6 +24658,7 @@ export namespace Prisma {
     name?: StringFilter<"MenuItem"> | string
     description?: StringNullableFilter<"MenuItem"> | string | null
     price?: DecimalFilter<"MenuItem"> | Decimal | DecimalJsLike | number | string
+    pctCode?: StringNullableFilter<"MenuItem"> | string | null
     available?: BoolFilter<"MenuItem"> | boolean
     posVisible?: BoolFilter<"MenuItem"> | boolean
     popular?: BoolFilter<"MenuItem"> | boolean
@@ -18092,6 +24681,7 @@ export namespace Prisma {
     description?: SortOrderInput | SortOrder
     price?: SortOrder
     sku?: SortOrderInput | SortOrder
+    pctCode?: SortOrderInput | SortOrder
     available?: SortOrder
     posVisible?: SortOrder
     popular?: SortOrder
@@ -18118,6 +24708,7 @@ export namespace Prisma {
     description?: StringNullableWithAggregatesFilter<"MenuItem"> | string | null
     price?: DecimalWithAggregatesFilter<"MenuItem"> | Decimal | DecimalJsLike | number | string
     sku?: StringNullableWithAggregatesFilter<"MenuItem"> | string | null
+    pctCode?: StringNullableWithAggregatesFilter<"MenuItem"> | string | null
     available?: BoolWithAggregatesFilter<"MenuItem"> | boolean
     posVisible?: BoolWithAggregatesFilter<"MenuItem"> | boolean
     popular?: BoolWithAggregatesFilter<"MenuItem"> | boolean
@@ -18495,6 +25086,8 @@ export namespace Prisma {
     channel?: StringFilter<"Order"> | string
     customerName?: StringNullableFilter<"Order"> | string | null
     customerPhone?: StringNullableFilter<"Order"> | string | null
+    buyerNtn?: StringNullableFilter<"Order"> | string | null
+    buyerCnic?: StringNullableFilter<"Order"> | string | null
     tableId?: StringNullableFilter<"Order"> | string | null
     staffId?: StringNullableFilter<"Order"> | string | null
     subtotal?: DecimalFilter<"Order"> | Decimal | DecimalJsLike | number | string
@@ -18504,10 +25097,15 @@ export namespace Prisma {
     total?: DecimalFilter<"Order"> | Decimal | DecimalJsLike | number | string
     payment?: EnumPaymentMethodFilter<"Order"> | $Enums.PaymentMethod
     notes?: StringNullableFilter<"Order"> | string | null
+    fiscalInvoiceNumber?: StringNullableFilter<"Order"> | string | null
+    fiscalSubmittedAt?: DateTimeNullableFilter<"Order"> | Date | string | null
+    fiscalAttempts?: IntFilter<"Order"> | number
+    fiscalLastError?: StringNullableFilter<"Order"> | string | null
     createdAt?: DateTimeFilter<"Order"> | Date | string
     updatedAt?: DateTimeFilter<"Order"> | Date | string
     table?: XOR<TableNullableScalarRelationFilter, TableWhereInput> | null
     staff?: XOR<UserNullableScalarRelationFilter, UserWhereInput> | null
+    fiscalSubmissions?: FiscalSubmissionListRelationFilter
     items?: OrderItemListRelationFilter
     tickets?: KitchenTicketListRelationFilter
   }
@@ -18519,6 +25117,8 @@ export namespace Prisma {
     channel?: SortOrder
     customerName?: SortOrderInput | SortOrder
     customerPhone?: SortOrderInput | SortOrder
+    buyerNtn?: SortOrderInput | SortOrder
+    buyerCnic?: SortOrderInput | SortOrder
     tableId?: SortOrderInput | SortOrder
     staffId?: SortOrderInput | SortOrder
     subtotal?: SortOrder
@@ -18528,10 +25128,15 @@ export namespace Prisma {
     total?: SortOrder
     payment?: SortOrder
     notes?: SortOrderInput | SortOrder
+    fiscalInvoiceNumber?: SortOrderInput | SortOrder
+    fiscalSubmittedAt?: SortOrderInput | SortOrder
+    fiscalAttempts?: SortOrder
+    fiscalLastError?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     table?: TableOrderByWithRelationInput
     staff?: UserOrderByWithRelationInput
+    fiscalSubmissions?: FiscalSubmissionOrderByRelationAggregateInput
     items?: OrderItemOrderByRelationAggregateInput
     tickets?: KitchenTicketOrderByRelationAggregateInput
   }
@@ -18546,6 +25151,8 @@ export namespace Prisma {
     channel?: StringFilter<"Order"> | string
     customerName?: StringNullableFilter<"Order"> | string | null
     customerPhone?: StringNullableFilter<"Order"> | string | null
+    buyerNtn?: StringNullableFilter<"Order"> | string | null
+    buyerCnic?: StringNullableFilter<"Order"> | string | null
     tableId?: StringNullableFilter<"Order"> | string | null
     staffId?: StringNullableFilter<"Order"> | string | null
     subtotal?: DecimalFilter<"Order"> | Decimal | DecimalJsLike | number | string
@@ -18555,10 +25162,15 @@ export namespace Prisma {
     total?: DecimalFilter<"Order"> | Decimal | DecimalJsLike | number | string
     payment?: EnumPaymentMethodFilter<"Order"> | $Enums.PaymentMethod
     notes?: StringNullableFilter<"Order"> | string | null
+    fiscalInvoiceNumber?: StringNullableFilter<"Order"> | string | null
+    fiscalSubmittedAt?: DateTimeNullableFilter<"Order"> | Date | string | null
+    fiscalAttempts?: IntFilter<"Order"> | number
+    fiscalLastError?: StringNullableFilter<"Order"> | string | null
     createdAt?: DateTimeFilter<"Order"> | Date | string
     updatedAt?: DateTimeFilter<"Order"> | Date | string
     table?: XOR<TableNullableScalarRelationFilter, TableWhereInput> | null
     staff?: XOR<UserNullableScalarRelationFilter, UserWhereInput> | null
+    fiscalSubmissions?: FiscalSubmissionListRelationFilter
     items?: OrderItemListRelationFilter
     tickets?: KitchenTicketListRelationFilter
   }, "id" | "number">
@@ -18570,6 +25182,8 @@ export namespace Prisma {
     channel?: SortOrder
     customerName?: SortOrderInput | SortOrder
     customerPhone?: SortOrderInput | SortOrder
+    buyerNtn?: SortOrderInput | SortOrder
+    buyerCnic?: SortOrderInput | SortOrder
     tableId?: SortOrderInput | SortOrder
     staffId?: SortOrderInput | SortOrder
     subtotal?: SortOrder
@@ -18579,6 +25193,10 @@ export namespace Prisma {
     total?: SortOrder
     payment?: SortOrder
     notes?: SortOrderInput | SortOrder
+    fiscalInvoiceNumber?: SortOrderInput | SortOrder
+    fiscalSubmittedAt?: SortOrderInput | SortOrder
+    fiscalAttempts?: SortOrder
+    fiscalLastError?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: OrderCountOrderByAggregateInput
@@ -18598,6 +25216,8 @@ export namespace Prisma {
     channel?: StringWithAggregatesFilter<"Order"> | string
     customerName?: StringNullableWithAggregatesFilter<"Order"> | string | null
     customerPhone?: StringNullableWithAggregatesFilter<"Order"> | string | null
+    buyerNtn?: StringNullableWithAggregatesFilter<"Order"> | string | null
+    buyerCnic?: StringNullableWithAggregatesFilter<"Order"> | string | null
     tableId?: StringNullableWithAggregatesFilter<"Order"> | string | null
     staffId?: StringNullableWithAggregatesFilter<"Order"> | string | null
     subtotal?: DecimalWithAggregatesFilter<"Order"> | Decimal | DecimalJsLike | number | string
@@ -18607,6 +25227,10 @@ export namespace Prisma {
     total?: DecimalWithAggregatesFilter<"Order"> | Decimal | DecimalJsLike | number | string
     payment?: EnumPaymentMethodWithAggregatesFilter<"Order"> | $Enums.PaymentMethod
     notes?: StringNullableWithAggregatesFilter<"Order"> | string | null
+    fiscalInvoiceNumber?: StringNullableWithAggregatesFilter<"Order"> | string | null
+    fiscalSubmittedAt?: DateTimeNullableWithAggregatesFilter<"Order"> | Date | string | null
+    fiscalAttempts?: IntWithAggregatesFilter<"Order"> | number
+    fiscalLastError?: StringNullableWithAggregatesFilter<"Order"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"Order"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"Order"> | Date | string
   }
@@ -18750,6 +25374,193 @@ export namespace Prisma {
     updatedAt?: DateTimeWithAggregatesFilter<"KitchenTicket"> | Date | string
   }
 
+  export type FiscalConfigWhereInput = {
+    AND?: FiscalConfigWhereInput | FiscalConfigWhereInput[]
+    OR?: FiscalConfigWhereInput[]
+    NOT?: FiscalConfigWhereInput | FiscalConfigWhereInput[]
+    id?: StringFilter<"FiscalConfig"> | string
+    enabled?: BoolFilter<"FiscalConfig"> | boolean
+    mode?: EnumFiscalModeFilter<"FiscalConfig"> | $Enums.FiscalMode
+    environment?: EnumFiscalEnvironmentFilter<"FiscalConfig"> | $Enums.FiscalEnvironment
+    posId?: StringNullableFilter<"FiscalConfig"> | string | null
+    accessCode?: StringNullableFilter<"FiscalConfig"> | string | null
+    bearerToken?: StringNullableFilter<"FiscalConfig"> | string | null
+    localBaseUrl?: StringFilter<"FiscalConfig"> | string
+    defaultPctCode?: StringFilter<"FiscalConfig"> | string
+    businessName?: StringNullableFilter<"FiscalConfig"> | string | null
+    bntn?: StringNullableFilter<"FiscalConfig"> | string | null
+    autoSubmit?: BoolFilter<"FiscalConfig"> | boolean
+    updatedAt?: DateTimeFilter<"FiscalConfig"> | Date | string
+  }
+
+  export type FiscalConfigOrderByWithRelationInput = {
+    id?: SortOrder
+    enabled?: SortOrder
+    mode?: SortOrder
+    environment?: SortOrder
+    posId?: SortOrderInput | SortOrder
+    accessCode?: SortOrderInput | SortOrder
+    bearerToken?: SortOrderInput | SortOrder
+    localBaseUrl?: SortOrder
+    defaultPctCode?: SortOrder
+    businessName?: SortOrderInput | SortOrder
+    bntn?: SortOrderInput | SortOrder
+    autoSubmit?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type FiscalConfigWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: FiscalConfigWhereInput | FiscalConfigWhereInput[]
+    OR?: FiscalConfigWhereInput[]
+    NOT?: FiscalConfigWhereInput | FiscalConfigWhereInput[]
+    enabled?: BoolFilter<"FiscalConfig"> | boolean
+    mode?: EnumFiscalModeFilter<"FiscalConfig"> | $Enums.FiscalMode
+    environment?: EnumFiscalEnvironmentFilter<"FiscalConfig"> | $Enums.FiscalEnvironment
+    posId?: StringNullableFilter<"FiscalConfig"> | string | null
+    accessCode?: StringNullableFilter<"FiscalConfig"> | string | null
+    bearerToken?: StringNullableFilter<"FiscalConfig"> | string | null
+    localBaseUrl?: StringFilter<"FiscalConfig"> | string
+    defaultPctCode?: StringFilter<"FiscalConfig"> | string
+    businessName?: StringNullableFilter<"FiscalConfig"> | string | null
+    bntn?: StringNullableFilter<"FiscalConfig"> | string | null
+    autoSubmit?: BoolFilter<"FiscalConfig"> | boolean
+    updatedAt?: DateTimeFilter<"FiscalConfig"> | Date | string
+  }, "id">
+
+  export type FiscalConfigOrderByWithAggregationInput = {
+    id?: SortOrder
+    enabled?: SortOrder
+    mode?: SortOrder
+    environment?: SortOrder
+    posId?: SortOrderInput | SortOrder
+    accessCode?: SortOrderInput | SortOrder
+    bearerToken?: SortOrderInput | SortOrder
+    localBaseUrl?: SortOrder
+    defaultPctCode?: SortOrder
+    businessName?: SortOrderInput | SortOrder
+    bntn?: SortOrderInput | SortOrder
+    autoSubmit?: SortOrder
+    updatedAt?: SortOrder
+    _count?: FiscalConfigCountOrderByAggregateInput
+    _max?: FiscalConfigMaxOrderByAggregateInput
+    _min?: FiscalConfigMinOrderByAggregateInput
+  }
+
+  export type FiscalConfigScalarWhereWithAggregatesInput = {
+    AND?: FiscalConfigScalarWhereWithAggregatesInput | FiscalConfigScalarWhereWithAggregatesInput[]
+    OR?: FiscalConfigScalarWhereWithAggregatesInput[]
+    NOT?: FiscalConfigScalarWhereWithAggregatesInput | FiscalConfigScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"FiscalConfig"> | string
+    enabled?: BoolWithAggregatesFilter<"FiscalConfig"> | boolean
+    mode?: EnumFiscalModeWithAggregatesFilter<"FiscalConfig"> | $Enums.FiscalMode
+    environment?: EnumFiscalEnvironmentWithAggregatesFilter<"FiscalConfig"> | $Enums.FiscalEnvironment
+    posId?: StringNullableWithAggregatesFilter<"FiscalConfig"> | string | null
+    accessCode?: StringNullableWithAggregatesFilter<"FiscalConfig"> | string | null
+    bearerToken?: StringNullableWithAggregatesFilter<"FiscalConfig"> | string | null
+    localBaseUrl?: StringWithAggregatesFilter<"FiscalConfig"> | string
+    defaultPctCode?: StringWithAggregatesFilter<"FiscalConfig"> | string
+    businessName?: StringNullableWithAggregatesFilter<"FiscalConfig"> | string | null
+    bntn?: StringNullableWithAggregatesFilter<"FiscalConfig"> | string | null
+    autoSubmit?: BoolWithAggregatesFilter<"FiscalConfig"> | boolean
+    updatedAt?: DateTimeWithAggregatesFilter<"FiscalConfig"> | Date | string
+  }
+
+  export type FiscalSubmissionWhereInput = {
+    AND?: FiscalSubmissionWhereInput | FiscalSubmissionWhereInput[]
+    OR?: FiscalSubmissionWhereInput[]
+    NOT?: FiscalSubmissionWhereInput | FiscalSubmissionWhereInput[]
+    id?: StringFilter<"FiscalSubmission"> | string
+    orderId?: StringFilter<"FiscalSubmission"> | string
+    mode?: EnumFiscalModeFilter<"FiscalSubmission"> | $Enums.FiscalMode
+    environment?: EnumFiscalEnvironmentFilter<"FiscalSubmission"> | $Enums.FiscalEnvironment
+    endpoint?: StringFilter<"FiscalSubmission"> | string
+    succeeded?: BoolFilter<"FiscalSubmission"> | boolean
+    fiscalInvoiceNumber?: StringNullableFilter<"FiscalSubmission"> | string | null
+    responseCode?: StringNullableFilter<"FiscalSubmission"> | string | null
+    responseMessage?: StringNullableFilter<"FiscalSubmission"> | string | null
+    errorMessage?: StringNullableFilter<"FiscalSubmission"> | string | null
+    requestBody?: JsonFilter<"FiscalSubmission">
+    responseBody?: JsonNullableFilter<"FiscalSubmission">
+    attemptedAt?: DateTimeFilter<"FiscalSubmission"> | Date | string
+    order?: XOR<OrderScalarRelationFilter, OrderWhereInput>
+  }
+
+  export type FiscalSubmissionOrderByWithRelationInput = {
+    id?: SortOrder
+    orderId?: SortOrder
+    mode?: SortOrder
+    environment?: SortOrder
+    endpoint?: SortOrder
+    succeeded?: SortOrder
+    fiscalInvoiceNumber?: SortOrderInput | SortOrder
+    responseCode?: SortOrderInput | SortOrder
+    responseMessage?: SortOrderInput | SortOrder
+    errorMessage?: SortOrderInput | SortOrder
+    requestBody?: SortOrder
+    responseBody?: SortOrderInput | SortOrder
+    attemptedAt?: SortOrder
+    order?: OrderOrderByWithRelationInput
+  }
+
+  export type FiscalSubmissionWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: FiscalSubmissionWhereInput | FiscalSubmissionWhereInput[]
+    OR?: FiscalSubmissionWhereInput[]
+    NOT?: FiscalSubmissionWhereInput | FiscalSubmissionWhereInput[]
+    orderId?: StringFilter<"FiscalSubmission"> | string
+    mode?: EnumFiscalModeFilter<"FiscalSubmission"> | $Enums.FiscalMode
+    environment?: EnumFiscalEnvironmentFilter<"FiscalSubmission"> | $Enums.FiscalEnvironment
+    endpoint?: StringFilter<"FiscalSubmission"> | string
+    succeeded?: BoolFilter<"FiscalSubmission"> | boolean
+    fiscalInvoiceNumber?: StringNullableFilter<"FiscalSubmission"> | string | null
+    responseCode?: StringNullableFilter<"FiscalSubmission"> | string | null
+    responseMessage?: StringNullableFilter<"FiscalSubmission"> | string | null
+    errorMessage?: StringNullableFilter<"FiscalSubmission"> | string | null
+    requestBody?: JsonFilter<"FiscalSubmission">
+    responseBody?: JsonNullableFilter<"FiscalSubmission">
+    attemptedAt?: DateTimeFilter<"FiscalSubmission"> | Date | string
+    order?: XOR<OrderScalarRelationFilter, OrderWhereInput>
+  }, "id">
+
+  export type FiscalSubmissionOrderByWithAggregationInput = {
+    id?: SortOrder
+    orderId?: SortOrder
+    mode?: SortOrder
+    environment?: SortOrder
+    endpoint?: SortOrder
+    succeeded?: SortOrder
+    fiscalInvoiceNumber?: SortOrderInput | SortOrder
+    responseCode?: SortOrderInput | SortOrder
+    responseMessage?: SortOrderInput | SortOrder
+    errorMessage?: SortOrderInput | SortOrder
+    requestBody?: SortOrder
+    responseBody?: SortOrderInput | SortOrder
+    attemptedAt?: SortOrder
+    _count?: FiscalSubmissionCountOrderByAggregateInput
+    _max?: FiscalSubmissionMaxOrderByAggregateInput
+    _min?: FiscalSubmissionMinOrderByAggregateInput
+  }
+
+  export type FiscalSubmissionScalarWhereWithAggregatesInput = {
+    AND?: FiscalSubmissionScalarWhereWithAggregatesInput | FiscalSubmissionScalarWhereWithAggregatesInput[]
+    OR?: FiscalSubmissionScalarWhereWithAggregatesInput[]
+    NOT?: FiscalSubmissionScalarWhereWithAggregatesInput | FiscalSubmissionScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"FiscalSubmission"> | string
+    orderId?: StringWithAggregatesFilter<"FiscalSubmission"> | string
+    mode?: EnumFiscalModeWithAggregatesFilter<"FiscalSubmission"> | $Enums.FiscalMode
+    environment?: EnumFiscalEnvironmentWithAggregatesFilter<"FiscalSubmission"> | $Enums.FiscalEnvironment
+    endpoint?: StringWithAggregatesFilter<"FiscalSubmission"> | string
+    succeeded?: BoolWithAggregatesFilter<"FiscalSubmission"> | boolean
+    fiscalInvoiceNumber?: StringNullableWithAggregatesFilter<"FiscalSubmission"> | string | null
+    responseCode?: StringNullableWithAggregatesFilter<"FiscalSubmission"> | string | null
+    responseMessage?: StringNullableWithAggregatesFilter<"FiscalSubmission"> | string | null
+    errorMessage?: StringNullableWithAggregatesFilter<"FiscalSubmission"> | string | null
+    requestBody?: JsonWithAggregatesFilter<"FiscalSubmission">
+    responseBody?: JsonNullableWithAggregatesFilter<"FiscalSubmission">
+    attemptedAt?: DateTimeWithAggregatesFilter<"FiscalSubmission"> | Date | string
+  }
+
   export type UserCreateInput = {
     id?: string
     name: string
@@ -18880,6 +25691,208 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     userId?: StringFieldUpdateOperationsInput | string
     expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PendingMemberCreateInput = {
+    id?: string
+    name: string
+    email: string
+    createdAt?: Date | string
+  }
+
+  export type PendingMemberUncheckedCreateInput = {
+    id?: string
+    name: string
+    email: string
+    createdAt?: Date | string
+  }
+
+  export type PendingMemberUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PendingMemberUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PendingMemberCreateManyInput = {
+    id?: string
+    name: string
+    email: string
+    createdAt?: Date | string
+  }
+
+  export type PendingMemberUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PendingMemberUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PaymentChannelCreateInput = {
+    id?: string
+    name: string
+    openingBalance: Decimal | DecimalJsLike | number | string
+    currentBalance: Decimal | DecimalJsLike | number | string
+    archived?: boolean
+    archivedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    outgoing?: PaymentTransferCreateNestedManyWithoutFromInput
+    incoming?: PaymentTransferCreateNestedManyWithoutToInput
+  }
+
+  export type PaymentChannelUncheckedCreateInput = {
+    id?: string
+    name: string
+    openingBalance: Decimal | DecimalJsLike | number | string
+    currentBalance: Decimal | DecimalJsLike | number | string
+    archived?: boolean
+    archivedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    outgoing?: PaymentTransferUncheckedCreateNestedManyWithoutFromInput
+    incoming?: PaymentTransferUncheckedCreateNestedManyWithoutToInput
+  }
+
+  export type PaymentChannelUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    openingBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    currentBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    archived?: BoolFieldUpdateOperationsInput | boolean
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    outgoing?: PaymentTransferUpdateManyWithoutFromNestedInput
+    incoming?: PaymentTransferUpdateManyWithoutToNestedInput
+  }
+
+  export type PaymentChannelUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    openingBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    currentBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    archived?: BoolFieldUpdateOperationsInput | boolean
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    outgoing?: PaymentTransferUncheckedUpdateManyWithoutFromNestedInput
+    incoming?: PaymentTransferUncheckedUpdateManyWithoutToNestedInput
+  }
+
+  export type PaymentChannelCreateManyInput = {
+    id?: string
+    name: string
+    openingBalance: Decimal | DecimalJsLike | number | string
+    currentBalance: Decimal | DecimalJsLike | number | string
+    archived?: boolean
+    archivedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type PaymentChannelUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    openingBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    currentBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    archived?: BoolFieldUpdateOperationsInput | boolean
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PaymentChannelUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    openingBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    currentBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    archived?: BoolFieldUpdateOperationsInput | boolean
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PaymentTransferCreateInput = {
+    id?: string
+    amount: Decimal | DecimalJsLike | number | string
+    occurredAt: Date | string
+    note?: string | null
+    createdAt?: Date | string
+    from: PaymentChannelCreateNestedOneWithoutOutgoingInput
+    to: PaymentChannelCreateNestedOneWithoutIncomingInput
+  }
+
+  export type PaymentTransferUncheckedCreateInput = {
+    id?: string
+    fromId: string
+    toId: string
+    amount: Decimal | DecimalJsLike | number | string
+    occurredAt: Date | string
+    note?: string | null
+    createdAt?: Date | string
+  }
+
+  export type PaymentTransferUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    occurredAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    from?: PaymentChannelUpdateOneRequiredWithoutOutgoingNestedInput
+    to?: PaymentChannelUpdateOneRequiredWithoutIncomingNestedInput
+  }
+
+  export type PaymentTransferUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    fromId?: StringFieldUpdateOperationsInput | string
+    toId?: StringFieldUpdateOperationsInput | string
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    occurredAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PaymentTransferCreateManyInput = {
+    id?: string
+    fromId: string
+    toId: string
+    amount: Decimal | DecimalJsLike | number | string
+    occurredAt: Date | string
+    note?: string | null
+    createdAt?: Date | string
+  }
+
+  export type PaymentTransferUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    occurredAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PaymentTransferUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    fromId?: StringFieldUpdateOperationsInput | string
+    toId?: StringFieldUpdateOperationsInput | string
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    occurredAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    note?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -19027,6 +26040,7 @@ export namespace Prisma {
     description?: string | null
     price: Decimal | DecimalJsLike | number | string
     sku?: string | null
+    pctCode?: string | null
     available?: boolean
     posVisible?: boolean
     popular?: boolean
@@ -19047,6 +26061,7 @@ export namespace Prisma {
     description?: string | null
     price: Decimal | DecimalJsLike | number | string
     sku?: string | null
+    pctCode?: string | null
     available?: boolean
     posVisible?: boolean
     popular?: boolean
@@ -19067,6 +26082,7 @@ export namespace Prisma {
     description?: NullableStringFieldUpdateOperationsInput | string | null
     price?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     sku?: NullableStringFieldUpdateOperationsInput | string | null
+    pctCode?: NullableStringFieldUpdateOperationsInput | string | null
     available?: BoolFieldUpdateOperationsInput | boolean
     posVisible?: BoolFieldUpdateOperationsInput | boolean
     popular?: BoolFieldUpdateOperationsInput | boolean
@@ -19087,6 +26103,7 @@ export namespace Prisma {
     description?: NullableStringFieldUpdateOperationsInput | string | null
     price?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     sku?: NullableStringFieldUpdateOperationsInput | string | null
+    pctCode?: NullableStringFieldUpdateOperationsInput | string | null
     available?: BoolFieldUpdateOperationsInput | boolean
     posVisible?: BoolFieldUpdateOperationsInput | boolean
     popular?: BoolFieldUpdateOperationsInput | boolean
@@ -19107,6 +26124,7 @@ export namespace Prisma {
     description?: string | null
     price: Decimal | DecimalJsLike | number | string
     sku?: string | null
+    pctCode?: string | null
     available?: boolean
     posVisible?: boolean
     popular?: boolean
@@ -19125,6 +26143,7 @@ export namespace Prisma {
     description?: NullableStringFieldUpdateOperationsInput | string | null
     price?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     sku?: NullableStringFieldUpdateOperationsInput | string | null
+    pctCode?: NullableStringFieldUpdateOperationsInput | string | null
     available?: BoolFieldUpdateOperationsInput | boolean
     posVisible?: BoolFieldUpdateOperationsInput | boolean
     popular?: BoolFieldUpdateOperationsInput | boolean
@@ -19141,6 +26160,7 @@ export namespace Prisma {
     description?: NullableStringFieldUpdateOperationsInput | string | null
     price?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     sku?: NullableStringFieldUpdateOperationsInput | string | null
+    pctCode?: NullableStringFieldUpdateOperationsInput | string | null
     available?: BoolFieldUpdateOperationsInput | boolean
     posVisible?: BoolFieldUpdateOperationsInput | boolean
     popular?: BoolFieldUpdateOperationsInput | boolean
@@ -19536,6 +26556,8 @@ export namespace Prisma {
     channel: string
     customerName?: string | null
     customerPhone?: string | null
+    buyerNtn?: string | null
+    buyerCnic?: string | null
     subtotal: Decimal | DecimalJsLike | number | string
     tax: Decimal | DecimalJsLike | number | string
     tip?: Decimal | DecimalJsLike | number | string | null
@@ -19543,10 +26565,15 @@ export namespace Prisma {
     total: Decimal | DecimalJsLike | number | string
     payment: $Enums.PaymentMethod
     notes?: string | null
+    fiscalInvoiceNumber?: string | null
+    fiscalSubmittedAt?: Date | string | null
+    fiscalAttempts?: number
+    fiscalLastError?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     table?: TableCreateNestedOneWithoutOrdersInput
     staff?: UserCreateNestedOneWithoutOrdersInput
+    fiscalSubmissions?: FiscalSubmissionCreateNestedManyWithoutOrderInput
     items?: OrderItemCreateNestedManyWithoutOrderInput
     tickets?: KitchenTicketCreateNestedManyWithoutOrderInput
   }
@@ -19558,6 +26585,8 @@ export namespace Prisma {
     channel: string
     customerName?: string | null
     customerPhone?: string | null
+    buyerNtn?: string | null
+    buyerCnic?: string | null
     tableId?: string | null
     staffId?: string | null
     subtotal: Decimal | DecimalJsLike | number | string
@@ -19567,8 +26596,13 @@ export namespace Prisma {
     total: Decimal | DecimalJsLike | number | string
     payment: $Enums.PaymentMethod
     notes?: string | null
+    fiscalInvoiceNumber?: string | null
+    fiscalSubmittedAt?: Date | string | null
+    fiscalAttempts?: number
+    fiscalLastError?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    fiscalSubmissions?: FiscalSubmissionUncheckedCreateNestedManyWithoutOrderInput
     items?: OrderItemUncheckedCreateNestedManyWithoutOrderInput
     tickets?: KitchenTicketUncheckedCreateNestedManyWithoutOrderInput
   }
@@ -19580,6 +26614,8 @@ export namespace Prisma {
     channel?: StringFieldUpdateOperationsInput | string
     customerName?: NullableStringFieldUpdateOperationsInput | string | null
     customerPhone?: NullableStringFieldUpdateOperationsInput | string | null
+    buyerNtn?: NullableStringFieldUpdateOperationsInput | string | null
+    buyerCnic?: NullableStringFieldUpdateOperationsInput | string | null
     subtotal?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     tax?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     tip?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
@@ -19587,10 +26623,15 @@ export namespace Prisma {
     total?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     payment?: EnumPaymentMethodFieldUpdateOperationsInput | $Enums.PaymentMethod
     notes?: NullableStringFieldUpdateOperationsInput | string | null
+    fiscalInvoiceNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    fiscalSubmittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fiscalAttempts?: IntFieldUpdateOperationsInput | number
+    fiscalLastError?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     table?: TableUpdateOneWithoutOrdersNestedInput
     staff?: UserUpdateOneWithoutOrdersNestedInput
+    fiscalSubmissions?: FiscalSubmissionUpdateManyWithoutOrderNestedInput
     items?: OrderItemUpdateManyWithoutOrderNestedInput
     tickets?: KitchenTicketUpdateManyWithoutOrderNestedInput
   }
@@ -19602,6 +26643,8 @@ export namespace Prisma {
     channel?: StringFieldUpdateOperationsInput | string
     customerName?: NullableStringFieldUpdateOperationsInput | string | null
     customerPhone?: NullableStringFieldUpdateOperationsInput | string | null
+    buyerNtn?: NullableStringFieldUpdateOperationsInput | string | null
+    buyerCnic?: NullableStringFieldUpdateOperationsInput | string | null
     tableId?: NullableStringFieldUpdateOperationsInput | string | null
     staffId?: NullableStringFieldUpdateOperationsInput | string | null
     subtotal?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
@@ -19611,8 +26654,13 @@ export namespace Prisma {
     total?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     payment?: EnumPaymentMethodFieldUpdateOperationsInput | $Enums.PaymentMethod
     notes?: NullableStringFieldUpdateOperationsInput | string | null
+    fiscalInvoiceNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    fiscalSubmittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fiscalAttempts?: IntFieldUpdateOperationsInput | number
+    fiscalLastError?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    fiscalSubmissions?: FiscalSubmissionUncheckedUpdateManyWithoutOrderNestedInput
     items?: OrderItemUncheckedUpdateManyWithoutOrderNestedInput
     tickets?: KitchenTicketUncheckedUpdateManyWithoutOrderNestedInput
   }
@@ -19624,6 +26672,8 @@ export namespace Prisma {
     channel: string
     customerName?: string | null
     customerPhone?: string | null
+    buyerNtn?: string | null
+    buyerCnic?: string | null
     tableId?: string | null
     staffId?: string | null
     subtotal: Decimal | DecimalJsLike | number | string
@@ -19633,6 +26683,10 @@ export namespace Prisma {
     total: Decimal | DecimalJsLike | number | string
     payment: $Enums.PaymentMethod
     notes?: string | null
+    fiscalInvoiceNumber?: string | null
+    fiscalSubmittedAt?: Date | string | null
+    fiscalAttempts?: number
+    fiscalLastError?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -19644,6 +26698,8 @@ export namespace Prisma {
     channel?: StringFieldUpdateOperationsInput | string
     customerName?: NullableStringFieldUpdateOperationsInput | string | null
     customerPhone?: NullableStringFieldUpdateOperationsInput | string | null
+    buyerNtn?: NullableStringFieldUpdateOperationsInput | string | null
+    buyerCnic?: NullableStringFieldUpdateOperationsInput | string | null
     subtotal?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     tax?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     tip?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
@@ -19651,6 +26707,10 @@ export namespace Prisma {
     total?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     payment?: EnumPaymentMethodFieldUpdateOperationsInput | $Enums.PaymentMethod
     notes?: NullableStringFieldUpdateOperationsInput | string | null
+    fiscalInvoiceNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    fiscalSubmittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fiscalAttempts?: IntFieldUpdateOperationsInput | number
+    fiscalLastError?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -19662,6 +26722,8 @@ export namespace Prisma {
     channel?: StringFieldUpdateOperationsInput | string
     customerName?: NullableStringFieldUpdateOperationsInput | string | null
     customerPhone?: NullableStringFieldUpdateOperationsInput | string | null
+    buyerNtn?: NullableStringFieldUpdateOperationsInput | string | null
+    buyerCnic?: NullableStringFieldUpdateOperationsInput | string | null
     tableId?: NullableStringFieldUpdateOperationsInput | string | null
     staffId?: NullableStringFieldUpdateOperationsInput | string | null
     subtotal?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
@@ -19671,6 +26733,10 @@ export namespace Prisma {
     total?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     payment?: EnumPaymentMethodFieldUpdateOperationsInput | $Enums.PaymentMethod
     notes?: NullableStringFieldUpdateOperationsInput | string | null
+    fiscalInvoiceNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    fiscalSubmittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fiscalAttempts?: IntFieldUpdateOperationsInput | number
+    fiscalLastError?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -19809,6 +26875,229 @@ export namespace Prisma {
     status?: EnumTicketStatusFieldUpdateOperationsInput | $Enums.TicketStatus
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type FiscalConfigCreateInput = {
+    id?: string
+    enabled?: boolean
+    mode?: $Enums.FiscalMode
+    environment?: $Enums.FiscalEnvironment
+    posId?: string | null
+    accessCode?: string | null
+    bearerToken?: string | null
+    localBaseUrl?: string
+    defaultPctCode?: string
+    businessName?: string | null
+    bntn?: string | null
+    autoSubmit?: boolean
+    updatedAt?: Date | string
+  }
+
+  export type FiscalConfigUncheckedCreateInput = {
+    id?: string
+    enabled?: boolean
+    mode?: $Enums.FiscalMode
+    environment?: $Enums.FiscalEnvironment
+    posId?: string | null
+    accessCode?: string | null
+    bearerToken?: string | null
+    localBaseUrl?: string
+    defaultPctCode?: string
+    businessName?: string | null
+    bntn?: string | null
+    autoSubmit?: boolean
+    updatedAt?: Date | string
+  }
+
+  export type FiscalConfigUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    enabled?: BoolFieldUpdateOperationsInput | boolean
+    mode?: EnumFiscalModeFieldUpdateOperationsInput | $Enums.FiscalMode
+    environment?: EnumFiscalEnvironmentFieldUpdateOperationsInput | $Enums.FiscalEnvironment
+    posId?: NullableStringFieldUpdateOperationsInput | string | null
+    accessCode?: NullableStringFieldUpdateOperationsInput | string | null
+    bearerToken?: NullableStringFieldUpdateOperationsInput | string | null
+    localBaseUrl?: StringFieldUpdateOperationsInput | string
+    defaultPctCode?: StringFieldUpdateOperationsInput | string
+    businessName?: NullableStringFieldUpdateOperationsInput | string | null
+    bntn?: NullableStringFieldUpdateOperationsInput | string | null
+    autoSubmit?: BoolFieldUpdateOperationsInput | boolean
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type FiscalConfigUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    enabled?: BoolFieldUpdateOperationsInput | boolean
+    mode?: EnumFiscalModeFieldUpdateOperationsInput | $Enums.FiscalMode
+    environment?: EnumFiscalEnvironmentFieldUpdateOperationsInput | $Enums.FiscalEnvironment
+    posId?: NullableStringFieldUpdateOperationsInput | string | null
+    accessCode?: NullableStringFieldUpdateOperationsInput | string | null
+    bearerToken?: NullableStringFieldUpdateOperationsInput | string | null
+    localBaseUrl?: StringFieldUpdateOperationsInput | string
+    defaultPctCode?: StringFieldUpdateOperationsInput | string
+    businessName?: NullableStringFieldUpdateOperationsInput | string | null
+    bntn?: NullableStringFieldUpdateOperationsInput | string | null
+    autoSubmit?: BoolFieldUpdateOperationsInput | boolean
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type FiscalConfigCreateManyInput = {
+    id?: string
+    enabled?: boolean
+    mode?: $Enums.FiscalMode
+    environment?: $Enums.FiscalEnvironment
+    posId?: string | null
+    accessCode?: string | null
+    bearerToken?: string | null
+    localBaseUrl?: string
+    defaultPctCode?: string
+    businessName?: string | null
+    bntn?: string | null
+    autoSubmit?: boolean
+    updatedAt?: Date | string
+  }
+
+  export type FiscalConfigUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    enabled?: BoolFieldUpdateOperationsInput | boolean
+    mode?: EnumFiscalModeFieldUpdateOperationsInput | $Enums.FiscalMode
+    environment?: EnumFiscalEnvironmentFieldUpdateOperationsInput | $Enums.FiscalEnvironment
+    posId?: NullableStringFieldUpdateOperationsInput | string | null
+    accessCode?: NullableStringFieldUpdateOperationsInput | string | null
+    bearerToken?: NullableStringFieldUpdateOperationsInput | string | null
+    localBaseUrl?: StringFieldUpdateOperationsInput | string
+    defaultPctCode?: StringFieldUpdateOperationsInput | string
+    businessName?: NullableStringFieldUpdateOperationsInput | string | null
+    bntn?: NullableStringFieldUpdateOperationsInput | string | null
+    autoSubmit?: BoolFieldUpdateOperationsInput | boolean
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type FiscalConfigUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    enabled?: BoolFieldUpdateOperationsInput | boolean
+    mode?: EnumFiscalModeFieldUpdateOperationsInput | $Enums.FiscalMode
+    environment?: EnumFiscalEnvironmentFieldUpdateOperationsInput | $Enums.FiscalEnvironment
+    posId?: NullableStringFieldUpdateOperationsInput | string | null
+    accessCode?: NullableStringFieldUpdateOperationsInput | string | null
+    bearerToken?: NullableStringFieldUpdateOperationsInput | string | null
+    localBaseUrl?: StringFieldUpdateOperationsInput | string
+    defaultPctCode?: StringFieldUpdateOperationsInput | string
+    businessName?: NullableStringFieldUpdateOperationsInput | string | null
+    bntn?: NullableStringFieldUpdateOperationsInput | string | null
+    autoSubmit?: BoolFieldUpdateOperationsInput | boolean
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type FiscalSubmissionCreateInput = {
+    id?: string
+    mode: $Enums.FiscalMode
+    environment: $Enums.FiscalEnvironment
+    endpoint: string
+    succeeded: boolean
+    fiscalInvoiceNumber?: string | null
+    responseCode?: string | null
+    responseMessage?: string | null
+    errorMessage?: string | null
+    requestBody: JsonNullValueInput | InputJsonValue
+    responseBody?: NullableJsonNullValueInput | InputJsonValue
+    attemptedAt?: Date | string
+    order: OrderCreateNestedOneWithoutFiscalSubmissionsInput
+  }
+
+  export type FiscalSubmissionUncheckedCreateInput = {
+    id?: string
+    orderId: string
+    mode: $Enums.FiscalMode
+    environment: $Enums.FiscalEnvironment
+    endpoint: string
+    succeeded: boolean
+    fiscalInvoiceNumber?: string | null
+    responseCode?: string | null
+    responseMessage?: string | null
+    errorMessage?: string | null
+    requestBody: JsonNullValueInput | InputJsonValue
+    responseBody?: NullableJsonNullValueInput | InputJsonValue
+    attemptedAt?: Date | string
+  }
+
+  export type FiscalSubmissionUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    mode?: EnumFiscalModeFieldUpdateOperationsInput | $Enums.FiscalMode
+    environment?: EnumFiscalEnvironmentFieldUpdateOperationsInput | $Enums.FiscalEnvironment
+    endpoint?: StringFieldUpdateOperationsInput | string
+    succeeded?: BoolFieldUpdateOperationsInput | boolean
+    fiscalInvoiceNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    responseCode?: NullableStringFieldUpdateOperationsInput | string | null
+    responseMessage?: NullableStringFieldUpdateOperationsInput | string | null
+    errorMessage?: NullableStringFieldUpdateOperationsInput | string | null
+    requestBody?: JsonNullValueInput | InputJsonValue
+    responseBody?: NullableJsonNullValueInput | InputJsonValue
+    attemptedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    order?: OrderUpdateOneRequiredWithoutFiscalSubmissionsNestedInput
+  }
+
+  export type FiscalSubmissionUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    orderId?: StringFieldUpdateOperationsInput | string
+    mode?: EnumFiscalModeFieldUpdateOperationsInput | $Enums.FiscalMode
+    environment?: EnumFiscalEnvironmentFieldUpdateOperationsInput | $Enums.FiscalEnvironment
+    endpoint?: StringFieldUpdateOperationsInput | string
+    succeeded?: BoolFieldUpdateOperationsInput | boolean
+    fiscalInvoiceNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    responseCode?: NullableStringFieldUpdateOperationsInput | string | null
+    responseMessage?: NullableStringFieldUpdateOperationsInput | string | null
+    errorMessage?: NullableStringFieldUpdateOperationsInput | string | null
+    requestBody?: JsonNullValueInput | InputJsonValue
+    responseBody?: NullableJsonNullValueInput | InputJsonValue
+    attemptedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type FiscalSubmissionCreateManyInput = {
+    id?: string
+    orderId: string
+    mode: $Enums.FiscalMode
+    environment: $Enums.FiscalEnvironment
+    endpoint: string
+    succeeded: boolean
+    fiscalInvoiceNumber?: string | null
+    responseCode?: string | null
+    responseMessage?: string | null
+    errorMessage?: string | null
+    requestBody: JsonNullValueInput | InputJsonValue
+    responseBody?: NullableJsonNullValueInput | InputJsonValue
+    attemptedAt?: Date | string
+  }
+
+  export type FiscalSubmissionUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    mode?: EnumFiscalModeFieldUpdateOperationsInput | $Enums.FiscalMode
+    environment?: EnumFiscalEnvironmentFieldUpdateOperationsInput | $Enums.FiscalEnvironment
+    endpoint?: StringFieldUpdateOperationsInput | string
+    succeeded?: BoolFieldUpdateOperationsInput | boolean
+    fiscalInvoiceNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    responseCode?: NullableStringFieldUpdateOperationsInput | string | null
+    responseMessage?: NullableStringFieldUpdateOperationsInput | string | null
+    errorMessage?: NullableStringFieldUpdateOperationsInput | string | null
+    requestBody?: JsonNullValueInput | InputJsonValue
+    responseBody?: NullableJsonNullValueInput | InputJsonValue
+    attemptedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type FiscalSubmissionUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    orderId?: StringFieldUpdateOperationsInput | string
+    mode?: EnumFiscalModeFieldUpdateOperationsInput | $Enums.FiscalMode
+    environment?: EnumFiscalEnvironmentFieldUpdateOperationsInput | $Enums.FiscalEnvironment
+    endpoint?: StringFieldUpdateOperationsInput | string
+    succeeded?: BoolFieldUpdateOperationsInput | boolean
+    fiscalInvoiceNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    responseCode?: NullableStringFieldUpdateOperationsInput | string | null
+    responseMessage?: NullableStringFieldUpdateOperationsInput | string | null
+    errorMessage?: NullableStringFieldUpdateOperationsInput | string | null
+    requestBody?: JsonNullValueInput | InputJsonValue
+    responseBody?: NullableJsonNullValueInput | InputJsonValue
+    attemptedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type StringFilter<$PrismaModel = never> = {
@@ -20003,9 +27292,186 @@ export namespace Prisma {
     createdAt?: SortOrder
   }
 
+  export type PendingMemberCountOrderByAggregateInput = {
+    id?: SortOrder
+    name?: SortOrder
+    email?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type PendingMemberMaxOrderByAggregateInput = {
+    id?: SortOrder
+    name?: SortOrder
+    email?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type PendingMemberMinOrderByAggregateInput = {
+    id?: SortOrder
+    name?: SortOrder
+    email?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type DecimalFilter<$PrismaModel = never> = {
+    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel>
+    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel>
+    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    not?: NestedDecimalFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string
+  }
+
   export type BoolFilter<$PrismaModel = never> = {
     equals?: boolean | BooleanFieldRefInput<$PrismaModel>
     not?: NestedBoolFilter<$PrismaModel> | boolean
+  }
+
+  export type DateTimeNullableFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
+  }
+
+  export type PaymentTransferListRelationFilter = {
+    every?: PaymentTransferWhereInput
+    some?: PaymentTransferWhereInput
+    none?: PaymentTransferWhereInput
+  }
+
+  export type PaymentTransferOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type PaymentChannelCountOrderByAggregateInput = {
+    id?: SortOrder
+    name?: SortOrder
+    openingBalance?: SortOrder
+    currentBalance?: SortOrder
+    archived?: SortOrder
+    archivedAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type PaymentChannelAvgOrderByAggregateInput = {
+    openingBalance?: SortOrder
+    currentBalance?: SortOrder
+  }
+
+  export type PaymentChannelMaxOrderByAggregateInput = {
+    id?: SortOrder
+    name?: SortOrder
+    openingBalance?: SortOrder
+    currentBalance?: SortOrder
+    archived?: SortOrder
+    archivedAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type PaymentChannelMinOrderByAggregateInput = {
+    id?: SortOrder
+    name?: SortOrder
+    openingBalance?: SortOrder
+    currentBalance?: SortOrder
+    archived?: SortOrder
+    archivedAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type PaymentChannelSumOrderByAggregateInput = {
+    openingBalance?: SortOrder
+    currentBalance?: SortOrder
+  }
+
+  export type DecimalWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel>
+    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel>
+    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    not?: NestedDecimalWithAggregatesFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string
+    _count?: NestedIntFilter<$PrismaModel>
+    _avg?: NestedDecimalFilter<$PrismaModel>
+    _sum?: NestedDecimalFilter<$PrismaModel>
+    _min?: NestedDecimalFilter<$PrismaModel>
+    _max?: NestedDecimalFilter<$PrismaModel>
+  }
+
+  export type BoolWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
+    not?: NestedBoolWithAggregatesFilter<$PrismaModel> | boolean
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedBoolFilter<$PrismaModel>
+    _max?: NestedBoolFilter<$PrismaModel>
+  }
+
+  export type DateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeNullableWithAggregatesFilter<$PrismaModel> | Date | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedDateTimeNullableFilter<$PrismaModel>
+    _max?: NestedDateTimeNullableFilter<$PrismaModel>
+  }
+
+  export type PaymentChannelScalarRelationFilter = {
+    is?: PaymentChannelWhereInput
+    isNot?: PaymentChannelWhereInput
+  }
+
+  export type PaymentTransferCountOrderByAggregateInput = {
+    id?: SortOrder
+    fromId?: SortOrder
+    toId?: SortOrder
+    amount?: SortOrder
+    occurredAt?: SortOrder
+    note?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type PaymentTransferAvgOrderByAggregateInput = {
+    amount?: SortOrder
+  }
+
+  export type PaymentTransferMaxOrderByAggregateInput = {
+    id?: SortOrder
+    fromId?: SortOrder
+    toId?: SortOrder
+    amount?: SortOrder
+    occurredAt?: SortOrder
+    note?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type PaymentTransferMinOrderByAggregateInput = {
+    id?: SortOrder
+    fromId?: SortOrder
+    toId?: SortOrder
+    amount?: SortOrder
+    occurredAt?: SortOrder
+    note?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type PaymentTransferSumOrderByAggregateInput = {
+    amount?: SortOrder
   }
 
   export type MenuItemListRelationFilter = {
@@ -20058,14 +27524,6 @@ export namespace Prisma {
     updatedAt?: SortOrder
   }
 
-  export type BoolWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
-    not?: NestedBoolWithAggregatesFilter<$PrismaModel> | boolean
-    _count?: NestedIntFilter<$PrismaModel>
-    _min?: NestedBoolFilter<$PrismaModel>
-    _max?: NestedBoolFilter<$PrismaModel>
-  }
-
   export type MenuCategoryCountOrderByAggregateInput = {
     id?: SortOrder
     name?: SortOrder
@@ -20088,17 +27546,6 @@ export namespace Prisma {
     slug?: SortOrder
     color?: SortOrder
     createdAt?: SortOrder
-  }
-
-  export type DecimalFilter<$PrismaModel = never> = {
-    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel>
-    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel>
-    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    not?: NestedDecimalFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string
   }
 
   export type IntNullableFilter<$PrismaModel = never> = {
@@ -20171,6 +27618,7 @@ export namespace Prisma {
     description?: SortOrder
     price?: SortOrder
     sku?: SortOrder
+    pctCode?: SortOrder
     available?: SortOrder
     posVisible?: SortOrder
     popular?: SortOrder
@@ -20194,6 +27642,7 @@ export namespace Prisma {
     description?: SortOrder
     price?: SortOrder
     sku?: SortOrder
+    pctCode?: SortOrder
     available?: SortOrder
     posVisible?: SortOrder
     popular?: SortOrder
@@ -20211,6 +27660,7 @@ export namespace Prisma {
     description?: SortOrder
     price?: SortOrder
     sku?: SortOrder
+    pctCode?: SortOrder
     available?: SortOrder
     posVisible?: SortOrder
     popular?: SortOrder
@@ -20225,22 +27675,6 @@ export namespace Prisma {
   export type MenuItemSumOrderByAggregateInput = {
     price?: SortOrder
     prepTimeMinutes?: SortOrder
-  }
-
-  export type DecimalWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel>
-    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel>
-    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    not?: NestedDecimalWithAggregatesFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string
-    _count?: NestedIntFilter<$PrismaModel>
-    _avg?: NestedDecimalFilter<$PrismaModel>
-    _sum?: NestedDecimalFilter<$PrismaModel>
-    _min?: NestedDecimalFilter<$PrismaModel>
-    _max?: NestedDecimalFilter<$PrismaModel>
   }
 
   export type IntNullableWithAggregatesFilter<$PrismaModel = never> = {
@@ -20360,17 +27794,6 @@ export namespace Prisma {
     _max?: NestedFloatFilter<$PrismaModel>
   }
 
-  export type DateTimeNullableFilter<$PrismaModel = never> = {
-    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
-    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
-  }
-
   export type SupplierNullableScalarRelationFilter = {
     is?: SupplierWhereInput | null
     isNot?: SupplierWhereInput | null
@@ -20444,20 +27867,6 @@ export namespace Prisma {
     stock?: SortOrder
     reorderLevel?: SortOrder
     costPerUnit?: SortOrder
-  }
-
-  export type DateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
-    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    not?: NestedDateTimeNullableWithAggregatesFilter<$PrismaModel> | Date | string | null
-    _count?: NestedIntNullableFilter<$PrismaModel>
-    _min?: NestedDateTimeNullableFilter<$PrismaModel>
-    _max?: NestedDateTimeNullableFilter<$PrismaModel>
   }
 
   export type MenuItemScalarRelationFilter = {
@@ -20641,6 +28050,16 @@ export namespace Prisma {
     isNot?: UserWhereInput | null
   }
 
+  export type FiscalSubmissionListRelationFilter = {
+    every?: FiscalSubmissionWhereInput
+    some?: FiscalSubmissionWhereInput
+    none?: FiscalSubmissionWhereInput
+  }
+
+  export type FiscalSubmissionOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
   export type OrderCountOrderByAggregateInput = {
     id?: SortOrder
     number?: SortOrder
@@ -20648,6 +28067,8 @@ export namespace Prisma {
     channel?: SortOrder
     customerName?: SortOrder
     customerPhone?: SortOrder
+    buyerNtn?: SortOrder
+    buyerCnic?: SortOrder
     tableId?: SortOrder
     staffId?: SortOrder
     subtotal?: SortOrder
@@ -20657,6 +28078,10 @@ export namespace Prisma {
     total?: SortOrder
     payment?: SortOrder
     notes?: SortOrder
+    fiscalInvoiceNumber?: SortOrder
+    fiscalSubmittedAt?: SortOrder
+    fiscalAttempts?: SortOrder
+    fiscalLastError?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -20667,6 +28092,7 @@ export namespace Prisma {
     tip?: SortOrder
     discount?: SortOrder
     total?: SortOrder
+    fiscalAttempts?: SortOrder
   }
 
   export type OrderMaxOrderByAggregateInput = {
@@ -20676,6 +28102,8 @@ export namespace Prisma {
     channel?: SortOrder
     customerName?: SortOrder
     customerPhone?: SortOrder
+    buyerNtn?: SortOrder
+    buyerCnic?: SortOrder
     tableId?: SortOrder
     staffId?: SortOrder
     subtotal?: SortOrder
@@ -20685,6 +28113,10 @@ export namespace Prisma {
     total?: SortOrder
     payment?: SortOrder
     notes?: SortOrder
+    fiscalInvoiceNumber?: SortOrder
+    fiscalSubmittedAt?: SortOrder
+    fiscalAttempts?: SortOrder
+    fiscalLastError?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -20696,6 +28128,8 @@ export namespace Prisma {
     channel?: SortOrder
     customerName?: SortOrder
     customerPhone?: SortOrder
+    buyerNtn?: SortOrder
+    buyerCnic?: SortOrder
     tableId?: SortOrder
     staffId?: SortOrder
     subtotal?: SortOrder
@@ -20705,6 +28139,10 @@ export namespace Prisma {
     total?: SortOrder
     payment?: SortOrder
     notes?: SortOrder
+    fiscalInvoiceNumber?: SortOrder
+    fiscalSubmittedAt?: SortOrder
+    fiscalAttempts?: SortOrder
+    fiscalLastError?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -20715,6 +28153,7 @@ export namespace Prisma {
     tip?: SortOrder
     discount?: SortOrder
     total?: SortOrder
+    fiscalAttempts?: SortOrder
   }
 
   export type EnumOrderStatusWithAggregatesFilter<$PrismaModel = never> = {
@@ -20848,6 +28287,181 @@ export namespace Prisma {
     _max?: NestedEnumTicketStatusFilter<$PrismaModel>
   }
 
+  export type EnumFiscalModeFilter<$PrismaModel = never> = {
+    equals?: $Enums.FiscalMode | EnumFiscalModeFieldRefInput<$PrismaModel>
+    in?: $Enums.FiscalMode[] | ListEnumFiscalModeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.FiscalMode[] | ListEnumFiscalModeFieldRefInput<$PrismaModel>
+    not?: NestedEnumFiscalModeFilter<$PrismaModel> | $Enums.FiscalMode
+  }
+
+  export type EnumFiscalEnvironmentFilter<$PrismaModel = never> = {
+    equals?: $Enums.FiscalEnvironment | EnumFiscalEnvironmentFieldRefInput<$PrismaModel>
+    in?: $Enums.FiscalEnvironment[] | ListEnumFiscalEnvironmentFieldRefInput<$PrismaModel>
+    notIn?: $Enums.FiscalEnvironment[] | ListEnumFiscalEnvironmentFieldRefInput<$PrismaModel>
+    not?: NestedEnumFiscalEnvironmentFilter<$PrismaModel> | $Enums.FiscalEnvironment
+  }
+
+  export type FiscalConfigCountOrderByAggregateInput = {
+    id?: SortOrder
+    enabled?: SortOrder
+    mode?: SortOrder
+    environment?: SortOrder
+    posId?: SortOrder
+    accessCode?: SortOrder
+    bearerToken?: SortOrder
+    localBaseUrl?: SortOrder
+    defaultPctCode?: SortOrder
+    businessName?: SortOrder
+    bntn?: SortOrder
+    autoSubmit?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type FiscalConfigMaxOrderByAggregateInput = {
+    id?: SortOrder
+    enabled?: SortOrder
+    mode?: SortOrder
+    environment?: SortOrder
+    posId?: SortOrder
+    accessCode?: SortOrder
+    bearerToken?: SortOrder
+    localBaseUrl?: SortOrder
+    defaultPctCode?: SortOrder
+    businessName?: SortOrder
+    bntn?: SortOrder
+    autoSubmit?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type FiscalConfigMinOrderByAggregateInput = {
+    id?: SortOrder
+    enabled?: SortOrder
+    mode?: SortOrder
+    environment?: SortOrder
+    posId?: SortOrder
+    accessCode?: SortOrder
+    bearerToken?: SortOrder
+    localBaseUrl?: SortOrder
+    defaultPctCode?: SortOrder
+    businessName?: SortOrder
+    bntn?: SortOrder
+    autoSubmit?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type EnumFiscalModeWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.FiscalMode | EnumFiscalModeFieldRefInput<$PrismaModel>
+    in?: $Enums.FiscalMode[] | ListEnumFiscalModeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.FiscalMode[] | ListEnumFiscalModeFieldRefInput<$PrismaModel>
+    not?: NestedEnumFiscalModeWithAggregatesFilter<$PrismaModel> | $Enums.FiscalMode
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumFiscalModeFilter<$PrismaModel>
+    _max?: NestedEnumFiscalModeFilter<$PrismaModel>
+  }
+
+  export type EnumFiscalEnvironmentWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.FiscalEnvironment | EnumFiscalEnvironmentFieldRefInput<$PrismaModel>
+    in?: $Enums.FiscalEnvironment[] | ListEnumFiscalEnvironmentFieldRefInput<$PrismaModel>
+    notIn?: $Enums.FiscalEnvironment[] | ListEnumFiscalEnvironmentFieldRefInput<$PrismaModel>
+    not?: NestedEnumFiscalEnvironmentWithAggregatesFilter<$PrismaModel> | $Enums.FiscalEnvironment
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumFiscalEnvironmentFilter<$PrismaModel>
+    _max?: NestedEnumFiscalEnvironmentFilter<$PrismaModel>
+  }
+  export type JsonFilter<$PrismaModel = never> =
+    | PatchUndefined<
+        Either<Required<JsonFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonFilterBase<$PrismaModel>>, 'path'>>,
+        Required<JsonFilterBase<$PrismaModel>>
+      >
+    | OptionalFlat<Omit<Required<JsonFilterBase<$PrismaModel>>, 'path'>>
+
+  export type JsonFilterBase<$PrismaModel = never> = {
+    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    path?: string[]
+    mode?: QueryMode | EnumQueryModeFieldRefInput<$PrismaModel>
+    string_contains?: string | StringFieldRefInput<$PrismaModel>
+    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
+    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
+    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+  }
+
+  export type FiscalSubmissionCountOrderByAggregateInput = {
+    id?: SortOrder
+    orderId?: SortOrder
+    mode?: SortOrder
+    environment?: SortOrder
+    endpoint?: SortOrder
+    succeeded?: SortOrder
+    fiscalInvoiceNumber?: SortOrder
+    responseCode?: SortOrder
+    responseMessage?: SortOrder
+    errorMessage?: SortOrder
+    requestBody?: SortOrder
+    responseBody?: SortOrder
+    attemptedAt?: SortOrder
+  }
+
+  export type FiscalSubmissionMaxOrderByAggregateInput = {
+    id?: SortOrder
+    orderId?: SortOrder
+    mode?: SortOrder
+    environment?: SortOrder
+    endpoint?: SortOrder
+    succeeded?: SortOrder
+    fiscalInvoiceNumber?: SortOrder
+    responseCode?: SortOrder
+    responseMessage?: SortOrder
+    errorMessage?: SortOrder
+    attemptedAt?: SortOrder
+  }
+
+  export type FiscalSubmissionMinOrderByAggregateInput = {
+    id?: SortOrder
+    orderId?: SortOrder
+    mode?: SortOrder
+    environment?: SortOrder
+    endpoint?: SortOrder
+    succeeded?: SortOrder
+    fiscalInvoiceNumber?: SortOrder
+    responseCode?: SortOrder
+    responseMessage?: SortOrder
+    errorMessage?: SortOrder
+    attemptedAt?: SortOrder
+  }
+  export type JsonWithAggregatesFilter<$PrismaModel = never> =
+    | PatchUndefined<
+        Either<Required<JsonWithAggregatesFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonWithAggregatesFilterBase<$PrismaModel>>, 'path'>>,
+        Required<JsonWithAggregatesFilterBase<$PrismaModel>>
+      >
+    | OptionalFlat<Omit<Required<JsonWithAggregatesFilterBase<$PrismaModel>>, 'path'>>
+
+  export type JsonWithAggregatesFilterBase<$PrismaModel = never> = {
+    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    path?: string[]
+    mode?: QueryMode | EnumQueryModeFieldRefInput<$PrismaModel>
+    string_contains?: string | StringFieldRefInput<$PrismaModel>
+    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
+    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
+    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedJsonFilter<$PrismaModel>
+    _max?: NestedJsonFilter<$PrismaModel>
+  }
+
   export type SessionCreateNestedManyWithoutUserInput = {
     create?: XOR<SessionCreateWithoutUserInput, SessionUncheckedCreateWithoutUserInput> | SessionCreateWithoutUserInput[] | SessionUncheckedCreateWithoutUserInput[]
     connectOrCreate?: SessionCreateOrConnectWithoutUserInput | SessionCreateOrConnectWithoutUserInput[]
@@ -20962,6 +28576,134 @@ export namespace Prisma {
     update?: XOR<XOR<UserUpdateToOneWithWhereWithoutSessionsInput, UserUpdateWithoutSessionsInput>, UserUncheckedUpdateWithoutSessionsInput>
   }
 
+  export type PaymentTransferCreateNestedManyWithoutFromInput = {
+    create?: XOR<PaymentTransferCreateWithoutFromInput, PaymentTransferUncheckedCreateWithoutFromInput> | PaymentTransferCreateWithoutFromInput[] | PaymentTransferUncheckedCreateWithoutFromInput[]
+    connectOrCreate?: PaymentTransferCreateOrConnectWithoutFromInput | PaymentTransferCreateOrConnectWithoutFromInput[]
+    createMany?: PaymentTransferCreateManyFromInputEnvelope
+    connect?: PaymentTransferWhereUniqueInput | PaymentTransferWhereUniqueInput[]
+  }
+
+  export type PaymentTransferCreateNestedManyWithoutToInput = {
+    create?: XOR<PaymentTransferCreateWithoutToInput, PaymentTransferUncheckedCreateWithoutToInput> | PaymentTransferCreateWithoutToInput[] | PaymentTransferUncheckedCreateWithoutToInput[]
+    connectOrCreate?: PaymentTransferCreateOrConnectWithoutToInput | PaymentTransferCreateOrConnectWithoutToInput[]
+    createMany?: PaymentTransferCreateManyToInputEnvelope
+    connect?: PaymentTransferWhereUniqueInput | PaymentTransferWhereUniqueInput[]
+  }
+
+  export type PaymentTransferUncheckedCreateNestedManyWithoutFromInput = {
+    create?: XOR<PaymentTransferCreateWithoutFromInput, PaymentTransferUncheckedCreateWithoutFromInput> | PaymentTransferCreateWithoutFromInput[] | PaymentTransferUncheckedCreateWithoutFromInput[]
+    connectOrCreate?: PaymentTransferCreateOrConnectWithoutFromInput | PaymentTransferCreateOrConnectWithoutFromInput[]
+    createMany?: PaymentTransferCreateManyFromInputEnvelope
+    connect?: PaymentTransferWhereUniqueInput | PaymentTransferWhereUniqueInput[]
+  }
+
+  export type PaymentTransferUncheckedCreateNestedManyWithoutToInput = {
+    create?: XOR<PaymentTransferCreateWithoutToInput, PaymentTransferUncheckedCreateWithoutToInput> | PaymentTransferCreateWithoutToInput[] | PaymentTransferUncheckedCreateWithoutToInput[]
+    connectOrCreate?: PaymentTransferCreateOrConnectWithoutToInput | PaymentTransferCreateOrConnectWithoutToInput[]
+    createMany?: PaymentTransferCreateManyToInputEnvelope
+    connect?: PaymentTransferWhereUniqueInput | PaymentTransferWhereUniqueInput[]
+  }
+
+  export type DecimalFieldUpdateOperationsInput = {
+    set?: Decimal | DecimalJsLike | number | string
+    increment?: Decimal | DecimalJsLike | number | string
+    decrement?: Decimal | DecimalJsLike | number | string
+    multiply?: Decimal | DecimalJsLike | number | string
+    divide?: Decimal | DecimalJsLike | number | string
+  }
+
+  export type BoolFieldUpdateOperationsInput = {
+    set?: boolean
+  }
+
+  export type NullableDateTimeFieldUpdateOperationsInput = {
+    set?: Date | string | null
+  }
+
+  export type PaymentTransferUpdateManyWithoutFromNestedInput = {
+    create?: XOR<PaymentTransferCreateWithoutFromInput, PaymentTransferUncheckedCreateWithoutFromInput> | PaymentTransferCreateWithoutFromInput[] | PaymentTransferUncheckedCreateWithoutFromInput[]
+    connectOrCreate?: PaymentTransferCreateOrConnectWithoutFromInput | PaymentTransferCreateOrConnectWithoutFromInput[]
+    upsert?: PaymentTransferUpsertWithWhereUniqueWithoutFromInput | PaymentTransferUpsertWithWhereUniqueWithoutFromInput[]
+    createMany?: PaymentTransferCreateManyFromInputEnvelope
+    set?: PaymentTransferWhereUniqueInput | PaymentTransferWhereUniqueInput[]
+    disconnect?: PaymentTransferWhereUniqueInput | PaymentTransferWhereUniqueInput[]
+    delete?: PaymentTransferWhereUniqueInput | PaymentTransferWhereUniqueInput[]
+    connect?: PaymentTransferWhereUniqueInput | PaymentTransferWhereUniqueInput[]
+    update?: PaymentTransferUpdateWithWhereUniqueWithoutFromInput | PaymentTransferUpdateWithWhereUniqueWithoutFromInput[]
+    updateMany?: PaymentTransferUpdateManyWithWhereWithoutFromInput | PaymentTransferUpdateManyWithWhereWithoutFromInput[]
+    deleteMany?: PaymentTransferScalarWhereInput | PaymentTransferScalarWhereInput[]
+  }
+
+  export type PaymentTransferUpdateManyWithoutToNestedInput = {
+    create?: XOR<PaymentTransferCreateWithoutToInput, PaymentTransferUncheckedCreateWithoutToInput> | PaymentTransferCreateWithoutToInput[] | PaymentTransferUncheckedCreateWithoutToInput[]
+    connectOrCreate?: PaymentTransferCreateOrConnectWithoutToInput | PaymentTransferCreateOrConnectWithoutToInput[]
+    upsert?: PaymentTransferUpsertWithWhereUniqueWithoutToInput | PaymentTransferUpsertWithWhereUniqueWithoutToInput[]
+    createMany?: PaymentTransferCreateManyToInputEnvelope
+    set?: PaymentTransferWhereUniqueInput | PaymentTransferWhereUniqueInput[]
+    disconnect?: PaymentTransferWhereUniqueInput | PaymentTransferWhereUniqueInput[]
+    delete?: PaymentTransferWhereUniqueInput | PaymentTransferWhereUniqueInput[]
+    connect?: PaymentTransferWhereUniqueInput | PaymentTransferWhereUniqueInput[]
+    update?: PaymentTransferUpdateWithWhereUniqueWithoutToInput | PaymentTransferUpdateWithWhereUniqueWithoutToInput[]
+    updateMany?: PaymentTransferUpdateManyWithWhereWithoutToInput | PaymentTransferUpdateManyWithWhereWithoutToInput[]
+    deleteMany?: PaymentTransferScalarWhereInput | PaymentTransferScalarWhereInput[]
+  }
+
+  export type PaymentTransferUncheckedUpdateManyWithoutFromNestedInput = {
+    create?: XOR<PaymentTransferCreateWithoutFromInput, PaymentTransferUncheckedCreateWithoutFromInput> | PaymentTransferCreateWithoutFromInput[] | PaymentTransferUncheckedCreateWithoutFromInput[]
+    connectOrCreate?: PaymentTransferCreateOrConnectWithoutFromInput | PaymentTransferCreateOrConnectWithoutFromInput[]
+    upsert?: PaymentTransferUpsertWithWhereUniqueWithoutFromInput | PaymentTransferUpsertWithWhereUniqueWithoutFromInput[]
+    createMany?: PaymentTransferCreateManyFromInputEnvelope
+    set?: PaymentTransferWhereUniqueInput | PaymentTransferWhereUniqueInput[]
+    disconnect?: PaymentTransferWhereUniqueInput | PaymentTransferWhereUniqueInput[]
+    delete?: PaymentTransferWhereUniqueInput | PaymentTransferWhereUniqueInput[]
+    connect?: PaymentTransferWhereUniqueInput | PaymentTransferWhereUniqueInput[]
+    update?: PaymentTransferUpdateWithWhereUniqueWithoutFromInput | PaymentTransferUpdateWithWhereUniqueWithoutFromInput[]
+    updateMany?: PaymentTransferUpdateManyWithWhereWithoutFromInput | PaymentTransferUpdateManyWithWhereWithoutFromInput[]
+    deleteMany?: PaymentTransferScalarWhereInput | PaymentTransferScalarWhereInput[]
+  }
+
+  export type PaymentTransferUncheckedUpdateManyWithoutToNestedInput = {
+    create?: XOR<PaymentTransferCreateWithoutToInput, PaymentTransferUncheckedCreateWithoutToInput> | PaymentTransferCreateWithoutToInput[] | PaymentTransferUncheckedCreateWithoutToInput[]
+    connectOrCreate?: PaymentTransferCreateOrConnectWithoutToInput | PaymentTransferCreateOrConnectWithoutToInput[]
+    upsert?: PaymentTransferUpsertWithWhereUniqueWithoutToInput | PaymentTransferUpsertWithWhereUniqueWithoutToInput[]
+    createMany?: PaymentTransferCreateManyToInputEnvelope
+    set?: PaymentTransferWhereUniqueInput | PaymentTransferWhereUniqueInput[]
+    disconnect?: PaymentTransferWhereUniqueInput | PaymentTransferWhereUniqueInput[]
+    delete?: PaymentTransferWhereUniqueInput | PaymentTransferWhereUniqueInput[]
+    connect?: PaymentTransferWhereUniqueInput | PaymentTransferWhereUniqueInput[]
+    update?: PaymentTransferUpdateWithWhereUniqueWithoutToInput | PaymentTransferUpdateWithWhereUniqueWithoutToInput[]
+    updateMany?: PaymentTransferUpdateManyWithWhereWithoutToInput | PaymentTransferUpdateManyWithWhereWithoutToInput[]
+    deleteMany?: PaymentTransferScalarWhereInput | PaymentTransferScalarWhereInput[]
+  }
+
+  export type PaymentChannelCreateNestedOneWithoutOutgoingInput = {
+    create?: XOR<PaymentChannelCreateWithoutOutgoingInput, PaymentChannelUncheckedCreateWithoutOutgoingInput>
+    connectOrCreate?: PaymentChannelCreateOrConnectWithoutOutgoingInput
+    connect?: PaymentChannelWhereUniqueInput
+  }
+
+  export type PaymentChannelCreateNestedOneWithoutIncomingInput = {
+    create?: XOR<PaymentChannelCreateWithoutIncomingInput, PaymentChannelUncheckedCreateWithoutIncomingInput>
+    connectOrCreate?: PaymentChannelCreateOrConnectWithoutIncomingInput
+    connect?: PaymentChannelWhereUniqueInput
+  }
+
+  export type PaymentChannelUpdateOneRequiredWithoutOutgoingNestedInput = {
+    create?: XOR<PaymentChannelCreateWithoutOutgoingInput, PaymentChannelUncheckedCreateWithoutOutgoingInput>
+    connectOrCreate?: PaymentChannelCreateOrConnectWithoutOutgoingInput
+    upsert?: PaymentChannelUpsertWithoutOutgoingInput
+    connect?: PaymentChannelWhereUniqueInput
+    update?: XOR<XOR<PaymentChannelUpdateToOneWithWhereWithoutOutgoingInput, PaymentChannelUpdateWithoutOutgoingInput>, PaymentChannelUncheckedUpdateWithoutOutgoingInput>
+  }
+
+  export type PaymentChannelUpdateOneRequiredWithoutIncomingNestedInput = {
+    create?: XOR<PaymentChannelCreateWithoutIncomingInput, PaymentChannelUncheckedCreateWithoutIncomingInput>
+    connectOrCreate?: PaymentChannelCreateOrConnectWithoutIncomingInput
+    upsert?: PaymentChannelUpsertWithoutIncomingInput
+    connect?: PaymentChannelWhereUniqueInput
+    update?: XOR<XOR<PaymentChannelUpdateToOneWithWhereWithoutIncomingInput, PaymentChannelUpdateWithoutIncomingInput>, PaymentChannelUncheckedUpdateWithoutIncomingInput>
+  }
+
   export type MenuItemCreateNestedManyWithoutStationInput = {
     create?: XOR<MenuItemCreateWithoutStationInput, MenuItemUncheckedCreateWithoutStationInput> | MenuItemCreateWithoutStationInput[] | MenuItemUncheckedCreateWithoutStationInput[]
     connectOrCreate?: MenuItemCreateOrConnectWithoutStationInput | MenuItemCreateOrConnectWithoutStationInput[]
@@ -20988,10 +28730,6 @@ export namespace Prisma {
     connectOrCreate?: KitchenTicketCreateOrConnectWithoutStationInput | KitchenTicketCreateOrConnectWithoutStationInput[]
     createMany?: KitchenTicketCreateManyStationInputEnvelope
     connect?: KitchenTicketWhereUniqueInput | KitchenTicketWhereUniqueInput[]
-  }
-
-  export type BoolFieldUpdateOperationsInput = {
-    set?: boolean
   }
 
   export type MenuItemUpdateManyWithoutStationNestedInput = {
@@ -21130,14 +28868,6 @@ export namespace Prisma {
     connectOrCreate?: OrderItemCreateOrConnectWithoutMenuItemInput | OrderItemCreateOrConnectWithoutMenuItemInput[]
     createMany?: OrderItemCreateManyMenuItemInputEnvelope
     connect?: OrderItemWhereUniqueInput | OrderItemWhereUniqueInput[]
-  }
-
-  export type DecimalFieldUpdateOperationsInput = {
-    set?: Decimal | DecimalJsLike | number | string
-    increment?: Decimal | DecimalJsLike | number | string
-    decrement?: Decimal | DecimalJsLike | number | string
-    multiply?: Decimal | DecimalJsLike | number | string
-    divide?: Decimal | DecimalJsLike | number | string
   }
 
   export type NullableIntFieldUpdateOperationsInput = {
@@ -21302,10 +29032,6 @@ export namespace Prisma {
     connectOrCreate?: InventoryMovementCreateOrConnectWithoutInventoryItemInput | InventoryMovementCreateOrConnectWithoutInventoryItemInput[]
     createMany?: InventoryMovementCreateManyInventoryItemInputEnvelope
     connect?: InventoryMovementWhereUniqueInput | InventoryMovementWhereUniqueInput[]
-  }
-
-  export type NullableDateTimeFieldUpdateOperationsInput = {
-    set?: Date | string | null
   }
 
   export type SupplierUpdateOneWithoutInventoryItemsNestedInput = {
@@ -21478,6 +29204,13 @@ export namespace Prisma {
     connect?: UserWhereUniqueInput
   }
 
+  export type FiscalSubmissionCreateNestedManyWithoutOrderInput = {
+    create?: XOR<FiscalSubmissionCreateWithoutOrderInput, FiscalSubmissionUncheckedCreateWithoutOrderInput> | FiscalSubmissionCreateWithoutOrderInput[] | FiscalSubmissionUncheckedCreateWithoutOrderInput[]
+    connectOrCreate?: FiscalSubmissionCreateOrConnectWithoutOrderInput | FiscalSubmissionCreateOrConnectWithoutOrderInput[]
+    createMany?: FiscalSubmissionCreateManyOrderInputEnvelope
+    connect?: FiscalSubmissionWhereUniqueInput | FiscalSubmissionWhereUniqueInput[]
+  }
+
   export type OrderItemCreateNestedManyWithoutOrderInput = {
     create?: XOR<OrderItemCreateWithoutOrderInput, OrderItemUncheckedCreateWithoutOrderInput> | OrderItemCreateWithoutOrderInput[] | OrderItemUncheckedCreateWithoutOrderInput[]
     connectOrCreate?: OrderItemCreateOrConnectWithoutOrderInput | OrderItemCreateOrConnectWithoutOrderInput[]
@@ -21490,6 +29223,13 @@ export namespace Prisma {
     connectOrCreate?: KitchenTicketCreateOrConnectWithoutOrderInput | KitchenTicketCreateOrConnectWithoutOrderInput[]
     createMany?: KitchenTicketCreateManyOrderInputEnvelope
     connect?: KitchenTicketWhereUniqueInput | KitchenTicketWhereUniqueInput[]
+  }
+
+  export type FiscalSubmissionUncheckedCreateNestedManyWithoutOrderInput = {
+    create?: XOR<FiscalSubmissionCreateWithoutOrderInput, FiscalSubmissionUncheckedCreateWithoutOrderInput> | FiscalSubmissionCreateWithoutOrderInput[] | FiscalSubmissionUncheckedCreateWithoutOrderInput[]
+    connectOrCreate?: FiscalSubmissionCreateOrConnectWithoutOrderInput | FiscalSubmissionCreateOrConnectWithoutOrderInput[]
+    createMany?: FiscalSubmissionCreateManyOrderInputEnvelope
+    connect?: FiscalSubmissionWhereUniqueInput | FiscalSubmissionWhereUniqueInput[]
   }
 
   export type OrderItemUncheckedCreateNestedManyWithoutOrderInput = {
@@ -21542,6 +29282,20 @@ export namespace Prisma {
     update?: XOR<XOR<UserUpdateToOneWithWhereWithoutOrdersInput, UserUpdateWithoutOrdersInput>, UserUncheckedUpdateWithoutOrdersInput>
   }
 
+  export type FiscalSubmissionUpdateManyWithoutOrderNestedInput = {
+    create?: XOR<FiscalSubmissionCreateWithoutOrderInput, FiscalSubmissionUncheckedCreateWithoutOrderInput> | FiscalSubmissionCreateWithoutOrderInput[] | FiscalSubmissionUncheckedCreateWithoutOrderInput[]
+    connectOrCreate?: FiscalSubmissionCreateOrConnectWithoutOrderInput | FiscalSubmissionCreateOrConnectWithoutOrderInput[]
+    upsert?: FiscalSubmissionUpsertWithWhereUniqueWithoutOrderInput | FiscalSubmissionUpsertWithWhereUniqueWithoutOrderInput[]
+    createMany?: FiscalSubmissionCreateManyOrderInputEnvelope
+    set?: FiscalSubmissionWhereUniqueInput | FiscalSubmissionWhereUniqueInput[]
+    disconnect?: FiscalSubmissionWhereUniqueInput | FiscalSubmissionWhereUniqueInput[]
+    delete?: FiscalSubmissionWhereUniqueInput | FiscalSubmissionWhereUniqueInput[]
+    connect?: FiscalSubmissionWhereUniqueInput | FiscalSubmissionWhereUniqueInput[]
+    update?: FiscalSubmissionUpdateWithWhereUniqueWithoutOrderInput | FiscalSubmissionUpdateWithWhereUniqueWithoutOrderInput[]
+    updateMany?: FiscalSubmissionUpdateManyWithWhereWithoutOrderInput | FiscalSubmissionUpdateManyWithWhereWithoutOrderInput[]
+    deleteMany?: FiscalSubmissionScalarWhereInput | FiscalSubmissionScalarWhereInput[]
+  }
+
   export type OrderItemUpdateManyWithoutOrderNestedInput = {
     create?: XOR<OrderItemCreateWithoutOrderInput, OrderItemUncheckedCreateWithoutOrderInput> | OrderItemCreateWithoutOrderInput[] | OrderItemUncheckedCreateWithoutOrderInput[]
     connectOrCreate?: OrderItemCreateOrConnectWithoutOrderInput | OrderItemCreateOrConnectWithoutOrderInput[]
@@ -21568,6 +29322,20 @@ export namespace Prisma {
     update?: KitchenTicketUpdateWithWhereUniqueWithoutOrderInput | KitchenTicketUpdateWithWhereUniqueWithoutOrderInput[]
     updateMany?: KitchenTicketUpdateManyWithWhereWithoutOrderInput | KitchenTicketUpdateManyWithWhereWithoutOrderInput[]
     deleteMany?: KitchenTicketScalarWhereInput | KitchenTicketScalarWhereInput[]
+  }
+
+  export type FiscalSubmissionUncheckedUpdateManyWithoutOrderNestedInput = {
+    create?: XOR<FiscalSubmissionCreateWithoutOrderInput, FiscalSubmissionUncheckedCreateWithoutOrderInput> | FiscalSubmissionCreateWithoutOrderInput[] | FiscalSubmissionUncheckedCreateWithoutOrderInput[]
+    connectOrCreate?: FiscalSubmissionCreateOrConnectWithoutOrderInput | FiscalSubmissionCreateOrConnectWithoutOrderInput[]
+    upsert?: FiscalSubmissionUpsertWithWhereUniqueWithoutOrderInput | FiscalSubmissionUpsertWithWhereUniqueWithoutOrderInput[]
+    createMany?: FiscalSubmissionCreateManyOrderInputEnvelope
+    set?: FiscalSubmissionWhereUniqueInput | FiscalSubmissionWhereUniqueInput[]
+    disconnect?: FiscalSubmissionWhereUniqueInput | FiscalSubmissionWhereUniqueInput[]
+    delete?: FiscalSubmissionWhereUniqueInput | FiscalSubmissionWhereUniqueInput[]
+    connect?: FiscalSubmissionWhereUniqueInput | FiscalSubmissionWhereUniqueInput[]
+    update?: FiscalSubmissionUpdateWithWhereUniqueWithoutOrderInput | FiscalSubmissionUpdateWithWhereUniqueWithoutOrderInput[]
+    updateMany?: FiscalSubmissionUpdateManyWithWhereWithoutOrderInput | FiscalSubmissionUpdateManyWithWhereWithoutOrderInput[]
+    deleteMany?: FiscalSubmissionScalarWhereInput | FiscalSubmissionScalarWhereInput[]
   }
 
   export type OrderItemUncheckedUpdateManyWithoutOrderNestedInput = {
@@ -21656,6 +29424,28 @@ export namespace Prisma {
     upsert?: KitchenStationUpsertWithoutTicketsInput
     connect?: KitchenStationWhereUniqueInput
     update?: XOR<XOR<KitchenStationUpdateToOneWithWhereWithoutTicketsInput, KitchenStationUpdateWithoutTicketsInput>, KitchenStationUncheckedUpdateWithoutTicketsInput>
+  }
+
+  export type EnumFiscalModeFieldUpdateOperationsInput = {
+    set?: $Enums.FiscalMode
+  }
+
+  export type EnumFiscalEnvironmentFieldUpdateOperationsInput = {
+    set?: $Enums.FiscalEnvironment
+  }
+
+  export type OrderCreateNestedOneWithoutFiscalSubmissionsInput = {
+    create?: XOR<OrderCreateWithoutFiscalSubmissionsInput, OrderUncheckedCreateWithoutFiscalSubmissionsInput>
+    connectOrCreate?: OrderCreateOrConnectWithoutFiscalSubmissionsInput
+    connect?: OrderWhereUniqueInput
+  }
+
+  export type OrderUpdateOneRequiredWithoutFiscalSubmissionsNestedInput = {
+    create?: XOR<OrderCreateWithoutFiscalSubmissionsInput, OrderUncheckedCreateWithoutFiscalSubmissionsInput>
+    connectOrCreate?: OrderCreateOrConnectWithoutFiscalSubmissionsInput
+    upsert?: OrderUpsertWithoutFiscalSubmissionsInput
+    connect?: OrderWhereUniqueInput
+    update?: XOR<XOR<OrderUpdateToOneWithWhereWithoutFiscalSubmissionsInput, OrderUpdateWithoutFiscalSubmissionsInput>, OrderUncheckedUpdateWithoutFiscalSubmissionsInput>
   }
 
   export type NestedStringFilter<$PrismaModel = never> = {
@@ -21784,19 +29574,6 @@ export namespace Prisma {
     _max?: NestedDateTimeFilter<$PrismaModel>
   }
 
-  export type NestedBoolFilter<$PrismaModel = never> = {
-    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
-    not?: NestedBoolFilter<$PrismaModel> | boolean
-  }
-
-  export type NestedBoolWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
-    not?: NestedBoolWithAggregatesFilter<$PrismaModel> | boolean
-    _count?: NestedIntFilter<$PrismaModel>
-    _min?: NestedBoolFilter<$PrismaModel>
-    _max?: NestedBoolFilter<$PrismaModel>
-  }
-
   export type NestedDecimalFilter<$PrismaModel = never> = {
     equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
     in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel>
@@ -21806,6 +29583,22 @@ export namespace Prisma {
     gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
     gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
     not?: NestedDecimalFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string
+  }
+
+  export type NestedBoolFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
+    not?: NestedBoolFilter<$PrismaModel> | boolean
+  }
+
+  export type NestedDateTimeNullableFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
   }
 
   export type NestedDecimalWithAggregatesFilter<$PrismaModel = never> = {
@@ -21822,6 +29615,28 @@ export namespace Prisma {
     _sum?: NestedDecimalFilter<$PrismaModel>
     _min?: NestedDecimalFilter<$PrismaModel>
     _max?: NestedDecimalFilter<$PrismaModel>
+  }
+
+  export type NestedBoolWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
+    not?: NestedBoolWithAggregatesFilter<$PrismaModel> | boolean
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedBoolFilter<$PrismaModel>
+    _max?: NestedBoolFilter<$PrismaModel>
+  }
+
+  export type NestedDateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeNullableWithAggregatesFilter<$PrismaModel> | Date | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedDateTimeNullableFilter<$PrismaModel>
+    _max?: NestedDateTimeNullableFilter<$PrismaModel>
   }
 
   export type NestedIntNullableWithAggregatesFilter<$PrismaModel = never> = {
@@ -21899,31 +29714,6 @@ export namespace Prisma {
     _sum?: NestedFloatFilter<$PrismaModel>
     _min?: NestedFloatFilter<$PrismaModel>
     _max?: NestedFloatFilter<$PrismaModel>
-  }
-
-  export type NestedDateTimeNullableFilter<$PrismaModel = never> = {
-    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
-    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
-  }
-
-  export type NestedDateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
-    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    not?: NestedDateTimeNullableWithAggregatesFilter<$PrismaModel> | Date | string | null
-    _count?: NestedIntNullableFilter<$PrismaModel>
-    _min?: NestedDateTimeNullableFilter<$PrismaModel>
-    _max?: NestedDateTimeNullableFilter<$PrismaModel>
   }
 
   export type NestedIntWithAggregatesFilter<$PrismaModel = never> = {
@@ -22020,6 +29810,63 @@ export namespace Prisma {
     _max?: NestedEnumTicketStatusFilter<$PrismaModel>
   }
 
+  export type NestedEnumFiscalModeFilter<$PrismaModel = never> = {
+    equals?: $Enums.FiscalMode | EnumFiscalModeFieldRefInput<$PrismaModel>
+    in?: $Enums.FiscalMode[] | ListEnumFiscalModeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.FiscalMode[] | ListEnumFiscalModeFieldRefInput<$PrismaModel>
+    not?: NestedEnumFiscalModeFilter<$PrismaModel> | $Enums.FiscalMode
+  }
+
+  export type NestedEnumFiscalEnvironmentFilter<$PrismaModel = never> = {
+    equals?: $Enums.FiscalEnvironment | EnumFiscalEnvironmentFieldRefInput<$PrismaModel>
+    in?: $Enums.FiscalEnvironment[] | ListEnumFiscalEnvironmentFieldRefInput<$PrismaModel>
+    notIn?: $Enums.FiscalEnvironment[] | ListEnumFiscalEnvironmentFieldRefInput<$PrismaModel>
+    not?: NestedEnumFiscalEnvironmentFilter<$PrismaModel> | $Enums.FiscalEnvironment
+  }
+
+  export type NestedEnumFiscalModeWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.FiscalMode | EnumFiscalModeFieldRefInput<$PrismaModel>
+    in?: $Enums.FiscalMode[] | ListEnumFiscalModeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.FiscalMode[] | ListEnumFiscalModeFieldRefInput<$PrismaModel>
+    not?: NestedEnumFiscalModeWithAggregatesFilter<$PrismaModel> | $Enums.FiscalMode
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumFiscalModeFilter<$PrismaModel>
+    _max?: NestedEnumFiscalModeFilter<$PrismaModel>
+  }
+
+  export type NestedEnumFiscalEnvironmentWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.FiscalEnvironment | EnumFiscalEnvironmentFieldRefInput<$PrismaModel>
+    in?: $Enums.FiscalEnvironment[] | ListEnumFiscalEnvironmentFieldRefInput<$PrismaModel>
+    notIn?: $Enums.FiscalEnvironment[] | ListEnumFiscalEnvironmentFieldRefInput<$PrismaModel>
+    not?: NestedEnumFiscalEnvironmentWithAggregatesFilter<$PrismaModel> | $Enums.FiscalEnvironment
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumFiscalEnvironmentFilter<$PrismaModel>
+    _max?: NestedEnumFiscalEnvironmentFilter<$PrismaModel>
+  }
+  export type NestedJsonFilter<$PrismaModel = never> =
+    | PatchUndefined<
+        Either<Required<NestedJsonFilterBase<$PrismaModel>>, Exclude<keyof Required<NestedJsonFilterBase<$PrismaModel>>, 'path'>>,
+        Required<NestedJsonFilterBase<$PrismaModel>>
+      >
+    | OptionalFlat<Omit<Required<NestedJsonFilterBase<$PrismaModel>>, 'path'>>
+
+  export type NestedJsonFilterBase<$PrismaModel = never> = {
+    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    path?: string[]
+    mode?: QueryMode | EnumQueryModeFieldRefInput<$PrismaModel>
+    string_contains?: string | StringFieldRefInput<$PrismaModel>
+    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
+    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
+    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+  }
+
   export type SessionCreateWithoutUserInput = {
     id?: string
     expiresAt: Date | string
@@ -22049,6 +29896,8 @@ export namespace Prisma {
     channel: string
     customerName?: string | null
     customerPhone?: string | null
+    buyerNtn?: string | null
+    buyerCnic?: string | null
     subtotal: Decimal | DecimalJsLike | number | string
     tax: Decimal | DecimalJsLike | number | string
     tip?: Decimal | DecimalJsLike | number | string | null
@@ -22056,9 +29905,14 @@ export namespace Prisma {
     total: Decimal | DecimalJsLike | number | string
     payment: $Enums.PaymentMethod
     notes?: string | null
+    fiscalInvoiceNumber?: string | null
+    fiscalSubmittedAt?: Date | string | null
+    fiscalAttempts?: number
+    fiscalLastError?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     table?: TableCreateNestedOneWithoutOrdersInput
+    fiscalSubmissions?: FiscalSubmissionCreateNestedManyWithoutOrderInput
     items?: OrderItemCreateNestedManyWithoutOrderInput
     tickets?: KitchenTicketCreateNestedManyWithoutOrderInput
   }
@@ -22070,6 +29924,8 @@ export namespace Prisma {
     channel: string
     customerName?: string | null
     customerPhone?: string | null
+    buyerNtn?: string | null
+    buyerCnic?: string | null
     tableId?: string | null
     subtotal: Decimal | DecimalJsLike | number | string
     tax: Decimal | DecimalJsLike | number | string
@@ -22078,8 +29934,13 @@ export namespace Prisma {
     total: Decimal | DecimalJsLike | number | string
     payment: $Enums.PaymentMethod
     notes?: string | null
+    fiscalInvoiceNumber?: string | null
+    fiscalSubmittedAt?: Date | string | null
+    fiscalAttempts?: number
+    fiscalLastError?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    fiscalSubmissions?: FiscalSubmissionUncheckedCreateNestedManyWithoutOrderInput
     items?: OrderItemUncheckedCreateNestedManyWithoutOrderInput
     tickets?: KitchenTicketUncheckedCreateNestedManyWithoutOrderInput
   }
@@ -22146,6 +30007,8 @@ export namespace Prisma {
     channel?: StringFilter<"Order"> | string
     customerName?: StringNullableFilter<"Order"> | string | null
     customerPhone?: StringNullableFilter<"Order"> | string | null
+    buyerNtn?: StringNullableFilter<"Order"> | string | null
+    buyerCnic?: StringNullableFilter<"Order"> | string | null
     tableId?: StringNullableFilter<"Order"> | string | null
     staffId?: StringNullableFilter<"Order"> | string | null
     subtotal?: DecimalFilter<"Order"> | Decimal | DecimalJsLike | number | string
@@ -22155,6 +30018,10 @@ export namespace Prisma {
     total?: DecimalFilter<"Order"> | Decimal | DecimalJsLike | number | string
     payment?: EnumPaymentMethodFilter<"Order"> | $Enums.PaymentMethod
     notes?: StringNullableFilter<"Order"> | string | null
+    fiscalInvoiceNumber?: StringNullableFilter<"Order"> | string | null
+    fiscalSubmittedAt?: DateTimeNullableFilter<"Order"> | Date | string | null
+    fiscalAttempts?: IntFilter<"Order"> | number
+    fiscalLastError?: StringNullableFilter<"Order"> | string | null
     createdAt?: DateTimeFilter<"Order"> | Date | string
     updatedAt?: DateTimeFilter<"Order"> | Date | string
   }
@@ -22223,12 +30090,242 @@ export namespace Prisma {
     orders?: OrderUncheckedUpdateManyWithoutStaffNestedInput
   }
 
+  export type PaymentTransferCreateWithoutFromInput = {
+    id?: string
+    amount: Decimal | DecimalJsLike | number | string
+    occurredAt: Date | string
+    note?: string | null
+    createdAt?: Date | string
+    to: PaymentChannelCreateNestedOneWithoutIncomingInput
+  }
+
+  export type PaymentTransferUncheckedCreateWithoutFromInput = {
+    id?: string
+    toId: string
+    amount: Decimal | DecimalJsLike | number | string
+    occurredAt: Date | string
+    note?: string | null
+    createdAt?: Date | string
+  }
+
+  export type PaymentTransferCreateOrConnectWithoutFromInput = {
+    where: PaymentTransferWhereUniqueInput
+    create: XOR<PaymentTransferCreateWithoutFromInput, PaymentTransferUncheckedCreateWithoutFromInput>
+  }
+
+  export type PaymentTransferCreateManyFromInputEnvelope = {
+    data: PaymentTransferCreateManyFromInput | PaymentTransferCreateManyFromInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type PaymentTransferCreateWithoutToInput = {
+    id?: string
+    amount: Decimal | DecimalJsLike | number | string
+    occurredAt: Date | string
+    note?: string | null
+    createdAt?: Date | string
+    from: PaymentChannelCreateNestedOneWithoutOutgoingInput
+  }
+
+  export type PaymentTransferUncheckedCreateWithoutToInput = {
+    id?: string
+    fromId: string
+    amount: Decimal | DecimalJsLike | number | string
+    occurredAt: Date | string
+    note?: string | null
+    createdAt?: Date | string
+  }
+
+  export type PaymentTransferCreateOrConnectWithoutToInput = {
+    where: PaymentTransferWhereUniqueInput
+    create: XOR<PaymentTransferCreateWithoutToInput, PaymentTransferUncheckedCreateWithoutToInput>
+  }
+
+  export type PaymentTransferCreateManyToInputEnvelope = {
+    data: PaymentTransferCreateManyToInput | PaymentTransferCreateManyToInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type PaymentTransferUpsertWithWhereUniqueWithoutFromInput = {
+    where: PaymentTransferWhereUniqueInput
+    update: XOR<PaymentTransferUpdateWithoutFromInput, PaymentTransferUncheckedUpdateWithoutFromInput>
+    create: XOR<PaymentTransferCreateWithoutFromInput, PaymentTransferUncheckedCreateWithoutFromInput>
+  }
+
+  export type PaymentTransferUpdateWithWhereUniqueWithoutFromInput = {
+    where: PaymentTransferWhereUniqueInput
+    data: XOR<PaymentTransferUpdateWithoutFromInput, PaymentTransferUncheckedUpdateWithoutFromInput>
+  }
+
+  export type PaymentTransferUpdateManyWithWhereWithoutFromInput = {
+    where: PaymentTransferScalarWhereInput
+    data: XOR<PaymentTransferUpdateManyMutationInput, PaymentTransferUncheckedUpdateManyWithoutFromInput>
+  }
+
+  export type PaymentTransferScalarWhereInput = {
+    AND?: PaymentTransferScalarWhereInput | PaymentTransferScalarWhereInput[]
+    OR?: PaymentTransferScalarWhereInput[]
+    NOT?: PaymentTransferScalarWhereInput | PaymentTransferScalarWhereInput[]
+    id?: StringFilter<"PaymentTransfer"> | string
+    fromId?: StringFilter<"PaymentTransfer"> | string
+    toId?: StringFilter<"PaymentTransfer"> | string
+    amount?: DecimalFilter<"PaymentTransfer"> | Decimal | DecimalJsLike | number | string
+    occurredAt?: DateTimeFilter<"PaymentTransfer"> | Date | string
+    note?: StringNullableFilter<"PaymentTransfer"> | string | null
+    createdAt?: DateTimeFilter<"PaymentTransfer"> | Date | string
+  }
+
+  export type PaymentTransferUpsertWithWhereUniqueWithoutToInput = {
+    where: PaymentTransferWhereUniqueInput
+    update: XOR<PaymentTransferUpdateWithoutToInput, PaymentTransferUncheckedUpdateWithoutToInput>
+    create: XOR<PaymentTransferCreateWithoutToInput, PaymentTransferUncheckedCreateWithoutToInput>
+  }
+
+  export type PaymentTransferUpdateWithWhereUniqueWithoutToInput = {
+    where: PaymentTransferWhereUniqueInput
+    data: XOR<PaymentTransferUpdateWithoutToInput, PaymentTransferUncheckedUpdateWithoutToInput>
+  }
+
+  export type PaymentTransferUpdateManyWithWhereWithoutToInput = {
+    where: PaymentTransferScalarWhereInput
+    data: XOR<PaymentTransferUpdateManyMutationInput, PaymentTransferUncheckedUpdateManyWithoutToInput>
+  }
+
+  export type PaymentChannelCreateWithoutOutgoingInput = {
+    id?: string
+    name: string
+    openingBalance: Decimal | DecimalJsLike | number | string
+    currentBalance: Decimal | DecimalJsLike | number | string
+    archived?: boolean
+    archivedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    incoming?: PaymentTransferCreateNestedManyWithoutToInput
+  }
+
+  export type PaymentChannelUncheckedCreateWithoutOutgoingInput = {
+    id?: string
+    name: string
+    openingBalance: Decimal | DecimalJsLike | number | string
+    currentBalance: Decimal | DecimalJsLike | number | string
+    archived?: boolean
+    archivedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    incoming?: PaymentTransferUncheckedCreateNestedManyWithoutToInput
+  }
+
+  export type PaymentChannelCreateOrConnectWithoutOutgoingInput = {
+    where: PaymentChannelWhereUniqueInput
+    create: XOR<PaymentChannelCreateWithoutOutgoingInput, PaymentChannelUncheckedCreateWithoutOutgoingInput>
+  }
+
+  export type PaymentChannelCreateWithoutIncomingInput = {
+    id?: string
+    name: string
+    openingBalance: Decimal | DecimalJsLike | number | string
+    currentBalance: Decimal | DecimalJsLike | number | string
+    archived?: boolean
+    archivedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    outgoing?: PaymentTransferCreateNestedManyWithoutFromInput
+  }
+
+  export type PaymentChannelUncheckedCreateWithoutIncomingInput = {
+    id?: string
+    name: string
+    openingBalance: Decimal | DecimalJsLike | number | string
+    currentBalance: Decimal | DecimalJsLike | number | string
+    archived?: boolean
+    archivedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    outgoing?: PaymentTransferUncheckedCreateNestedManyWithoutFromInput
+  }
+
+  export type PaymentChannelCreateOrConnectWithoutIncomingInput = {
+    where: PaymentChannelWhereUniqueInput
+    create: XOR<PaymentChannelCreateWithoutIncomingInput, PaymentChannelUncheckedCreateWithoutIncomingInput>
+  }
+
+  export type PaymentChannelUpsertWithoutOutgoingInput = {
+    update: XOR<PaymentChannelUpdateWithoutOutgoingInput, PaymentChannelUncheckedUpdateWithoutOutgoingInput>
+    create: XOR<PaymentChannelCreateWithoutOutgoingInput, PaymentChannelUncheckedCreateWithoutOutgoingInput>
+    where?: PaymentChannelWhereInput
+  }
+
+  export type PaymentChannelUpdateToOneWithWhereWithoutOutgoingInput = {
+    where?: PaymentChannelWhereInput
+    data: XOR<PaymentChannelUpdateWithoutOutgoingInput, PaymentChannelUncheckedUpdateWithoutOutgoingInput>
+  }
+
+  export type PaymentChannelUpdateWithoutOutgoingInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    openingBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    currentBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    archived?: BoolFieldUpdateOperationsInput | boolean
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    incoming?: PaymentTransferUpdateManyWithoutToNestedInput
+  }
+
+  export type PaymentChannelUncheckedUpdateWithoutOutgoingInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    openingBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    currentBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    archived?: BoolFieldUpdateOperationsInput | boolean
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    incoming?: PaymentTransferUncheckedUpdateManyWithoutToNestedInput
+  }
+
+  export type PaymentChannelUpsertWithoutIncomingInput = {
+    update: XOR<PaymentChannelUpdateWithoutIncomingInput, PaymentChannelUncheckedUpdateWithoutIncomingInput>
+    create: XOR<PaymentChannelCreateWithoutIncomingInput, PaymentChannelUncheckedCreateWithoutIncomingInput>
+    where?: PaymentChannelWhereInput
+  }
+
+  export type PaymentChannelUpdateToOneWithWhereWithoutIncomingInput = {
+    where?: PaymentChannelWhereInput
+    data: XOR<PaymentChannelUpdateWithoutIncomingInput, PaymentChannelUncheckedUpdateWithoutIncomingInput>
+  }
+
+  export type PaymentChannelUpdateWithoutIncomingInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    openingBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    currentBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    archived?: BoolFieldUpdateOperationsInput | boolean
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    outgoing?: PaymentTransferUpdateManyWithoutFromNestedInput
+  }
+
+  export type PaymentChannelUncheckedUpdateWithoutIncomingInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    openingBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    currentBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    archived?: BoolFieldUpdateOperationsInput | boolean
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    outgoing?: PaymentTransferUncheckedUpdateManyWithoutFromNestedInput
+  }
+
   export type MenuItemCreateWithoutStationInput = {
     id?: string
     name: string
     description?: string | null
     price: Decimal | DecimalJsLike | number | string
     sku?: string | null
+    pctCode?: string | null
     available?: boolean
     posVisible?: boolean
     popular?: boolean
@@ -22248,6 +30345,7 @@ export namespace Prisma {
     description?: string | null
     price: Decimal | DecimalJsLike | number | string
     sku?: string | null
+    pctCode?: string | null
     available?: boolean
     posVisible?: boolean
     popular?: boolean
@@ -22322,6 +30420,7 @@ export namespace Prisma {
     description?: StringNullableFilter<"MenuItem"> | string | null
     price?: DecimalFilter<"MenuItem"> | Decimal | DecimalJsLike | number | string
     sku?: StringNullableFilter<"MenuItem"> | string | null
+    pctCode?: StringNullableFilter<"MenuItem"> | string | null
     available?: BoolFilter<"MenuItem"> | boolean
     posVisible?: BoolFilter<"MenuItem"> | boolean
     popular?: BoolFilter<"MenuItem"> | boolean
@@ -22368,6 +30467,7 @@ export namespace Prisma {
     description?: string | null
     price: Decimal | DecimalJsLike | number | string
     sku?: string | null
+    pctCode?: string | null
     available?: boolean
     posVisible?: boolean
     popular?: boolean
@@ -22387,6 +30487,7 @@ export namespace Prisma {
     description?: string | null
     price: Decimal | DecimalJsLike | number | string
     sku?: string | null
+    pctCode?: string | null
     available?: boolean
     posVisible?: boolean
     popular?: boolean
@@ -22880,6 +30981,7 @@ export namespace Prisma {
     description?: string | null
     price: Decimal | DecimalJsLike | number | string
     sku?: string | null
+    pctCode?: string | null
     available?: boolean
     posVisible?: boolean
     popular?: boolean
@@ -22899,6 +31001,7 @@ export namespace Prisma {
     description?: string | null
     price: Decimal | DecimalJsLike | number | string
     sku?: string | null
+    pctCode?: string | null
     available?: boolean
     posVisible?: boolean
     popular?: boolean
@@ -22973,6 +31076,7 @@ export namespace Prisma {
     description?: NullableStringFieldUpdateOperationsInput | string | null
     price?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     sku?: NullableStringFieldUpdateOperationsInput | string | null
+    pctCode?: NullableStringFieldUpdateOperationsInput | string | null
     available?: BoolFieldUpdateOperationsInput | boolean
     posVisible?: BoolFieldUpdateOperationsInput | boolean
     popular?: BoolFieldUpdateOperationsInput | boolean
@@ -22992,6 +31096,7 @@ export namespace Prisma {
     description?: NullableStringFieldUpdateOperationsInput | string | null
     price?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     sku?: NullableStringFieldUpdateOperationsInput | string | null
+    pctCode?: NullableStringFieldUpdateOperationsInput | string | null
     available?: BoolFieldUpdateOperationsInput | boolean
     posVisible?: BoolFieldUpdateOperationsInput | boolean
     popular?: BoolFieldUpdateOperationsInput | boolean
@@ -23141,6 +31246,8 @@ export namespace Prisma {
     channel: string
     customerName?: string | null
     customerPhone?: string | null
+    buyerNtn?: string | null
+    buyerCnic?: string | null
     subtotal: Decimal | DecimalJsLike | number | string
     tax: Decimal | DecimalJsLike | number | string
     tip?: Decimal | DecimalJsLike | number | string | null
@@ -23148,9 +31255,14 @@ export namespace Prisma {
     total: Decimal | DecimalJsLike | number | string
     payment: $Enums.PaymentMethod
     notes?: string | null
+    fiscalInvoiceNumber?: string | null
+    fiscalSubmittedAt?: Date | string | null
+    fiscalAttempts?: number
+    fiscalLastError?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     staff?: UserCreateNestedOneWithoutOrdersInput
+    fiscalSubmissions?: FiscalSubmissionCreateNestedManyWithoutOrderInput
     items?: OrderItemCreateNestedManyWithoutOrderInput
     tickets?: KitchenTicketCreateNestedManyWithoutOrderInput
   }
@@ -23162,6 +31274,8 @@ export namespace Prisma {
     channel: string
     customerName?: string | null
     customerPhone?: string | null
+    buyerNtn?: string | null
+    buyerCnic?: string | null
     staffId?: string | null
     subtotal: Decimal | DecimalJsLike | number | string
     tax: Decimal | DecimalJsLike | number | string
@@ -23170,8 +31284,13 @@ export namespace Prisma {
     total: Decimal | DecimalJsLike | number | string
     payment: $Enums.PaymentMethod
     notes?: string | null
+    fiscalInvoiceNumber?: string | null
+    fiscalSubmittedAt?: Date | string | null
+    fiscalAttempts?: number
+    fiscalLastError?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    fiscalSubmissions?: FiscalSubmissionUncheckedCreateNestedManyWithoutOrderInput
     items?: OrderItemUncheckedCreateNestedManyWithoutOrderInput
     tickets?: KitchenTicketUncheckedCreateNestedManyWithoutOrderInput
   }
@@ -23252,6 +31371,46 @@ export namespace Prisma {
   export type UserCreateOrConnectWithoutOrdersInput = {
     where: UserWhereUniqueInput
     create: XOR<UserCreateWithoutOrdersInput, UserUncheckedCreateWithoutOrdersInput>
+  }
+
+  export type FiscalSubmissionCreateWithoutOrderInput = {
+    id?: string
+    mode: $Enums.FiscalMode
+    environment: $Enums.FiscalEnvironment
+    endpoint: string
+    succeeded: boolean
+    fiscalInvoiceNumber?: string | null
+    responseCode?: string | null
+    responseMessage?: string | null
+    errorMessage?: string | null
+    requestBody: JsonNullValueInput | InputJsonValue
+    responseBody?: NullableJsonNullValueInput | InputJsonValue
+    attemptedAt?: Date | string
+  }
+
+  export type FiscalSubmissionUncheckedCreateWithoutOrderInput = {
+    id?: string
+    mode: $Enums.FiscalMode
+    environment: $Enums.FiscalEnvironment
+    endpoint: string
+    succeeded: boolean
+    fiscalInvoiceNumber?: string | null
+    responseCode?: string | null
+    responseMessage?: string | null
+    errorMessage?: string | null
+    requestBody: JsonNullValueInput | InputJsonValue
+    responseBody?: NullableJsonNullValueInput | InputJsonValue
+    attemptedAt?: Date | string
+  }
+
+  export type FiscalSubmissionCreateOrConnectWithoutOrderInput = {
+    where: FiscalSubmissionWhereUniqueInput
+    create: XOR<FiscalSubmissionCreateWithoutOrderInput, FiscalSubmissionUncheckedCreateWithoutOrderInput>
+  }
+
+  export type FiscalSubmissionCreateManyOrderInputEnvelope = {
+    data: FiscalSubmissionCreateManyOrderInput | FiscalSubmissionCreateManyOrderInput[]
+    skipDuplicates?: boolean
   }
 
   export type OrderItemCreateWithoutOrderInput = {
@@ -23374,6 +31533,41 @@ export namespace Prisma {
     sessions?: SessionUncheckedUpdateManyWithoutUserNestedInput
   }
 
+  export type FiscalSubmissionUpsertWithWhereUniqueWithoutOrderInput = {
+    where: FiscalSubmissionWhereUniqueInput
+    update: XOR<FiscalSubmissionUpdateWithoutOrderInput, FiscalSubmissionUncheckedUpdateWithoutOrderInput>
+    create: XOR<FiscalSubmissionCreateWithoutOrderInput, FiscalSubmissionUncheckedCreateWithoutOrderInput>
+  }
+
+  export type FiscalSubmissionUpdateWithWhereUniqueWithoutOrderInput = {
+    where: FiscalSubmissionWhereUniqueInput
+    data: XOR<FiscalSubmissionUpdateWithoutOrderInput, FiscalSubmissionUncheckedUpdateWithoutOrderInput>
+  }
+
+  export type FiscalSubmissionUpdateManyWithWhereWithoutOrderInput = {
+    where: FiscalSubmissionScalarWhereInput
+    data: XOR<FiscalSubmissionUpdateManyMutationInput, FiscalSubmissionUncheckedUpdateManyWithoutOrderInput>
+  }
+
+  export type FiscalSubmissionScalarWhereInput = {
+    AND?: FiscalSubmissionScalarWhereInput | FiscalSubmissionScalarWhereInput[]
+    OR?: FiscalSubmissionScalarWhereInput[]
+    NOT?: FiscalSubmissionScalarWhereInput | FiscalSubmissionScalarWhereInput[]
+    id?: StringFilter<"FiscalSubmission"> | string
+    orderId?: StringFilter<"FiscalSubmission"> | string
+    mode?: EnumFiscalModeFilter<"FiscalSubmission"> | $Enums.FiscalMode
+    environment?: EnumFiscalEnvironmentFilter<"FiscalSubmission"> | $Enums.FiscalEnvironment
+    endpoint?: StringFilter<"FiscalSubmission"> | string
+    succeeded?: BoolFilter<"FiscalSubmission"> | boolean
+    fiscalInvoiceNumber?: StringNullableFilter<"FiscalSubmission"> | string | null
+    responseCode?: StringNullableFilter<"FiscalSubmission"> | string | null
+    responseMessage?: StringNullableFilter<"FiscalSubmission"> | string | null
+    errorMessage?: StringNullableFilter<"FiscalSubmission"> | string | null
+    requestBody?: JsonFilter<"FiscalSubmission">
+    responseBody?: JsonNullableFilter<"FiscalSubmission">
+    attemptedAt?: DateTimeFilter<"FiscalSubmission"> | Date | string
+  }
+
   export type OrderItemUpsertWithWhereUniqueWithoutOrderInput = {
     where: OrderItemWhereUniqueInput
     update: XOR<OrderItemUpdateWithoutOrderInput, OrderItemUncheckedUpdateWithoutOrderInput>
@@ -23413,6 +31607,8 @@ export namespace Prisma {
     channel: string
     customerName?: string | null
     customerPhone?: string | null
+    buyerNtn?: string | null
+    buyerCnic?: string | null
     subtotal: Decimal | DecimalJsLike | number | string
     tax: Decimal | DecimalJsLike | number | string
     tip?: Decimal | DecimalJsLike | number | string | null
@@ -23420,10 +31616,15 @@ export namespace Prisma {
     total: Decimal | DecimalJsLike | number | string
     payment: $Enums.PaymentMethod
     notes?: string | null
+    fiscalInvoiceNumber?: string | null
+    fiscalSubmittedAt?: Date | string | null
+    fiscalAttempts?: number
+    fiscalLastError?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     table?: TableCreateNestedOneWithoutOrdersInput
     staff?: UserCreateNestedOneWithoutOrdersInput
+    fiscalSubmissions?: FiscalSubmissionCreateNestedManyWithoutOrderInput
     tickets?: KitchenTicketCreateNestedManyWithoutOrderInput
   }
 
@@ -23434,6 +31635,8 @@ export namespace Prisma {
     channel: string
     customerName?: string | null
     customerPhone?: string | null
+    buyerNtn?: string | null
+    buyerCnic?: string | null
     tableId?: string | null
     staffId?: string | null
     subtotal: Decimal | DecimalJsLike | number | string
@@ -23443,8 +31646,13 @@ export namespace Prisma {
     total: Decimal | DecimalJsLike | number | string
     payment: $Enums.PaymentMethod
     notes?: string | null
+    fiscalInvoiceNumber?: string | null
+    fiscalSubmittedAt?: Date | string | null
+    fiscalAttempts?: number
+    fiscalLastError?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    fiscalSubmissions?: FiscalSubmissionUncheckedCreateNestedManyWithoutOrderInput
     tickets?: KitchenTicketUncheckedCreateNestedManyWithoutOrderInput
   }
 
@@ -23459,6 +31667,7 @@ export namespace Prisma {
     description?: string | null
     price: Decimal | DecimalJsLike | number | string
     sku?: string | null
+    pctCode?: string | null
     available?: boolean
     posVisible?: boolean
     popular?: boolean
@@ -23478,6 +31687,7 @@ export namespace Prisma {
     description?: string | null
     price: Decimal | DecimalJsLike | number | string
     sku?: string | null
+    pctCode?: string | null
     available?: boolean
     posVisible?: boolean
     popular?: boolean
@@ -23514,6 +31724,8 @@ export namespace Prisma {
     channel?: StringFieldUpdateOperationsInput | string
     customerName?: NullableStringFieldUpdateOperationsInput | string | null
     customerPhone?: NullableStringFieldUpdateOperationsInput | string | null
+    buyerNtn?: NullableStringFieldUpdateOperationsInput | string | null
+    buyerCnic?: NullableStringFieldUpdateOperationsInput | string | null
     subtotal?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     tax?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     tip?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
@@ -23521,10 +31733,15 @@ export namespace Prisma {
     total?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     payment?: EnumPaymentMethodFieldUpdateOperationsInput | $Enums.PaymentMethod
     notes?: NullableStringFieldUpdateOperationsInput | string | null
+    fiscalInvoiceNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    fiscalSubmittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fiscalAttempts?: IntFieldUpdateOperationsInput | number
+    fiscalLastError?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     table?: TableUpdateOneWithoutOrdersNestedInput
     staff?: UserUpdateOneWithoutOrdersNestedInput
+    fiscalSubmissions?: FiscalSubmissionUpdateManyWithoutOrderNestedInput
     tickets?: KitchenTicketUpdateManyWithoutOrderNestedInput
   }
 
@@ -23535,6 +31752,8 @@ export namespace Prisma {
     channel?: StringFieldUpdateOperationsInput | string
     customerName?: NullableStringFieldUpdateOperationsInput | string | null
     customerPhone?: NullableStringFieldUpdateOperationsInput | string | null
+    buyerNtn?: NullableStringFieldUpdateOperationsInput | string | null
+    buyerCnic?: NullableStringFieldUpdateOperationsInput | string | null
     tableId?: NullableStringFieldUpdateOperationsInput | string | null
     staffId?: NullableStringFieldUpdateOperationsInput | string | null
     subtotal?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
@@ -23544,8 +31763,13 @@ export namespace Prisma {
     total?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     payment?: EnumPaymentMethodFieldUpdateOperationsInput | $Enums.PaymentMethod
     notes?: NullableStringFieldUpdateOperationsInput | string | null
+    fiscalInvoiceNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    fiscalSubmittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fiscalAttempts?: IntFieldUpdateOperationsInput | number
+    fiscalLastError?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    fiscalSubmissions?: FiscalSubmissionUncheckedUpdateManyWithoutOrderNestedInput
     tickets?: KitchenTicketUncheckedUpdateManyWithoutOrderNestedInput
   }
 
@@ -23566,6 +31790,7 @@ export namespace Prisma {
     description?: NullableStringFieldUpdateOperationsInput | string | null
     price?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     sku?: NullableStringFieldUpdateOperationsInput | string | null
+    pctCode?: NullableStringFieldUpdateOperationsInput | string | null
     available?: BoolFieldUpdateOperationsInput | boolean
     posVisible?: BoolFieldUpdateOperationsInput | boolean
     popular?: BoolFieldUpdateOperationsInput | boolean
@@ -23585,6 +31810,7 @@ export namespace Prisma {
     description?: NullableStringFieldUpdateOperationsInput | string | null
     price?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     sku?: NullableStringFieldUpdateOperationsInput | string | null
+    pctCode?: NullableStringFieldUpdateOperationsInput | string | null
     available?: BoolFieldUpdateOperationsInput | boolean
     posVisible?: BoolFieldUpdateOperationsInput | boolean
     popular?: BoolFieldUpdateOperationsInput | boolean
@@ -23605,6 +31831,8 @@ export namespace Prisma {
     channel: string
     customerName?: string | null
     customerPhone?: string | null
+    buyerNtn?: string | null
+    buyerCnic?: string | null
     subtotal: Decimal | DecimalJsLike | number | string
     tax: Decimal | DecimalJsLike | number | string
     tip?: Decimal | DecimalJsLike | number | string | null
@@ -23612,10 +31840,15 @@ export namespace Prisma {
     total: Decimal | DecimalJsLike | number | string
     payment: $Enums.PaymentMethod
     notes?: string | null
+    fiscalInvoiceNumber?: string | null
+    fiscalSubmittedAt?: Date | string | null
+    fiscalAttempts?: number
+    fiscalLastError?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     table?: TableCreateNestedOneWithoutOrdersInput
     staff?: UserCreateNestedOneWithoutOrdersInput
+    fiscalSubmissions?: FiscalSubmissionCreateNestedManyWithoutOrderInput
     items?: OrderItemCreateNestedManyWithoutOrderInput
   }
 
@@ -23626,6 +31859,8 @@ export namespace Prisma {
     channel: string
     customerName?: string | null
     customerPhone?: string | null
+    buyerNtn?: string | null
+    buyerCnic?: string | null
     tableId?: string | null
     staffId?: string | null
     subtotal: Decimal | DecimalJsLike | number | string
@@ -23635,8 +31870,13 @@ export namespace Prisma {
     total: Decimal | DecimalJsLike | number | string
     payment: $Enums.PaymentMethod
     notes?: string | null
+    fiscalInvoiceNumber?: string | null
+    fiscalSubmittedAt?: Date | string | null
+    fiscalAttempts?: number
+    fiscalLastError?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    fiscalSubmissions?: FiscalSubmissionUncheckedCreateNestedManyWithoutOrderInput
     items?: OrderItemUncheckedCreateNestedManyWithoutOrderInput
   }
 
@@ -23690,6 +31930,8 @@ export namespace Prisma {
     channel?: StringFieldUpdateOperationsInput | string
     customerName?: NullableStringFieldUpdateOperationsInput | string | null
     customerPhone?: NullableStringFieldUpdateOperationsInput | string | null
+    buyerNtn?: NullableStringFieldUpdateOperationsInput | string | null
+    buyerCnic?: NullableStringFieldUpdateOperationsInput | string | null
     subtotal?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     tax?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     tip?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
@@ -23697,10 +31939,15 @@ export namespace Prisma {
     total?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     payment?: EnumPaymentMethodFieldUpdateOperationsInput | $Enums.PaymentMethod
     notes?: NullableStringFieldUpdateOperationsInput | string | null
+    fiscalInvoiceNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    fiscalSubmittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fiscalAttempts?: IntFieldUpdateOperationsInput | number
+    fiscalLastError?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     table?: TableUpdateOneWithoutOrdersNestedInput
     staff?: UserUpdateOneWithoutOrdersNestedInput
+    fiscalSubmissions?: FiscalSubmissionUpdateManyWithoutOrderNestedInput
     items?: OrderItemUpdateManyWithoutOrderNestedInput
   }
 
@@ -23711,6 +31958,8 @@ export namespace Prisma {
     channel?: StringFieldUpdateOperationsInput | string
     customerName?: NullableStringFieldUpdateOperationsInput | string | null
     customerPhone?: NullableStringFieldUpdateOperationsInput | string | null
+    buyerNtn?: NullableStringFieldUpdateOperationsInput | string | null
+    buyerCnic?: NullableStringFieldUpdateOperationsInput | string | null
     tableId?: NullableStringFieldUpdateOperationsInput | string | null
     staffId?: NullableStringFieldUpdateOperationsInput | string | null
     subtotal?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
@@ -23720,8 +31969,13 @@ export namespace Prisma {
     total?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     payment?: EnumPaymentMethodFieldUpdateOperationsInput | $Enums.PaymentMethod
     notes?: NullableStringFieldUpdateOperationsInput | string | null
+    fiscalInvoiceNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    fiscalSubmittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fiscalAttempts?: IntFieldUpdateOperationsInput | number
+    fiscalLastError?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    fiscalSubmissions?: FiscalSubmissionUncheckedUpdateManyWithoutOrderNestedInput
     items?: OrderItemUncheckedUpdateManyWithoutOrderNestedInput
   }
 
@@ -23758,6 +32012,134 @@ export namespace Prisma {
     menuItems?: MenuItemUncheckedUpdateManyWithoutStationNestedInput
   }
 
+  export type OrderCreateWithoutFiscalSubmissionsInput = {
+    id?: string
+    number: string
+    status: $Enums.OrderStatus
+    channel: string
+    customerName?: string | null
+    customerPhone?: string | null
+    buyerNtn?: string | null
+    buyerCnic?: string | null
+    subtotal: Decimal | DecimalJsLike | number | string
+    tax: Decimal | DecimalJsLike | number | string
+    tip?: Decimal | DecimalJsLike | number | string | null
+    discount?: Decimal | DecimalJsLike | number | string | null
+    total: Decimal | DecimalJsLike | number | string
+    payment: $Enums.PaymentMethod
+    notes?: string | null
+    fiscalInvoiceNumber?: string | null
+    fiscalSubmittedAt?: Date | string | null
+    fiscalAttempts?: number
+    fiscalLastError?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    table?: TableCreateNestedOneWithoutOrdersInput
+    staff?: UserCreateNestedOneWithoutOrdersInput
+    items?: OrderItemCreateNestedManyWithoutOrderInput
+    tickets?: KitchenTicketCreateNestedManyWithoutOrderInput
+  }
+
+  export type OrderUncheckedCreateWithoutFiscalSubmissionsInput = {
+    id?: string
+    number: string
+    status: $Enums.OrderStatus
+    channel: string
+    customerName?: string | null
+    customerPhone?: string | null
+    buyerNtn?: string | null
+    buyerCnic?: string | null
+    tableId?: string | null
+    staffId?: string | null
+    subtotal: Decimal | DecimalJsLike | number | string
+    tax: Decimal | DecimalJsLike | number | string
+    tip?: Decimal | DecimalJsLike | number | string | null
+    discount?: Decimal | DecimalJsLike | number | string | null
+    total: Decimal | DecimalJsLike | number | string
+    payment: $Enums.PaymentMethod
+    notes?: string | null
+    fiscalInvoiceNumber?: string | null
+    fiscalSubmittedAt?: Date | string | null
+    fiscalAttempts?: number
+    fiscalLastError?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    items?: OrderItemUncheckedCreateNestedManyWithoutOrderInput
+    tickets?: KitchenTicketUncheckedCreateNestedManyWithoutOrderInput
+  }
+
+  export type OrderCreateOrConnectWithoutFiscalSubmissionsInput = {
+    where: OrderWhereUniqueInput
+    create: XOR<OrderCreateWithoutFiscalSubmissionsInput, OrderUncheckedCreateWithoutFiscalSubmissionsInput>
+  }
+
+  export type OrderUpsertWithoutFiscalSubmissionsInput = {
+    update: XOR<OrderUpdateWithoutFiscalSubmissionsInput, OrderUncheckedUpdateWithoutFiscalSubmissionsInput>
+    create: XOR<OrderCreateWithoutFiscalSubmissionsInput, OrderUncheckedCreateWithoutFiscalSubmissionsInput>
+    where?: OrderWhereInput
+  }
+
+  export type OrderUpdateToOneWithWhereWithoutFiscalSubmissionsInput = {
+    where?: OrderWhereInput
+    data: XOR<OrderUpdateWithoutFiscalSubmissionsInput, OrderUncheckedUpdateWithoutFiscalSubmissionsInput>
+  }
+
+  export type OrderUpdateWithoutFiscalSubmissionsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    number?: StringFieldUpdateOperationsInput | string
+    status?: EnumOrderStatusFieldUpdateOperationsInput | $Enums.OrderStatus
+    channel?: StringFieldUpdateOperationsInput | string
+    customerName?: NullableStringFieldUpdateOperationsInput | string | null
+    customerPhone?: NullableStringFieldUpdateOperationsInput | string | null
+    buyerNtn?: NullableStringFieldUpdateOperationsInput | string | null
+    buyerCnic?: NullableStringFieldUpdateOperationsInput | string | null
+    subtotal?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    tax?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    tip?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    discount?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    total?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    payment?: EnumPaymentMethodFieldUpdateOperationsInput | $Enums.PaymentMethod
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    fiscalInvoiceNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    fiscalSubmittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fiscalAttempts?: IntFieldUpdateOperationsInput | number
+    fiscalLastError?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    table?: TableUpdateOneWithoutOrdersNestedInput
+    staff?: UserUpdateOneWithoutOrdersNestedInput
+    items?: OrderItemUpdateManyWithoutOrderNestedInput
+    tickets?: KitchenTicketUpdateManyWithoutOrderNestedInput
+  }
+
+  export type OrderUncheckedUpdateWithoutFiscalSubmissionsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    number?: StringFieldUpdateOperationsInput | string
+    status?: EnumOrderStatusFieldUpdateOperationsInput | $Enums.OrderStatus
+    channel?: StringFieldUpdateOperationsInput | string
+    customerName?: NullableStringFieldUpdateOperationsInput | string | null
+    customerPhone?: NullableStringFieldUpdateOperationsInput | string | null
+    buyerNtn?: NullableStringFieldUpdateOperationsInput | string | null
+    buyerCnic?: NullableStringFieldUpdateOperationsInput | string | null
+    tableId?: NullableStringFieldUpdateOperationsInput | string | null
+    staffId?: NullableStringFieldUpdateOperationsInput | string | null
+    subtotal?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    tax?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    tip?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    discount?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    total?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    payment?: EnumPaymentMethodFieldUpdateOperationsInput | $Enums.PaymentMethod
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    fiscalInvoiceNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    fiscalSubmittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fiscalAttempts?: IntFieldUpdateOperationsInput | number
+    fiscalLastError?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    items?: OrderItemUncheckedUpdateManyWithoutOrderNestedInput
+    tickets?: KitchenTicketUncheckedUpdateManyWithoutOrderNestedInput
+  }
+
   export type SessionCreateManyUserInput = {
     id?: string
     expiresAt: Date | string
@@ -23771,6 +32153,8 @@ export namespace Prisma {
     channel: string
     customerName?: string | null
     customerPhone?: string | null
+    buyerNtn?: string | null
+    buyerCnic?: string | null
     tableId?: string | null
     subtotal: Decimal | DecimalJsLike | number | string
     tax: Decimal | DecimalJsLike | number | string
@@ -23779,6 +32163,10 @@ export namespace Prisma {
     total: Decimal | DecimalJsLike | number | string
     payment: $Enums.PaymentMethod
     notes?: string | null
+    fiscalInvoiceNumber?: string | null
+    fiscalSubmittedAt?: Date | string | null
+    fiscalAttempts?: number
+    fiscalLastError?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -23808,6 +32196,8 @@ export namespace Prisma {
     channel?: StringFieldUpdateOperationsInput | string
     customerName?: NullableStringFieldUpdateOperationsInput | string | null
     customerPhone?: NullableStringFieldUpdateOperationsInput | string | null
+    buyerNtn?: NullableStringFieldUpdateOperationsInput | string | null
+    buyerCnic?: NullableStringFieldUpdateOperationsInput | string | null
     subtotal?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     tax?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     tip?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
@@ -23815,9 +32205,14 @@ export namespace Prisma {
     total?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     payment?: EnumPaymentMethodFieldUpdateOperationsInput | $Enums.PaymentMethod
     notes?: NullableStringFieldUpdateOperationsInput | string | null
+    fiscalInvoiceNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    fiscalSubmittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fiscalAttempts?: IntFieldUpdateOperationsInput | number
+    fiscalLastError?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     table?: TableUpdateOneWithoutOrdersNestedInput
+    fiscalSubmissions?: FiscalSubmissionUpdateManyWithoutOrderNestedInput
     items?: OrderItemUpdateManyWithoutOrderNestedInput
     tickets?: KitchenTicketUpdateManyWithoutOrderNestedInput
   }
@@ -23829,6 +32224,8 @@ export namespace Prisma {
     channel?: StringFieldUpdateOperationsInput | string
     customerName?: NullableStringFieldUpdateOperationsInput | string | null
     customerPhone?: NullableStringFieldUpdateOperationsInput | string | null
+    buyerNtn?: NullableStringFieldUpdateOperationsInput | string | null
+    buyerCnic?: NullableStringFieldUpdateOperationsInput | string | null
     tableId?: NullableStringFieldUpdateOperationsInput | string | null
     subtotal?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     tax?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
@@ -23837,8 +32234,13 @@ export namespace Prisma {
     total?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     payment?: EnumPaymentMethodFieldUpdateOperationsInput | $Enums.PaymentMethod
     notes?: NullableStringFieldUpdateOperationsInput | string | null
+    fiscalInvoiceNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    fiscalSubmittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fiscalAttempts?: IntFieldUpdateOperationsInput | number
+    fiscalLastError?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    fiscalSubmissions?: FiscalSubmissionUncheckedUpdateManyWithoutOrderNestedInput
     items?: OrderItemUncheckedUpdateManyWithoutOrderNestedInput
     tickets?: KitchenTicketUncheckedUpdateManyWithoutOrderNestedInput
   }
@@ -23850,6 +32252,8 @@ export namespace Prisma {
     channel?: StringFieldUpdateOperationsInput | string
     customerName?: NullableStringFieldUpdateOperationsInput | string | null
     customerPhone?: NullableStringFieldUpdateOperationsInput | string | null
+    buyerNtn?: NullableStringFieldUpdateOperationsInput | string | null
+    buyerCnic?: NullableStringFieldUpdateOperationsInput | string | null
     tableId?: NullableStringFieldUpdateOperationsInput | string | null
     subtotal?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     tax?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
@@ -23858,8 +32262,84 @@ export namespace Prisma {
     total?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     payment?: EnumPaymentMethodFieldUpdateOperationsInput | $Enums.PaymentMethod
     notes?: NullableStringFieldUpdateOperationsInput | string | null
+    fiscalInvoiceNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    fiscalSubmittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fiscalAttempts?: IntFieldUpdateOperationsInput | number
+    fiscalLastError?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PaymentTransferCreateManyFromInput = {
+    id?: string
+    toId: string
+    amount: Decimal | DecimalJsLike | number | string
+    occurredAt: Date | string
+    note?: string | null
+    createdAt?: Date | string
+  }
+
+  export type PaymentTransferCreateManyToInput = {
+    id?: string
+    fromId: string
+    amount: Decimal | DecimalJsLike | number | string
+    occurredAt: Date | string
+    note?: string | null
+    createdAt?: Date | string
+  }
+
+  export type PaymentTransferUpdateWithoutFromInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    occurredAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    to?: PaymentChannelUpdateOneRequiredWithoutIncomingNestedInput
+  }
+
+  export type PaymentTransferUncheckedUpdateWithoutFromInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    toId?: StringFieldUpdateOperationsInput | string
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    occurredAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PaymentTransferUncheckedUpdateManyWithoutFromInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    toId?: StringFieldUpdateOperationsInput | string
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    occurredAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PaymentTransferUpdateWithoutToInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    occurredAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    from?: PaymentChannelUpdateOneRequiredWithoutOutgoingNestedInput
+  }
+
+  export type PaymentTransferUncheckedUpdateWithoutToInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    fromId?: StringFieldUpdateOperationsInput | string
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    occurredAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PaymentTransferUncheckedUpdateManyWithoutToInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    fromId?: StringFieldUpdateOperationsInput | string
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    occurredAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    note?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type MenuItemCreateManyStationInput = {
@@ -23868,6 +32348,7 @@ export namespace Prisma {
     description?: string | null
     price: Decimal | DecimalJsLike | number | string
     sku?: string | null
+    pctCode?: string | null
     available?: boolean
     posVisible?: boolean
     popular?: boolean
@@ -23893,6 +32374,7 @@ export namespace Prisma {
     description?: NullableStringFieldUpdateOperationsInput | string | null
     price?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     sku?: NullableStringFieldUpdateOperationsInput | string | null
+    pctCode?: NullableStringFieldUpdateOperationsInput | string | null
     available?: BoolFieldUpdateOperationsInput | boolean
     posVisible?: BoolFieldUpdateOperationsInput | boolean
     popular?: BoolFieldUpdateOperationsInput | boolean
@@ -23912,6 +32394,7 @@ export namespace Prisma {
     description?: NullableStringFieldUpdateOperationsInput | string | null
     price?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     sku?: NullableStringFieldUpdateOperationsInput | string | null
+    pctCode?: NullableStringFieldUpdateOperationsInput | string | null
     available?: BoolFieldUpdateOperationsInput | boolean
     posVisible?: BoolFieldUpdateOperationsInput | boolean
     popular?: BoolFieldUpdateOperationsInput | boolean
@@ -23931,6 +32414,7 @@ export namespace Prisma {
     description?: NullableStringFieldUpdateOperationsInput | string | null
     price?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     sku?: NullableStringFieldUpdateOperationsInput | string | null
+    pctCode?: NullableStringFieldUpdateOperationsInput | string | null
     available?: BoolFieldUpdateOperationsInput | boolean
     posVisible?: BoolFieldUpdateOperationsInput | boolean
     popular?: BoolFieldUpdateOperationsInput | boolean
@@ -23972,6 +32456,7 @@ export namespace Prisma {
     description?: string | null
     price: Decimal | DecimalJsLike | number | string
     sku?: string | null
+    pctCode?: string | null
     available?: boolean
     posVisible?: boolean
     popular?: boolean
@@ -23989,6 +32474,7 @@ export namespace Prisma {
     description?: NullableStringFieldUpdateOperationsInput | string | null
     price?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     sku?: NullableStringFieldUpdateOperationsInput | string | null
+    pctCode?: NullableStringFieldUpdateOperationsInput | string | null
     available?: BoolFieldUpdateOperationsInput | boolean
     posVisible?: BoolFieldUpdateOperationsInput | boolean
     popular?: BoolFieldUpdateOperationsInput | boolean
@@ -24008,6 +32494,7 @@ export namespace Prisma {
     description?: NullableStringFieldUpdateOperationsInput | string | null
     price?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     sku?: NullableStringFieldUpdateOperationsInput | string | null
+    pctCode?: NullableStringFieldUpdateOperationsInput | string | null
     available?: BoolFieldUpdateOperationsInput | boolean
     posVisible?: BoolFieldUpdateOperationsInput | boolean
     popular?: BoolFieldUpdateOperationsInput | boolean
@@ -24027,6 +32514,7 @@ export namespace Prisma {
     description?: NullableStringFieldUpdateOperationsInput | string | null
     price?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     sku?: NullableStringFieldUpdateOperationsInput | string | null
+    pctCode?: NullableStringFieldUpdateOperationsInput | string | null
     available?: BoolFieldUpdateOperationsInput | boolean
     posVisible?: BoolFieldUpdateOperationsInput | boolean
     popular?: BoolFieldUpdateOperationsInput | boolean
@@ -24237,6 +32725,8 @@ export namespace Prisma {
     channel: string
     customerName?: string | null
     customerPhone?: string | null
+    buyerNtn?: string | null
+    buyerCnic?: string | null
     staffId?: string | null
     subtotal: Decimal | DecimalJsLike | number | string
     tax: Decimal | DecimalJsLike | number | string
@@ -24245,6 +32735,10 @@ export namespace Prisma {
     total: Decimal | DecimalJsLike | number | string
     payment: $Enums.PaymentMethod
     notes?: string | null
+    fiscalInvoiceNumber?: string | null
+    fiscalSubmittedAt?: Date | string | null
+    fiscalAttempts?: number
+    fiscalLastError?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -24256,6 +32750,8 @@ export namespace Prisma {
     channel?: StringFieldUpdateOperationsInput | string
     customerName?: NullableStringFieldUpdateOperationsInput | string | null
     customerPhone?: NullableStringFieldUpdateOperationsInput | string | null
+    buyerNtn?: NullableStringFieldUpdateOperationsInput | string | null
+    buyerCnic?: NullableStringFieldUpdateOperationsInput | string | null
     subtotal?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     tax?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     tip?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
@@ -24263,9 +32759,14 @@ export namespace Prisma {
     total?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     payment?: EnumPaymentMethodFieldUpdateOperationsInput | $Enums.PaymentMethod
     notes?: NullableStringFieldUpdateOperationsInput | string | null
+    fiscalInvoiceNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    fiscalSubmittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fiscalAttempts?: IntFieldUpdateOperationsInput | number
+    fiscalLastError?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     staff?: UserUpdateOneWithoutOrdersNestedInput
+    fiscalSubmissions?: FiscalSubmissionUpdateManyWithoutOrderNestedInput
     items?: OrderItemUpdateManyWithoutOrderNestedInput
     tickets?: KitchenTicketUpdateManyWithoutOrderNestedInput
   }
@@ -24277,6 +32778,8 @@ export namespace Prisma {
     channel?: StringFieldUpdateOperationsInput | string
     customerName?: NullableStringFieldUpdateOperationsInput | string | null
     customerPhone?: NullableStringFieldUpdateOperationsInput | string | null
+    buyerNtn?: NullableStringFieldUpdateOperationsInput | string | null
+    buyerCnic?: NullableStringFieldUpdateOperationsInput | string | null
     staffId?: NullableStringFieldUpdateOperationsInput | string | null
     subtotal?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     tax?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
@@ -24285,8 +32788,13 @@ export namespace Prisma {
     total?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     payment?: EnumPaymentMethodFieldUpdateOperationsInput | $Enums.PaymentMethod
     notes?: NullableStringFieldUpdateOperationsInput | string | null
+    fiscalInvoiceNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    fiscalSubmittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fiscalAttempts?: IntFieldUpdateOperationsInput | number
+    fiscalLastError?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    fiscalSubmissions?: FiscalSubmissionUncheckedUpdateManyWithoutOrderNestedInput
     items?: OrderItemUncheckedUpdateManyWithoutOrderNestedInput
     tickets?: KitchenTicketUncheckedUpdateManyWithoutOrderNestedInput
   }
@@ -24298,6 +32806,8 @@ export namespace Prisma {
     channel?: StringFieldUpdateOperationsInput | string
     customerName?: NullableStringFieldUpdateOperationsInput | string | null
     customerPhone?: NullableStringFieldUpdateOperationsInput | string | null
+    buyerNtn?: NullableStringFieldUpdateOperationsInput | string | null
+    buyerCnic?: NullableStringFieldUpdateOperationsInput | string | null
     staffId?: NullableStringFieldUpdateOperationsInput | string | null
     subtotal?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     tax?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
@@ -24306,8 +32816,27 @@ export namespace Prisma {
     total?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     payment?: EnumPaymentMethodFieldUpdateOperationsInput | $Enums.PaymentMethod
     notes?: NullableStringFieldUpdateOperationsInput | string | null
+    fiscalInvoiceNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    fiscalSubmittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fiscalAttempts?: IntFieldUpdateOperationsInput | number
+    fiscalLastError?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type FiscalSubmissionCreateManyOrderInput = {
+    id?: string
+    mode: $Enums.FiscalMode
+    environment: $Enums.FiscalEnvironment
+    endpoint: string
+    succeeded: boolean
+    fiscalInvoiceNumber?: string | null
+    responseCode?: string | null
+    responseMessage?: string | null
+    errorMessage?: string | null
+    requestBody: JsonNullValueInput | InputJsonValue
+    responseBody?: NullableJsonNullValueInput | InputJsonValue
+    attemptedAt?: Date | string
   }
 
   export type OrderItemCreateManyOrderInput = {
@@ -24326,6 +32855,51 @@ export namespace Prisma {
     status?: $Enums.TicketStatus
     createdAt?: Date | string
     updatedAt?: Date | string
+  }
+
+  export type FiscalSubmissionUpdateWithoutOrderInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    mode?: EnumFiscalModeFieldUpdateOperationsInput | $Enums.FiscalMode
+    environment?: EnumFiscalEnvironmentFieldUpdateOperationsInput | $Enums.FiscalEnvironment
+    endpoint?: StringFieldUpdateOperationsInput | string
+    succeeded?: BoolFieldUpdateOperationsInput | boolean
+    fiscalInvoiceNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    responseCode?: NullableStringFieldUpdateOperationsInput | string | null
+    responseMessage?: NullableStringFieldUpdateOperationsInput | string | null
+    errorMessage?: NullableStringFieldUpdateOperationsInput | string | null
+    requestBody?: JsonNullValueInput | InputJsonValue
+    responseBody?: NullableJsonNullValueInput | InputJsonValue
+    attemptedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type FiscalSubmissionUncheckedUpdateWithoutOrderInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    mode?: EnumFiscalModeFieldUpdateOperationsInput | $Enums.FiscalMode
+    environment?: EnumFiscalEnvironmentFieldUpdateOperationsInput | $Enums.FiscalEnvironment
+    endpoint?: StringFieldUpdateOperationsInput | string
+    succeeded?: BoolFieldUpdateOperationsInput | boolean
+    fiscalInvoiceNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    responseCode?: NullableStringFieldUpdateOperationsInput | string | null
+    responseMessage?: NullableStringFieldUpdateOperationsInput | string | null
+    errorMessage?: NullableStringFieldUpdateOperationsInput | string | null
+    requestBody?: JsonNullValueInput | InputJsonValue
+    responseBody?: NullableJsonNullValueInput | InputJsonValue
+    attemptedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type FiscalSubmissionUncheckedUpdateManyWithoutOrderInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    mode?: EnumFiscalModeFieldUpdateOperationsInput | $Enums.FiscalMode
+    environment?: EnumFiscalEnvironmentFieldUpdateOperationsInput | $Enums.FiscalEnvironment
+    endpoint?: StringFieldUpdateOperationsInput | string
+    succeeded?: BoolFieldUpdateOperationsInput | boolean
+    fiscalInvoiceNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    responseCode?: NullableStringFieldUpdateOperationsInput | string | null
+    responseMessage?: NullableStringFieldUpdateOperationsInput | string | null
+    errorMessage?: NullableStringFieldUpdateOperationsInput | string | null
+    requestBody?: JsonNullValueInput | InputJsonValue
+    responseBody?: NullableJsonNullValueInput | InputJsonValue
+    attemptedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type OrderItemUpdateWithoutOrderInput = {

@@ -1,20 +1,25 @@
 "use client";
 
 import * as React from "react";
+import { useRouter } from "next/navigation";
 import {
   Check,
   CircleAlert,
   CircleCheck,
   Clock,
   CreditCard,
+  Loader2,
   Mail,
   Printer,
+  Receipt,
   RotateCcw,
   Send,
   Smartphone,
+  TriangleAlert,
   Utensils,
   Wallet,
 } from "lucide-react";
+import { toast } from "sonner";
 
 import {
   Sheet,
@@ -23,12 +28,14 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ChannelBadge, OrderStatusBadge } from "@/features/orders/status-badge";
-import { cn, formatCurrency, initials } from "@/lib/utils";
+import { submitInvoiceToBraAction } from "@/lib/actions/fiscal";
+import { cn, formatCurrency, formatRelativeTime, initials } from "@/lib/utils";
 import type { Order, OrderStatus, PaymentMethod } from "@/types";
 
 const PAYMENT_ICON: Record<PaymentMethod, typeof Wallet> = {
@@ -201,6 +208,10 @@ export function OrderDetailDrawer({ order, onClose }: Props) {
                   </div>
                 </Section>
 
+                <Section title="Fiscalization (BRA)">
+                  <FiscalSection order={order} />
+                </Section>
+
                 {order.notes ? (
                   <Section title="Notes">
                     <div className="flex gap-2 rounded-md border bg-warning/8 px-3 py-2.5 text-[12.5px] text-foreground/85">
@@ -250,6 +261,94 @@ function Section({
         {title}
       </h3>
       {children}
+    </div>
+  );
+}
+
+function FiscalSection({ order }: { order: Order }) {
+  const router = useRouter();
+  const [submitting, setSubmitting] = React.useState(false);
+
+  async function submit() {
+    if (submitting) return;
+    setSubmitting(true);
+    try {
+      const result = await submitInvoiceToBraAction(order.id);
+      if (!result.ok) {
+        toast.error("BRA submission failed", { description: result.error });
+        router.refresh();
+        return;
+      }
+      toast.success(
+        result.data.alreadySubmitted
+          ? "Already fiscalized"
+          : "Fiscal invoice received",
+        { description: result.data.fiscalInvoiceNumber },
+      );
+      router.refresh();
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  if (order.fiscalInvoiceNumber) {
+    return (
+      <div className="space-y-2 rounded-md border border-success/30 bg-success/8 p-3 text-[12.5px]">
+        <div className="flex items-center justify-between gap-2">
+          <Badge className="rounded-md border-success/30 bg-success/15 text-success">
+            <CircleCheck className="size-3" />
+            Submitted
+          </Badge>
+          {order.fiscalSubmittedAt ? (
+            <span className="text-[11px] text-muted-foreground">
+              {formatRelativeTime(order.fiscalSubmittedAt)}
+            </span>
+          ) : null}
+        </div>
+        <div>
+          <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
+            Fiscal invoice number
+          </p>
+          <p className="mt-0.5 font-mono text-[13.5px] font-semibold tabular-nums text-foreground">
+            {order.fiscalInvoiceNumber}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-2 rounded-md border bg-card p-3 text-[12.5px]">
+      <div className="flex items-center gap-2 text-muted-foreground">
+        <Receipt className="size-3.5" />
+        <span>Not yet submitted to BRA.</span>
+      </div>
+      {order.fiscalLastError ? (
+        <p className="flex items-start gap-1.5 rounded-md border border-destructive/20 bg-destructive/8 px-2 py-1.5 text-[11.5px] text-destructive">
+          <TriangleAlert className="mt-0.5 size-3 shrink-0" />
+          <span className="break-all">{order.fiscalLastError}</span>
+        </p>
+      ) : null}
+      <Button
+        type="button"
+        size="sm"
+        variant="outline"
+        className="h-8 w-full rounded-md text-[12px]"
+        onClick={submit}
+        disabled={submitting}
+      >
+        {submitting ? (
+          <>
+            <Loader2 className="size-3.5 animate-spin" />
+            Submitting…
+          </>
+        ) : (
+          <>
+            <Receipt className="size-3.5" />
+            {order.fiscalLastError ? "Retry submission" : "Submit to BRA"}
+          </>
+        )}
+      </Button>
     </div>
   );
 }

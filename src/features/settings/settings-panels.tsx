@@ -33,9 +33,18 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { SectionCard } from "@/components/shared/section-card";
+import { InviteMemberDialog } from "@/features/settings/invite-member-dialog";
+import {
+  ConnectIntegrationDialog,
+  Manage2FADialog,
+  RotateApiKeyDialog,
+  SignOutSessionDialog,
+  UpdatePaymentMethodDialog,
+} from "@/features/settings/settings-demo-dialogs";
 import { RoleBadge } from "@/features/staff/role-badge";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { ROLE_LABEL } from "@/lib/permissions";
+import type { PendingMember } from "@/lib/queries/users";
 import type { SessionUser } from "@/types/auth";
 import { cn, initials } from "@/lib/utils";
 
@@ -259,14 +268,38 @@ const MATRIX: Record<string, Record<string, boolean>> = {
   barista: { pos: true, orders: true, inventory: false, reports: false, staff: false, settings: false },
 };
 
-export function TeamPanel({ members }: { members: SessionUser[] }) {
+export function TeamPanel({
+  members,
+  pending,
+}: {
+  members: SessionUser[];
+  pending: PendingMember[];
+}) {
   const currentUser = useCurrentUser();
   return (
     <div className="space-y-4">
       <SectionCard
         title="Members"
-        description="Manage who has access to this workspace"
-        action={<Button size="sm" className="h-9 rounded-md text-[12.5px]">Invite</Button>}
+        description={
+          pending.length > 0
+            ? `Manage workspace access · ${pending.length} awaiting invite`
+            : "Manage who has access to this workspace"
+        }
+        action={
+          <InviteMemberDialog
+            pending={pending}
+            trigger={
+              <Button size="sm" className="h-9 rounded-md text-[12.5px]">
+                Invite
+                {pending.length > 0 ? (
+                  <Badge className="ms-0.5 rounded-full border-0 bg-primary-foreground/15 px-1.5 py-0 text-[10px] font-medium text-primary-foreground">
+                    {pending.length}
+                  </Badge>
+                ) : null}
+              </Button>
+            }
+          />
+        }
         contentClassName="p-0"
       >
         <ul className="divide-y">
@@ -300,6 +333,30 @@ export function TeamPanel({ members }: { members: SessionUser[] }) {
               </li>
             );
           })}
+          {pending.map((p) => (
+            <li
+              key={p.id}
+              className="flex items-center gap-3 bg-muted/30 px-4 py-3 md:px-5"
+            >
+              <span className="flex size-9 items-center justify-center rounded-md border border-dashed border-border bg-muted text-[12px] font-semibold text-muted-foreground">
+                {initials(p.name)}
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-[13px] font-medium text-foreground">
+                  {p.name}
+                </p>
+                <p className="truncate text-[11.5px] text-muted-foreground">
+                  {p.email}
+                </p>
+              </div>
+              <Badge
+                variant="outline"
+                className="rounded-md border-dashed text-[10.5px] font-normal text-muted-foreground"
+              >
+                Awaiting invite
+              </Badge>
+            </li>
+          ))}
         </ul>
       </SectionCard>
 
@@ -448,9 +505,13 @@ export function BillingPanel() {
               <p className="text-[11.5px] text-muted-foreground">Expires 08/2027</p>
             </div>
           </div>
-          <Button variant="outline" size="sm" className="h-8 rounded-md text-[12.5px]">
-            Update
-          </Button>
+          <UpdatePaymentMethodDialog
+            trigger={
+              <Button variant="outline" size="sm" className="h-8 rounded-md text-[12.5px]">
+                Update
+              </Button>
+            }
+          />
         </div>
       </SectionCard>
     </div>
@@ -494,9 +555,15 @@ export function IntegrationsPanel() {
                   Connected
                 </Badge>
               ) : (
-                <Button variant="outline" size="sm" className="h-7 rounded-md text-[11.5px]">
-                  Connect
-                </Button>
+                <ConnectIntegrationDialog
+                  name={i.name}
+                  description={i.description}
+                  trigger={
+                    <Button variant="outline" size="sm" className="h-7 rounded-md text-[11.5px]">
+                      Connect
+                    </Button>
+                  }
+                />
               )}
             </li>
           );
@@ -525,9 +592,13 @@ export function SecurityPanel() {
               </p>
             </div>
           </div>
-          <Button variant="outline" size="sm" className="h-8 rounded-md text-[12.5px]">
-            Manage
-          </Button>
+          <Manage2FADialog
+            trigger={
+              <Button variant="outline" size="sm" className="h-8 rounded-md text-[12.5px]">
+                Manage
+              </Button>
+            }
+          />
         </div>
       </SectionCard>
 
@@ -551,9 +622,15 @@ export function SecurityPanel() {
                   This device
                 </Badge>
               ) : (
-                <Button variant="ghost" size="xs" className="text-[11.5px] text-destructive">
-                  Sign out
-                </Button>
+                <SignOutSessionDialog
+                  device={s.name}
+                  location={s.location}
+                  trigger={
+                    <Button variant="ghost" size="xs" className="text-[11.5px] text-destructive">
+                      Sign out
+                    </Button>
+                  }
+                />
               )}
             </li>
           ))}
@@ -564,17 +641,35 @@ export function SecurityPanel() {
         title="API keys"
         description="Programmatic access for integrations and exports"
       >
-        <div className="flex items-center gap-3 rounded-md border bg-card px-3 py-2 font-mono text-[12px]">
-          <KeyRound className="size-3.5 text-muted-foreground" />
-          <span className="flex-1 truncate">brl_live_•••••••••••••••••••• 9f2c</span>
-          <Button variant="ghost" size="xs" className="text-[11.5px]">
-            Reveal
-          </Button>
+        <ApiKeyRow />
+      </SectionCard>
+    </div>
+  );
+}
+
+function ApiKeyRow() {
+  const [revealed, setRevealed] = React.useState(false);
+  return (
+    <div className="flex items-center gap-3 rounded-md border bg-card px-3 py-2 font-mono text-[12px]">
+      <KeyRound className="size-3.5 text-muted-foreground" />
+      <span className="flex-1 truncate">
+        {revealed ? "brl_live_aef27d31e9c44b0e9f2c" : "brl_live_•••••••••••••••••••• 9f2c"}
+      </span>
+      <Button
+        variant="ghost"
+        size="xs"
+        className="text-[11.5px]"
+        onClick={() => setRevealed((r) => !r)}
+      >
+        {revealed ? "Hide" : "Reveal"}
+      </Button>
+      <RotateApiKeyDialog
+        trigger={
           <Button variant="ghost" size="xs" className="text-[11.5px]">
             Rotate
           </Button>
-        </div>
-      </SectionCard>
+        }
+      />
     </div>
   );
 }

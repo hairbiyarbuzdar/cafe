@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Boxes, Search, SlidersHorizontal } from "lucide-react";
+import { Search, SlidersHorizontal } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +21,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { ReceiveStockDialog } from "@/features/inventory/receive-stock-dialog";
 import type { InventoryItem, Supplier } from "@/types";
 import { cn, formatCurrency, formatRelativeTime } from "@/lib/utils";
 
@@ -92,10 +93,7 @@ export function InventoryTable({
             <SlidersHorizontal className="size-4" />
             Columns
           </Button>
-          <Button size="sm" className="h-9 flex-1 rounded-md text-[13px] md:flex-none">
-            <Boxes className="size-4" />
-            Receive stock
-          </Button>
+          <ReceiveStockDialog suppliers={suppliers} />
         </div>
       </div>
 

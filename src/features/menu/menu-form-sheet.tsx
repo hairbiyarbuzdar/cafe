@@ -26,8 +26,8 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { CATEGORIES } from "@/mock/categories";
-import { INVENTORY } from "@/mock/inventory";
+import { useCategories } from "@/store/categories-store";
+import { useInventory } from "@/store/inventory-store";
 import { useMenu } from "@/store/menu-store";
 import { useStations } from "@/store/stations-store";
 import type { MenuItem, RecipeIngredient } from "@/types";
@@ -46,6 +46,7 @@ type Form = {
   stationId: string;
   price: string;
   sku: string;
+  pctCode: string;
   prepTimeMinutes: string;
   available: boolean;
   posVisible: boolean;
@@ -57,10 +58,11 @@ function emptyForm(): Form {
   return {
     name: "",
     description: "",
-    categoryId: CATEGORIES[0]?.id ?? "",
+    categoryId: "",
     stationId: "",
     price: "",
     sku: "",
+    pctCode: "",
     prepTimeMinutes: "",
     available: true,
     posVisible: true,
@@ -77,6 +79,7 @@ function toForm(item: MenuItem): Form {
     stationId: item.stationId,
     price: String(item.price),
     sku: item.sku ?? "",
+    pctCode: item.pctCode ?? "",
     prepTimeMinutes: item.prepTimeMinutes ? String(item.prepTimeMinutes) : "",
     available: item.available,
     posVisible: item.posVisible,
@@ -90,14 +93,21 @@ export function MenuFormSheet({ open, onOpenChange, item }: Props) {
   const update = useMenu((s) => s.update);
   const remove = useMenu((s) => s.remove);
   const stations = useStations((s) => s.stations);
+  const categories = useCategories((s) => s.categories);
+  const inventory = useInventory((s) => s.items);
 
   const [form, setForm] = React.useState<Form>(emptyForm);
 
   React.useEffect(() => {
     if (!open) return;
     if (item) setForm(toForm(item));
-    else setForm({ ...emptyForm(), stationId: stations[0]?.id ?? "" });
-  }, [open, item, stations]);
+    else
+      setForm({
+        ...emptyForm(),
+        categoryId: categories[0]?.id ?? "",
+        stationId: stations[0]?.id ?? "",
+      });
+  }, [open, item, stations, categories]);
 
   const isEditing = Boolean(item);
 
@@ -120,6 +130,7 @@ export function MenuFormSheet({ open, onOpenChange, item }: Props) {
       stationId: form.stationId,
       price: Number(form.price),
       sku: form.sku.trim() || undefined,
+      pctCode: form.pctCode.trim() || undefined,
       prepTimeMinutes: form.prepTimeMinutes
         ? Math.max(1, Math.floor(Number(form.prepTimeMinutes)))
         : undefined,
@@ -146,7 +157,7 @@ export function MenuFormSheet({ open, onOpenChange, item }: Props) {
   }
 
   function addIngredient() {
-    const firstUnused = INVENTORY.find(
+    const firstUnused = inventory.find(
       (inv) => !form.recipe.some((r) => r.inventoryItemId === inv.id),
     );
     if (!firstUnused) return;
@@ -216,7 +227,7 @@ export function MenuFormSheet({ open, onOpenChange, item }: Props) {
                       <SelectValue placeholder="Category" />
                     </SelectTrigger>
                     <SelectContent>
-                      {CATEGORIES.map((c) => (
+                      {categories.map((c) => (
                         <SelectItem key={c.id} value={c.id}>
                           {c.name}
                         </SelectItem>
@@ -276,6 +287,19 @@ export function MenuFormSheet({ open, onOpenChange, item }: Props) {
                     className="h-10 font-mono text-[12.5px]"
                   />
                 </Field>
+                <Field label="PCT code (BRA)" htmlFor="m-pct">
+                  <Input
+                    id="m-pct"
+                    value={form.pctCode}
+                    onChange={(e) =>
+                      patch("pctCode", e.target.value.replace(/[^0-9]/g, ""))
+                    }
+                    placeholder="00000000"
+                    className="h-10 font-mono text-[12.5px] tabular-nums"
+                    maxLength={8}
+                    inputMode="numeric"
+                  />
+                </Field>
               </div>
 
               <div className="grid grid-cols-1 gap-2">
@@ -332,7 +356,7 @@ export function MenuFormSheet({ open, onOpenChange, item }: Props) {
                       <Select
                         value={r.inventoryItemId}
                         onValueChange={(v) => {
-                          const inv = INVENTORY.find((i) => i.id === v);
+                          const inv = inventory.find((i) => i.id === v);
                           patchIngredient(idx, {
                             inventoryItemId: v,
                             unit: inv?.unit ?? r.unit,
@@ -343,7 +367,7 @@ export function MenuFormSheet({ open, onOpenChange, item }: Props) {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          {INVENTORY.map((inv) => (
+                          {inventory.map((inv) => (
                             <SelectItem key={inv.id} value={inv.id}>
                               {inv.name}
                             </SelectItem>

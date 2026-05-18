@@ -51,6 +51,11 @@ export async function listOrders(): Promise<Order[]> {
     notes: o.notes ?? undefined,
     createdAt: o.createdAt.toISOString(),
     updatedAt: o.updatedAt.toISOString(),
+    fiscalInvoiceNumber: o.fiscalInvoiceNumber ?? undefined,
+    fiscalSubmittedAt: o.fiscalSubmittedAt
+      ? o.fiscalSubmittedAt.toISOString()
+      : undefined,
+    fiscalLastError: o.fiscalLastError ?? undefined,
   }));
 }
 

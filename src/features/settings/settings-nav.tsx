@@ -9,8 +9,10 @@ import {
   KeyRound,
   Palette,
   Plug,
+  Receipt,
   ShieldCheck,
   Users,
+  Wallet,
 } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -20,6 +22,8 @@ export const SETTINGS_TABS = [
   { id: "general", label: "Workspace", icon: Building2 },
   { id: "appearance", label: "Appearance", icon: Palette },
   { id: "team", label: "Team & permissions", icon: Users },
+  { id: "payment-methods", label: "Payment methods", icon: Wallet },
+  { id: "fiscal", label: "Fiscal device (BRA)", icon: Receipt },
   { id: "notifications", label: "Notifications", icon: ShieldCheck },
   { id: "billing", label: "Billing", icon: CreditCard },
   { id: "integrations", label: "Integrations", icon: Plug },

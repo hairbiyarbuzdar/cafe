@@ -14,6 +14,8 @@ type State = {
   /** Patch any subset of fields by id. */
   update: (id: string, patch: Partial<MenuItem>) => void;
   remove: (id: string) => void;
+  /** Remove a batch of items in one update. */
+  removeMany: (ids: string[]) => void;
   /** Toggle 86'd state */
   toggleAvailability: (id: string) => void;
   /** Toggle POS visibility */
@@ -48,6 +50,11 @@ export const useMenu = create<State>()((set) => ({
     })),
 
   remove: (id) => set((s) => ({ items: s.items.filter((i) => i.id !== id) })),
+
+  removeMany: (ids) => {
+    const toRemove = new Set(ids);
+    set((s) => ({ items: s.items.filter((i) => !toRemove.has(i.id)) }));
+  },
 
   toggleAvailability: (id) =>
     set((s) => ({

@@ -13,3 +13,23 @@ export async function listPublicUsers(): Promise<SessionUser[]> {
     select: { id: true, name: true, email: true, role: true, avatar: true },
   });
 }
+
+export type PendingMember = {
+  id: string;
+  name: string;
+  email: string;
+  createdAt: string;
+};
+
+/** Drafts created from the Staff page, awaiting a role + password. */
+export async function listPendingMembers(): Promise<PendingMember[]> {
+  const rows = await prisma.pendingMember.findMany({
+    orderBy: { createdAt: "desc" },
+  });
+  return rows.map((r) => ({
+    id: r.id,
+    name: r.name,
+    email: r.email,
+    createdAt: r.createdAt.toISOString(),
+  }));
+}

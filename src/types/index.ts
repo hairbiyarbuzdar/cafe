@@ -61,6 +61,10 @@ export type Order = {
   notes?: string;
   createdAt: string;
   updatedAt: string;
+  /** Fiscal invoice number stamped by BRA. Undefined until submitted. */
+  fiscalInvoiceNumber?: string;
+  fiscalSubmittedAt?: string;
+  fiscalLastError?: string;
 };
 
 export type Category = {
@@ -114,6 +118,12 @@ export type MenuItem = {
   price: number;
   cost?: number;
   sku?: string;
+  /**
+   * Pakistan Customs Tariff code attached to this item when invoices
+   * are fiscalized with BRA. Optional — submission falls back to the
+   * workspace default in FiscalConfig.
+   */
+  pctCode?: string;
   image?: string;
   /** 86'd — temporarily unavailable */
   available: boolean;

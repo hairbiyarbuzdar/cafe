@@ -1,7 +1,8 @@
-import { AlertTriangle, Package } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
 
 import { SectionCard } from "@/components/shared/section-card";
 import { Button } from "@/components/ui/button";
+import { OrderStockButton } from "@/features/inventory/order-stock-button";
 import type { InventoryItem, Supplier } from "@/types";
 
 export function LowStockAlerts({
@@ -46,14 +47,7 @@ export function LowStockAlerts({
                 </p>
               </div>
               <div className="flex flex-col items-end gap-1">
-                <Button
-                  size="xs"
-                  variant="outline"
-                  className="h-6 rounded-md text-[11px]"
-                >
-                  <Package className="size-3" />
-                  Order
-                </Button>
+                <OrderStockButton item={it} suppliers={suppliers} />
                 <span className="text-[10.5px] text-muted-foreground">
                   {supplier?.name.split(" ")[0] ?? "—"}
                 </span>

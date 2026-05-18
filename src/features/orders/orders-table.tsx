@@ -23,6 +23,11 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ChannelBadge, OrderStatusBadge } from "@/features/orders/status-badge";
 import { OrderDetailDrawer } from "@/features/orders/order-detail-drawer";
+import {
+  OrdersAdvancedFilter,
+  emptyAdvancedFilters,
+  type AdvancedFilters,
+} from "@/features/orders/orders-advanced-filter";
 import { cn, formatCurrency, formatRelativeTime } from "@/lib/utils";
 import type { Order, OrderStatus } from "@/types";
 
@@ -42,13 +47,34 @@ export function OrdersTable({ orders }: { orders: Order[] }) {
   const [tab, setTab] = React.useState<OrderStatus | "all">("all");
   const [channel, setChannel] = React.useState<string>("all");
   const [search, setSearch] = React.useState("");
+  const [advanced, setAdvanced] = React.useState<AdvancedFilters>(
+    emptyAdvancedFilters,
+  );
   const [page, setPage] = React.useState(1);
   const [selected, setSelected] = React.useState<Order | null>(null);
 
   const filtered = React.useMemo(() => {
+    // Pre-parse the cheap stuff so the inner loop stays branch-free.
+    const fromTs = advanced.dateFrom ? Date.parse(advanced.dateFrom) : null;
+    const toTs = advanced.dateTo
+      ? Date.parse(advanced.dateTo) + 86_400_000 - 1 // include the whole day
+      : null;
+    const minTotal = advanced.minTotal ? Number(advanced.minTotal) : null;
+    const customerQ = advanced.customerName.trim().toLowerCase();
+
     return orders.filter((o) => {
       if (tab !== "all" && o.status !== tab) return false;
       if (channel !== "all" && o.channel !== channel) return false;
+      if (advanced.payment !== "all" && o.payment !== advanced.payment) return false;
+      if (fromTs != null || toTs != null) {
+        const ts = Date.parse(o.createdAt);
+        if (fromTs != null && ts < fromTs) return false;
+        if (toTs != null && ts > toTs) return false;
+      }
+      if (minTotal != null && o.total < minTotal) return false;
+      if (customerQ && !(o.customer?.name ?? "").toLowerCase().includes(customerQ)) {
+        return false;
+      }
       if (search) {
         const q = search.toLowerCase();
         return (
@@ -59,14 +85,14 @@ export function OrdersTable({ orders }: { orders: Order[] }) {
       }
       return true;
     });
-  }, [tab, channel, search, orders]);
+  }, [tab, channel, search, orders, advanced]);
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const pageItems = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   React.useEffect(() => {
     setPage(1);
-  }, [tab, channel, search]);
+  }, [tab, channel, search, advanced]);
 
   return (
     <>
@@ -98,6 +124,7 @@ export function OrdersTable({ orders }: { orders: Order[] }) {
                 <SelectItem value="online">Online</SelectItem>
               </SelectContent>
             </Select>
+            <OrdersAdvancedFilter value={advanced} onChange={setAdvanced} />
           </div>
         </div>
 

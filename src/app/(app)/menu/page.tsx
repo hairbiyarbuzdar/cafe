@@ -7,11 +7,23 @@ import {
   Plus,
   Search,
   Sparkles,
+  Trash2,
   Utensils,
+  X,
 } from "lucide-react";
+import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -33,7 +45,7 @@ import { PageHeader } from "@/components/layouts/page-header";
 import { MenuFormSheet } from "@/features/menu/menu-form-sheet";
 import { StationsManager } from "@/features/menu/stations-manager";
 import { StationBadge } from "@/features/menu/station-badge";
-import { CATEGORIES } from "@/mock/categories";
+import { useCategories } from "@/store/categories-store";
 import { useMenu } from "@/store/menu-store";
 import { useStations } from "@/store/stations-store";
 import { cn, formatCurrency } from "@/lib/utils";
@@ -43,10 +55,16 @@ export default function MenuPage() {
   const items = useMenu((s) => s.items);
   const toggleAvailability = useMenu((s) => s.toggleAvailability);
   const togglePosVisibility = useMenu((s) => s.togglePosVisibility);
+  const removeMany = useMenu((s) => s.removeMany);
   const stations = useStations((s) => s.stations);
+  const categories = useCategories((s) => s.categories);
   const stationById = React.useMemo(
     () => new Map(stations.map((s) => [s.id, s])),
     [stations],
+  );
+  const categoryName = React.useCallback(
+    (id: string) => categories.find((c) => c.id === id)?.name ?? id,
+    [categories],
   );
 
   const [query, setQuery] = React.useState("");
@@ -55,6 +73,8 @@ export default function MenuPage() {
   const [formOpen, setFormOpen] = React.useState(false);
   const [editing, setEditing] = React.useState<MenuItem | null>(null);
   const [stationsOpen, setStationsOpen] = React.useState(false);
+  const [selected, setSelected] = React.useState<Set<string>>(new Set());
+  const [confirmOpen, setConfirmOpen] = React.useState(false);
 
   const filtered = React.useMemo(() => {
     return items.filter((it) => {
@@ -77,6 +97,62 @@ export default function MenuPage() {
       unavailable: items.filter((i) => !i.available).length,
     };
   }, [items]);
+
+  // Prune selections that no longer belong to the visible item set —
+  // e.g. after a filter narrows the table or items get deleted.
+  React.useEffect(() => {
+    const valid = new Set(items.map((i) => i.id));
+    setSelected((prev) => {
+      const next = new Set<string>();
+      for (const id of prev) if (valid.has(id)) next.add(id);
+      return next.size === prev.size ? prev : next;
+    });
+  }, [items]);
+
+  const filteredIds = React.useMemo(() => filtered.map((i) => i.id), [filtered]);
+  const selectedInFiltered = filteredIds.filter((id) => selected.has(id)).length;
+  const allFilteredSelected =
+    filteredIds.length > 0 && selectedInFiltered === filteredIds.length;
+  const headerState: boolean | "indeterminate" = allFilteredSelected
+    ? true
+    : selectedInFiltered > 0
+      ? "indeterminate"
+      : false;
+
+  function toggleOne(id: string, checked: boolean) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  }
+
+  function toggleAllFiltered() {
+    setSelected((prev) => {
+      if (allFilteredSelected) {
+        const next = new Set(prev);
+        for (const id of filteredIds) next.delete(id);
+        return next;
+      }
+      const next = new Set(prev);
+      for (const id of filteredIds) next.add(id);
+      return next;
+    });
+  }
+
+  function clearSelection() {
+    setSelected(new Set());
+  }
+
+  function confirmDelete() {
+    const ids = Array.from(selected);
+    if (ids.length === 0) return;
+    removeMany(ids);
+    toast.success(`Deleted ${ids.length} menu item${ids.length === 1 ? "" : "s"}`);
+    setSelected(new Set());
+    setConfirmOpen(false);
+  }
 
   function openCreate() {
     setEditing(null);
@@ -151,7 +227,7 @@ export default function MenuPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All categories</SelectItem>
-                {CATEGORIES.map((c) => (
+                {categories.map((c) => (
                   <SelectItem key={c.id} value={c.id}>
                     {c.name}
                   </SelectItem>
@@ -174,52 +250,107 @@ export default function MenuPage() {
           </div>
         </div>
 
+        {selected.size > 0 ? (
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/70 bg-primary/8 px-3 py-2 md:px-4">
+            <p className="text-[12.5px] font-medium text-foreground">
+              <span className="tabular-nums">{selected.size}</span> selected
+            </p>
+            <div className="flex items-center gap-1.5">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 rounded-md text-[12px]"
+                onClick={clearSelection}
+              >
+                <X className="size-3.5" />
+                Clear
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                className="h-8 rounded-md text-[12px]"
+                onClick={() => setConfirmOpen(true)}
+              >
+                <Trash2 className="size-3.5" />
+                Delete{selected.size === 1 ? "" : ` ${selected.size}`}
+              </Button>
+            </div>
+          </div>
+        ) : null}
+
         {/* Mobile cards */}
         <ul className="divide-y divide-border/60 md:hidden">
-          {filtered.map((it) => (
-            <li key={it.id} className="px-4 py-3.5">
-              <button
-                type="button"
-                onClick={() => openEdit(it)}
-                className="flex w-full items-start gap-3 text-left active:bg-muted/40"
+          {filtered.map((it) => {
+            const isSelected = selected.has(it.id);
+            return (
+              <li
+                key={it.id}
+                className={cn(
+                  "flex items-start gap-3 px-4 py-3.5",
+                  isSelected && "bg-primary/5",
+                )}
               >
-                <div className="min-w-0 flex-1">
-                  <p className="text-[14px] font-medium text-foreground">
-                    {it.name}
-                  </p>
-                  <p className="mt-0.5 truncate text-[11.5px] text-muted-foreground">
-                    {categoryName(it.categoryId)} ·{" "}
-                    <span className="font-mono">{it.sku ?? "—"}</span>
-                  </p>
-                  <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                    <StationBadge station={stationById.get(it.stationId)} />
-                    {it.popular ? (
-                      <Badge className="rounded-md border-0 bg-primary/12 px-1.5 py-0 text-[10.5px] text-primary">
-                        Popular
-                      </Badge>
-                    ) : null}
-                    {!it.available ? (
-                      <Badge
-                        variant="destructive"
-                        className="rounded-md px-1.5 py-0 text-[10.5px]"
-                      >
-                        86&apos;d
-                      </Badge>
-                    ) : null}
+                <Checkbox
+                  checked={isSelected}
+                  onCheckedChange={(v) => toggleOne(it.id, v === true)}
+                  className="mt-1"
+                  aria-label={`Select ${it.name}`}
+                />
+                <button
+                  type="button"
+                  onClick={() => openEdit(it)}
+                  className="flex flex-1 items-start gap-3 text-left active:bg-muted/40"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[14px] font-medium text-foreground">
+                      {it.name}
+                    </p>
+                    <p className="mt-0.5 truncate text-[11.5px] text-muted-foreground">
+                      {categoryName(it.categoryId)} ·{" "}
+                      <span className="font-mono">{it.sku ?? "—"}</span>
+                    </p>
+                    <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                      <StationBadge station={stationById.get(it.stationId)} />
+                      {it.popular ? (
+                        <Badge className="rounded-md border-0 bg-primary/12 px-1.5 py-0 text-[10.5px] text-primary">
+                          Popular
+                        </Badge>
+                      ) : null}
+                      {!it.available ? (
+                        <Badge
+                          variant="destructive"
+                          className="rounded-md px-1.5 py-0 text-[10.5px]"
+                        >
+                          86&apos;d
+                        </Badge>
+                      ) : null}
+                    </div>
                   </div>
-                </div>
-                <span className="shrink-0 text-[14px] font-semibold tabular-nums">
-                  {formatCurrency(it.price)}
-                </span>
-              </button>
-            </li>
-          ))}
+                  <span className="shrink-0 text-[14px] font-semibold tabular-nums">
+                    {formatCurrency(it.price)}
+                  </span>
+                </button>
+              </li>
+            );
+          })}
         </ul>
 
         <div className="hidden overflow-x-auto md:block">
           <Table className="text-[13px]">
             <TableHeader>
               <TableRow className="hover:bg-transparent">
+                <TableHead className="w-10 px-3">
+                  <Checkbox
+                    checked={headerState}
+                    onCheckedChange={toggleAllFiltered}
+                    aria-label={
+                      allFilteredSelected
+                        ? "Clear selection"
+                        : "Select all visible menu items"
+                    }
+                    disabled={filtered.length === 0}
+                  />
+                </TableHead>
                 <Th>Item</Th>
                 <Th>Category</Th>
                 <Th>Station</Th>
@@ -232,60 +363,74 @@ export default function MenuPage() {
             <TableBody>
               {filtered.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="py-10 text-center text-muted-foreground">
+                  <TableCell colSpan={8} className="py-10 text-center text-muted-foreground">
                     No menu items match the current filters.
                   </TableCell>
                 </TableRow>
               ) : (
-                filtered.map((it) => (
-                  <TableRow key={it.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <p className="font-medium text-foreground">{it.name}</p>
-                        {it.popular ? (
-                          <Sparkles className="size-3 text-primary" />
-                        ) : null}
-                      </div>
-                      <p className="text-[11.5px] font-mono text-muted-foreground">
-                        {it.sku ?? "—"}
-                      </p>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {categoryName(it.categoryId)}
-                    </TableCell>
-                    <TableCell>
-                      <StationBadge station={stationById.get(it.stationId)} />
-                    </TableCell>
-                    <TableCell className="text-right font-medium tabular-nums">
-                      {formatCurrency(it.price)}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <Switch
-                        checked={it.available}
-                        onCheckedChange={() => toggleAvailability(it.id)}
-                        aria-label={`Toggle availability for ${it.name}`}
-                      />
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <Switch
-                        checked={it.posVisible}
-                        onCheckedChange={() => togglePosVisibility(it.id)}
-                        aria-label={`Toggle POS visibility for ${it.name}`}
-                      />
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        className="rounded-md text-muted-foreground hover:text-foreground"
-                        onClick={() => openEdit(it)}
-                        aria-label={`Edit ${it.name}`}
-                      >
-                        <Pencil className="size-3.5" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))
+                filtered.map((it) => {
+                  const isSelected = selected.has(it.id);
+                  return (
+                    <TableRow
+                      key={it.id}
+                      data-state={isSelected ? "selected" : undefined}
+                      className={cn(isSelected && "bg-primary/5")}
+                    >
+                      <TableCell className="px-3">
+                        <Checkbox
+                          checked={isSelected}
+                          onCheckedChange={(v) => toggleOne(it.id, v === true)}
+                          aria-label={`Select ${it.name}`}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium text-foreground">{it.name}</p>
+                          {it.popular ? (
+                            <Sparkles className="size-3 text-primary" />
+                          ) : null}
+                        </div>
+                        <p className="text-[11.5px] font-mono text-muted-foreground">
+                          {it.sku ?? "—"}
+                        </p>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {categoryName(it.categoryId)}
+                      </TableCell>
+                      <TableCell>
+                        <StationBadge station={stationById.get(it.stationId)} />
+                      </TableCell>
+                      <TableCell className="text-right font-medium tabular-nums">
+                        {formatCurrency(it.price)}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Switch
+                          checked={it.available}
+                          onCheckedChange={() => toggleAvailability(it.id)}
+                          aria-label={`Toggle availability for ${it.name}`}
+                        />
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Switch
+                          checked={it.posVisible}
+                          onCheckedChange={() => togglePosVisibility(it.id)}
+                          aria-label={`Toggle POS visibility for ${it.name}`}
+                        />
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          className="rounded-md text-muted-foreground hover:text-foreground"
+                          onClick={() => openEdit(it)}
+                          aria-label={`Edit ${it.name}`}
+                        >
+                          <Pencil className="size-3.5" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
               )}
             </TableBody>
           </Table>
@@ -294,12 +439,42 @@ export default function MenuPage() {
 
       <MenuFormSheet open={formOpen} onOpenChange={setFormOpen} item={editing} />
       <StationsManager open={stationsOpen} onOpenChange={setStationsOpen} />
+
+      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <DialogContent className="max-w-[420px] gap-4 rounded-lg p-0">
+          <DialogHeader className="px-5 pt-5">
+            <DialogTitle className="text-[15px] font-semibold tracking-tight">
+              Delete {selected.size} menu item{selected.size === 1 ? "" : "s"}?
+            </DialogTitle>
+            <DialogDescription className="text-[12.5px]">
+              This removes the selected items from the menu. Past orders that
+              reference them stay intact, but the items will no longer appear
+              on the POS or be available for new orders.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="grid grid-cols-2 gap-2 border-t bg-surface-1 px-5 py-3">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-9 rounded-md text-[12.5px]"
+              onClick={() => setConfirmOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              className="h-9 rounded-md text-[12.5px]"
+              onClick={confirmDelete}
+            >
+              <Trash2 className="size-3.5" />
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
-}
-
-function categoryName(id: string): string {
-  return CATEGORIES.find((c) => c.id === id)?.name ?? id;
 }
 
 function Th({

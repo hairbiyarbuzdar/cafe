@@ -1,19 +1,24 @@
-import { Plus, UserPlus, Users } from "lucide-react";
+import { Plus, Users } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/layouts/page-header";
+import { AddMemberDialog } from "@/features/staff/add-member-dialog";
 import { AttendanceChart } from "@/features/staff/attendance-chart";
+import { ManageRolesDialog } from "@/features/staff/manage-roles-dialog";
 import { ScheduleGrid } from "@/features/staff/schedule-grid";
 import { StaffCards } from "@/features/staff/staff-cards";
-import { STAFF } from "@/mock/staff";
-import { formatCurrency } from "@/lib/utils";
+import { listPendingMembers, listPublicUsers } from "@/lib/queries/users";
 
 export const metadata = { title: "Staff" };
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
-export default function StaffPage() {
-  const active = STAFF.filter((s) => s.status === "active").length;
-  const hours = STAFF.reduce((sum, s) => sum + s.hoursThisWeek, 0);
-  const payroll = STAFF.reduce((sum, s) => sum + s.hoursThisWeek * s.hourlyRate, 0);
+export default async function StaffPage() {
+  const [members, pending] = await Promise.all([
+    listPublicUsers(),
+    listPendingMembers(),
+  ]);
+  const totalSeats = members.length + pending.length;
 
   return (
     <>
@@ -21,27 +26,29 @@ export default function StaffPage() {
         title="Staff"
         description="Manage your team, build schedules, and track attendance."
         actions={
-          <>
-            <Button variant="outline" size="sm" className="h-8 rounded-md text-[12.5px]">
-              <UserPlus className="size-3.5" />
-              Invite
-            </Button>
-            <Button size="sm" className="h-8 rounded-md text-[12.5px]">
-              <Plus className="size-3.5" />
-              Add member
-            </Button>
-          </>
+          <AddMemberDialog
+            trigger={
+              <Button size="sm" className="h-8 rounded-md text-[12.5px]">
+                <Plus className="size-3.5" />
+                Add member
+              </Button>
+            }
+          />
         }
       />
 
       <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <Stat label="Active team" value={`${active}`} hint={`${STAFF.length} total members`} />
-        <Stat label="Hours this week" value={`${hours}h`} hint="across all roles" />
         <Stat
-          label="Projected payroll"
-          value={formatCurrency(payroll, { maximumFractionDigits: 0 })}
-          hint="this week, pre-tax"
+          label="Active team"
+          value={`${members.length}`}
+          hint={`${totalSeats} total ${totalSeats === 1 ? "seat" : "seats"}`}
         />
+        <Stat
+          label="Awaiting invite"
+          value={`${pending.length}`}
+          hint="not yet auth-capable"
+        />
+        <Stat label="Schedule" value="—" hint="shifts not tracked yet" />
       </section>
 
       <section className="grid grid-cols-1 gap-4 lg:grid-cols-3">
@@ -55,12 +62,10 @@ export default function StaffPage() {
         <h2 className="text-[14px] font-semibold tracking-tight text-foreground">
           Team members
         </h2>
-        <Button variant="ghost" size="xs" className="text-[11.5px]">
-          Manage roles
-        </Button>
+        <ManageRolesDialog users={members} />
       </div>
 
-      <StaffCards />
+      <StaffCards members={members} pending={pending} />
     </>
   );
 }

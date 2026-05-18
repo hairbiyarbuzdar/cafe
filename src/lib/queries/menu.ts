@@ -16,6 +16,7 @@ export async function listMenuItems(): Promise<MenuItem[]> {
     stationId: m.stationId,
     price: toNumber(m.price),
     sku: m.sku ?? undefined,
+    pctCode: m.pctCode ?? undefined,
     image: m.image ?? undefined,
     available: m.available,
     posVisible: m.posVisible,
