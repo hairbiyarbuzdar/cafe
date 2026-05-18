@@ -110,7 +110,7 @@ export function ProductGrid() {
             type="button"
             onClick={() => scroll("left")}
             className={cn(
-              "absolute -left-2 z-10 flex size-7 items-center justify-center rounded-full border bg-card/90 shadow-soft transition-opacity md:-left-3",
+              "absolute -left-2 z-20 flex size-7 items-center justify-center rounded-full border bg-card/90 shadow-soft transition-opacity md:-left-3",
               canScrollLeft ? "opacity-0 group-hover:opacity-100" : "opacity-0 pointer-events-none"
             )}
             aria-label="Scroll categories left"
@@ -168,7 +168,7 @@ export function ProductGrid() {
             type="button"
             onClick={() => scroll("right")}
             className={cn(
-              "absolute -right-2 z-10 flex size-7 items-center justify-center rounded-full border bg-card/90 shadow-soft transition-opacity md:-right-3",
+              "absolute -right-2 z-20 flex size-7 items-center justify-center rounded-full border bg-card/90 shadow-soft transition-opacity md:-right-3",
               canScrollRight ? "opacity-0 group-hover:opacity-100" : "opacity-0 pointer-events-none"
             )}
             aria-label="Scroll categories right"
