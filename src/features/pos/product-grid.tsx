@@ -7,26 +7,36 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { CATEGORIES } from "@/mock/categories";
-import { PRODUCTS } from "@/mock/products";
 import { ProductCard } from "@/features/pos/product-card";
 import { QuantityDialog } from "@/features/pos/quantity-dialog";
 import { useCart } from "@/store/cart-store";
-import type { OrderChannel, Product } from "@/types";
+import { selectPosVisibleItems, useMenu } from "@/store/menu-store";
+import type { MenuItem, OrderChannel } from "@/types";
 
 type Filter = "all" | "popular" | string;
 
 export function ProductGrid() {
+  const allItems = useMenu((s) => s.items);
+  // Only items that are toggled to appear on the POS screen
+  const items = React.useMemo(() => selectPosVisibleItems(allItems), [allItems]);
+
   const [activeFilter, setActiveFilter] = React.useState<Filter>("all");
   const [query, setQuery] = React.useState("");
-  const [pickProduct, setPickProduct] = React.useState<Product | null>(null);
+  const [pickProduct, setPickProduct] = React.useState<MenuItem | null>(null);
 
   const popularCount = React.useMemo(
-    () => PRODUCTS.filter((p) => p.popular).length,
-    [],
+    () => items.filter((p) => p.popular).length,
+    [items],
   );
 
+  const categoryCounts = React.useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const it of items) map[it.categoryId] = (map[it.categoryId] ?? 0) + 1;
+    return map;
+  }, [items]);
+
   const filtered = React.useMemo(() => {
-    return PRODUCTS.filter((p) => {
+    return items.filter((p) => {
       if (activeFilter === "popular" && !p.popular) return false;
       if (
         activeFilter !== "all" &&
@@ -40,7 +50,7 @@ export function ProductGrid() {
       }
       return true;
     });
-  }, [activeFilter, query]);
+  }, [items, activeFilter, query]);
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-3">
@@ -64,7 +74,7 @@ export function ProductGrid() {
               active={activeFilter === "all"}
               onClick={() => setActiveFilter("all")}
               label="All"
-              count={PRODUCTS.length}
+              count={items.length}
             />
             <CategoryChip
               active={activeFilter === "popular"}
@@ -79,7 +89,7 @@ export function ProductGrid() {
                 active={activeFilter === c.id}
                 onClick={() => setActiveFilter(c.id)}
                 label={c.name}
-                count={c.count}
+                count={categoryCounts[c.id] ?? 0}
                 dotColor={c.color}
               />
             ))}

@@ -1,34 +1,52 @@
-import { Clock, Coffee, Flame, Utensils } from "lucide-react";
+"use client";
+
+import * as React from "react";
+import { ChefHat, Filter } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { PageHeader } from "@/components/layouts/page-header";
-import { SectionCard } from "@/components/shared/section-card";
-import { ChannelBadge, OrderStatusBadge } from "@/features/orders/status-badge";
+import { StationBoard } from "@/features/kitchen/station-board";
+import { useKitchenTickets } from "@/store/kitchen-tickets-store";
+import { useMenu } from "@/store/menu-store";
+import { useStations } from "@/store/stations-store";
 import { ORDERS } from "@/mock/orders";
-import { cn, formatRelativeTime } from "@/lib/utils";
-import type { Order, OrderStatus } from "@/types";
-
-export const metadata = { title: "Kitchen" };
-
-const KITCHEN_STATUSES: OrderStatus[] = ["pending", "preparing", "ready"];
+import { splitOrderIntoTickets } from "@/lib/kitchen";
+import { cn } from "@/lib/utils";
 
 export default function KitchenPage() {
-  const queue = ORDERS.filter((o) => KITCHEN_STATUSES.includes(o.status));
-  const byStatus: Record<OrderStatus, Order[]> = {
-    pending: queue.filter((o) => o.status === "pending"),
-    preparing: queue.filter((o) => o.status === "preparing"),
-    ready: queue.filter((o) => o.status === "ready"),
-    completed: [],
-    cancelled: [],
-    refunded: [],
-  };
+  const stations = useStations((s) => s.stations);
+  const menu = useMenu((s) => s.items);
+  const overrides = useKitchenTickets((s) => s.statuses);
+
+  /** All tickets across all orders, split by station and tagged with live status. */
+  const allTickets = React.useMemo(() => {
+    return ORDERS.flatMap((o) =>
+      splitOrderIntoTickets(o, menu, stations, overrides),
+    ).filter((t) => t.status !== "served");
+  }, [menu, stations, overrides]);
+
+  const [activeStation, setActiveStation] = React.useState<string>("all");
+
+  const stationsToShow = stations.filter((s) => s.active);
+  const visibleStations =
+    activeStation === "all"
+      ? stationsToShow
+      : stationsToShow.filter((s) => s.id === activeStation);
+
+  const totalActive = allTickets.length;
+  const counts = React.useMemo(() => {
+    return Object.fromEntries(
+      stations.map((s) => [s.id, allTickets.filter((t) => t.stationId === s.id).length]),
+    );
+  }, [stations, allTickets]);
 
   return (
     <>
       <PageHeader
         title="Kitchen display"
-        description="Live ticket queue. Drag a ticket to update its status, or tap the action button below each card."
+        description="Each station receives only the items it prepares. Update tickets as they move through pending → preparing → ready → served."
         meta={
           <>
             <Badge variant="secondary" className="rounded-md font-normal">
@@ -36,133 +54,132 @@ export default function KitchenPage() {
               Service active
             </Badge>
             <Badge variant="outline" className="rounded-md font-normal text-muted-foreground">
-              {queue.length} tickets in flight
+              {totalActive} tickets in flight
+            </Badge>
+            <Badge variant="outline" className="rounded-md font-normal text-muted-foreground">
+              {stationsToShow.length} active stations
             </Badge>
           </>
         }
+        actions={
+          <Button variant="outline" size="sm" className="h-9 rounded-md text-[12.5px]" disabled>
+            <Filter className="size-4" />
+            Recall
+          </Button>
+        }
       />
 
-      <section className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <Column
-          title="New"
-          tone="warning"
-          icon={Clock}
-          orders={byStatus.pending}
-          actionLabel="Start preparing"
-        />
-        <Column
-          title="Preparing"
-          tone="info"
-          icon={Flame}
-          orders={byStatus.preparing}
-          actionLabel="Mark ready"
-        />
-        <Column
-          title="Ready"
-          tone="success"
-          icon={Coffee}
-          orders={byStatus.ready}
-          actionLabel="Hand off"
-        />
-      </section>
+      <ScrollArea className="w-full">
+        <div className="flex gap-1.5 pb-2">
+          <StationChip
+            label="All stations"
+            count={totalActive}
+            active={activeStation === "all"}
+            onClick={() => setActiveStation("all")}
+          />
+          {stationsToShow.map((s) => (
+            <StationChip
+              key={s.id}
+              label={s.name}
+              count={counts[s.id] ?? 0}
+              color={s.color}
+              active={activeStation === s.id}
+              onClick={() => setActiveStation(s.id)}
+            />
+          ))}
+        </div>
+        <ScrollBar orientation="horizontal" />
+      </ScrollArea>
+
+      {visibleStations.length === 0 ? (
+        <div className="ring-highlight rounded-xl border border-dashed bg-card/40 p-10 text-center">
+          <ChefHat className="mx-auto size-6 text-muted-foreground" />
+          <p className="mt-3 text-[14px] font-medium">No active stations</p>
+          <p className="mt-1 text-[12.5px] text-muted-foreground">
+            Activate stations from the Menu page to start receiving tickets here.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-5">
+          {visibleStations.map((station) => {
+            const tickets = allTickets.filter((t) => t.stationId === station.id);
+            return (
+              <section key={station.id}>
+                <header className="mb-2 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span
+                      aria-hidden
+                      className="flex size-7 items-center justify-center rounded-md text-[12px] font-semibold text-white"
+                      style={{ background: station.color }}
+                    >
+                      {station.name[0]?.toUpperCase()}
+                    </span>
+                    <div>
+                      <h2 className="text-[15px] font-semibold leading-none tracking-tight">
+                        {station.name}
+                      </h2>
+                      <p className="mt-0.5 text-[11.5px] text-muted-foreground">
+                        Printer{" "}
+                        <span className="font-mono text-foreground/80">
+                          {station.printer ?? "—"}
+                        </span>
+                        {" · "}
+                        {tickets.length} ticket{tickets.length === 1 ? "" : "s"}
+                      </p>
+                    </div>
+                  </div>
+                </header>
+                <StationBoard station={station} tickets={tickets} />
+              </section>
+            );
+          })}
+        </div>
+      )}
     </>
   );
 }
 
-function Column({
-  title,
-  tone,
-  icon: Icon,
-  orders,
-  actionLabel,
+function StationChip({
+  label,
+  count,
+  color,
+  active,
+  onClick,
 }: {
-  title: string;
-  tone: "warning" | "info" | "success";
-  icon: typeof Clock;
-  orders: Order[];
-  actionLabel: string;
+  label: string;
+  count: number;
+  color?: string;
+  active: boolean;
+  onClick: () => void;
 }) {
-  const dotTone =
-    tone === "warning" ? "bg-warning" : tone === "info" ? "bg-info" : "bg-success";
   return (
-    <SectionCard
-      title={
-        <span className="inline-flex items-center gap-2">
-          <span className={cn("size-1.5 rounded-full", dotTone)} />
-          <Icon className="size-3.5 text-muted-foreground" />
-          {title}
-          <span className="ms-1 rounded-md bg-secondary/70 px-1.5 py-0.5 text-[11px] font-medium text-secondary-foreground tabular-nums">
-            {orders.length}
-          </span>
-        </span>
-      }
-      contentClassName="space-y-2.5 p-3 md:p-3.5"
-    >
-      {orders.length === 0 ? (
-        <div className="flex h-24 items-center justify-center rounded-md border border-dashed text-[12.5px] text-muted-foreground">
-          No tickets
-        </div>
-      ) : (
-        orders.map((o) => (
-          <article
-            key={o.id}
-            className="ring-highlight rounded-lg border border-border/70 bg-card p-3.5"
-          >
-            <header className="flex items-start justify-between gap-2">
-              <div>
-                <p className="text-[14px] font-semibold tabular-nums">{o.number}</p>
-                <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                  <ChannelBadge channel={o.channel} />
-                  {o.table ? (
-                    <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
-                      <Utensils className="size-3" />
-                      {o.table}
-                    </span>
-                  ) : null}
-                </div>
-              </div>
-              <OrderStatusBadge status={o.status} />
-            </header>
-            <ul className="mt-3 space-y-1 text-[13px]">
-              {o.items.map((i) => (
-                <li
-                  key={i.id}
-                  className="flex items-start gap-2 text-foreground"
-                >
-                  <span className="font-medium tabular-nums text-muted-foreground">
-                    ×{i.quantity}
-                  </span>
-                  <div className="min-w-0">
-                    <p className="truncate">{i.name}</p>
-                    {i.modifiers && i.modifiers.length > 0 ? (
-                      <p className="text-[11.5px] text-muted-foreground">
-                        {i.modifiers.join(" · ")}
-                      </p>
-                    ) : null}
-                  </div>
-                </li>
-              ))}
-            </ul>
-            {o.notes ? (
-              <p className="mt-2 rounded-md border border-warning/20 bg-warning/10 px-2 py-1.5 text-[11.5px] text-foreground/85">
-                {o.notes}
-              </p>
-            ) : null}
-            <footer className="mt-3 flex items-center justify-between">
-              <span className="text-[11px] text-muted-foreground">
-                {formatRelativeTime(o.createdAt)}
-              </span>
-              <Button
-                size="sm"
-                variant={tone === "success" ? "outline" : "default"}
-                className="h-8 rounded-md text-[12px]"
-              >
-                {actionLabel}
-              </Button>
-            </footer>
-          </article>
-        ))
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={cn(
+        "inline-flex h-9 shrink-0 items-center gap-1.5 rounded-md border bg-card px-3 text-[12.5px] font-medium transition-all",
+        active
+          ? "border-primary/40 bg-primary text-primary-foreground shadow-soft"
+          : "border-border/70 text-foreground hover:bg-muted",
       )}
-    </SectionCard>
+    >
+      {color ? (
+        <span
+          aria-hidden
+          className="size-2 rounded-full"
+          style={{ background: active ? "currentColor" : color }}
+        />
+      ) : null}
+      {label}
+      <span
+        className={cn(
+          "ms-0.5 rounded px-1 text-[10.5px] tabular-nums",
+          active ? "text-primary-foreground/85" : "text-muted-foreground",
+        )}
+      >
+        {count}
+      </span>
+    </button>
   );
 }

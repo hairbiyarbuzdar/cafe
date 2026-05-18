@@ -1,5 +1,6 @@
 import {
   Bell,
+  BookOpenText,
   Boxes,
   CalendarRange,
   ChartLine,
@@ -56,11 +57,18 @@ export const PRIMARY_NAV: NavGroup[] = [
     label: "Operations",
     items: [
       {
+        title: "Menu",
+        href: "/menu",
+        icon: BookOpenText,
+        description: "Sellable items, stations, recipes",
+        permission: "menu.view",
+      },
+      {
         title: "Inventory",
         href: "/inventory",
         icon: Boxes,
         badge: "4 low",
-        description: "Stock levels and suppliers",
+        description: "Raw materials and suppliers",
         permission: "inventory.view",
       },
       {

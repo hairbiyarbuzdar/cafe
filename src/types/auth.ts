@@ -18,6 +18,8 @@ export type Permission =
   | "orders.cancel"
   | "inventory.view"
   | "inventory.edit"
+  | "menu.view"
+  | "menu.edit"
   | "reports.view"
   | "staff.view"
   | "staff.edit"

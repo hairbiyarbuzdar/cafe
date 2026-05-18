@@ -71,24 +71,86 @@ export type Category = {
   count: number;
 };
 
-export type Product = {
-  id: string;
-  name: string;
-  description?: string;
-  categoryId: string;
-  price: number;
-  cost?: number;
-  sku?: string;
-  image?: string;
-  available: boolean;
-  popular?: boolean;
-  modifiers?: ProductModifier[];
-};
-
 export type ProductModifier = {
   id: string;
   name: string;
   priceDelta: number;
+};
+
+/**
+ * Kitchen station — the prep counter that physically makes the item.
+ * One menu item belongs to one station, but a station prepares
+ * many items. Used to route tickets from the POS to the right
+ * KDS column.
+ */
+export type KitchenStation = {
+  id: string;
+  name: string;
+  /** Optional named printer for ticket spooling */
+  printer?: string;
+  active: boolean;
+  /** Hex color for visual distinction on KDS */
+  color: string;
+};
+
+/**
+ * Recipe link: how much of an inventory ingredient one unit of
+ * a menu item consumes. Deducted from stock when the order is paid.
+ */
+export type RecipeIngredient = {
+  inventoryItemId: string;
+  quantity: number;
+  unit: string;
+};
+
+export type MenuItem = {
+  id: string;
+  name: string;
+  description?: string;
+  /** POS display grouping */
+  categoryId: string;
+  /** Kitchen routing */
+  stationId: string;
+  price: number;
+  cost?: number;
+  sku?: string;
+  image?: string;
+  /** 86'd — temporarily unavailable */
+  available: boolean;
+  /** Whether it appears on the POS screen at all */
+  posVisible: boolean;
+  /** Estimated prep time, minutes */
+  prepTimeMinutes?: number;
+  popular?: boolean;
+  modifiers?: ProductModifier[];
+  recipe?: RecipeIngredient[];
+};
+
+/** Kitchen ticket statuses — lifecycle independent per station. */
+export type TicketStatus = "pending" | "preparing" | "ready" | "served";
+
+export type KitchenTicketItem = {
+  id: string;
+  menuItemId: string;
+  name: string;
+  quantity: number;
+  modifiers?: string[];
+  note?: string;
+};
+
+export type KitchenTicket = {
+  /** Synthetic id — `${orderId}__${stationId}` */
+  id: string;
+  orderId: string;
+  orderNumber: string;
+  stationId: string;
+  customerName?: string;
+  table?: string;
+  channel: OrderChannel;
+  status: TicketStatus;
+  items: KitchenTicketItem[];
+  notes?: string;
+  createdAt: string;
 };
 
 export type InventoryItem = {

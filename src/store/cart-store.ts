@@ -2,7 +2,7 @@
 
 import { create } from "zustand";
 
-import type { CartItem, OrderChannel, PaymentMethod, Product, ProductModifier } from "@/types";
+import type { CartItem, MenuItem, OrderChannel, PaymentMethod, ProductModifier } from "@/types";
 
 type CartState = {
   items: CartItem[];
@@ -13,10 +13,10 @@ type CartState = {
   discountPct: number;
   taxRate: number;
   /**
-   * Adds `quantity` of `product` to the cart. If the same product
+   * Adds `quantity` of a menu item to the cart. If the same item
    * is already there, increments the existing line.
    */
-  add: (product: Product, quantity?: number, modifiers?: ProductModifier[]) => void;
+  add: (item: MenuItem, quantity?: number, modifiers?: ProductModifier[]) => void;
   increment: (productId: string) => void;
   decrement: (productId: string) => void;
   setQuantity: (productId: string, quantity: number) => void;
@@ -39,14 +39,14 @@ export const useCart = create<CartState>((set) => ({
   discountPct: 0,
   taxRate: 0.085,
 
-  add: (product, quantity = 1, modifiers = []) =>
+  add: (item, quantity = 1, modifiers = []) =>
     set((state) => {
       const qty = Math.max(1, Math.floor(quantity));
-      const existing = state.items.find((i) => i.productId === product.id);
+      const existing = state.items.find((i) => i.productId === item.id);
       if (existing) {
         return {
           items: state.items.map((i) =>
-            i.productId === product.id
+            i.productId === item.id
               ? { ...i, quantity: i.quantity + qty }
               : i,
           ),
@@ -56,9 +56,9 @@ export const useCart = create<CartState>((set) => ({
         items: [
           ...state.items,
           {
-            productId: product.id,
-            name: product.name,
-            unitPrice: product.price,
+            productId: item.id,
+            name: item.name,
+            unitPrice: item.price,
             quantity: qty,
             modifiers,
           },

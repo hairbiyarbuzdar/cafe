@@ -24,7 +24,17 @@ import {
 import { INVENTORY, SUPPLIERS } from "@/mock/inventory";
 import { cn, formatCurrency, formatRelativeTime } from "@/lib/utils";
 
-const CATS = ["All", "Coffee", "Dairy", "Pantry", "Syrups", "Bakery", "Produce", "Packaging"];
+const CATS = [
+  "All",
+  "Coffee",
+  "Dairy",
+  "Pantry",
+  "Syrups",
+  "Bakery",
+  "Produce",
+  "Meat",
+  "Packaging",
+];
 
 export function InventoryTable() {
   const [search, setSearch] = React.useState("");

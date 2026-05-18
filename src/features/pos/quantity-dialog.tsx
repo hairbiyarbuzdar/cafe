@@ -18,10 +18,10 @@ import { Label } from "@/components/ui/label";
 import { getCategoryIcon } from "@/constants/category-icons";
 import { formatCurrency } from "@/lib/utils";
 import { useCart } from "@/store/cart-store";
-import type { Product } from "@/types";
+import type { MenuItem } from "@/types";
 
 type Props = {
-  product: Product | null;
+  product: MenuItem | null;
   onClose: () => void;
 };
 

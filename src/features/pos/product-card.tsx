@@ -5,12 +5,12 @@ import { Plus, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { getCategoryIcon } from "@/constants/category-icons";
 import { cn, formatCurrency } from "@/lib/utils";
-import type { Product } from "@/types";
+import type { MenuItem } from "@/types";
 
 type Props = {
-  product: Product;
+  product: MenuItem;
   /** Parent decides what happens on click (typically: open quantity dialog) */
-  onSelect: (product: Product) => void;
+  onSelect: (product: MenuItem) => void;
 };
 
 export function ProductCard({ product, onSelect }: Props) {
