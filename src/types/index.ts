@@ -1,11 +1,15 @@
 import type { LucideIcon } from "lucide-react";
 
+import type { Permission } from "@/types/auth";
+
 export type NavItem = {
   title: string;
   href: string;
   icon: LucideIcon;
   badge?: string | number;
   description?: string;
+  /** Optional gating — items only render for users with this permission */
+  permission?: Permission;
 };
 
 export type NavGroup = {

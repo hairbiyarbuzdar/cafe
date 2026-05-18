@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   ChevronsUpDown,
   CircleHelp,
@@ -10,6 +10,7 @@ import {
   LogOut,
   Settings as SettingsIcon,
 } from "lucide-react";
+import { toast } from "sonner";
 
 import {
   Sidebar,
@@ -37,17 +38,32 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { BRAND, PRIMARY_NAV } from "@/constants/nav";
+import { useCurrentUser } from "@/hooks/use-current-user";
+import { hasPermission, ROLE_LABEL } from "@/lib/permissions";
+import { useAuth } from "@/store/auth-store";
 import { initials } from "@/lib/utils";
-
-const CURRENT_USER = {
-  name: "Elena Volkova",
-  email: "elena@brewline.co",
-  role: "Owner",
-  avatar: "",
-};
 
 export function AppSidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+  const user = useCurrentUser();
+  const signOut = useAuth((s) => s.signOut);
+
+  function handleSignOut() {
+    signOut();
+    toast.success("Signed out");
+    router.replace("/login");
+    router.refresh();
+  }
+
+  const visibleNav = React.useMemo(() => {
+    return PRIMARY_NAV.map((group) => ({
+      ...group,
+      items: group.items.filter(
+        (item) => !item.permission || hasPermission(user, item.permission),
+      ),
+    })).filter((group) => group.items.length > 0);
+  }, [user]);
 
   return (
     <Sidebar collapsible="icon" variant="inset">
@@ -80,7 +96,7 @@ export function AppSidebar() {
       <SidebarSeparator className="mx-2" />
 
       <SidebarContent>
-        {PRIMARY_NAV.map((group, gIdx) => (
+        {visibleNav.map((group, gIdx) => (
           <SidebarGroup key={`${group.label}-${gIdx}`}>
             <SidebarGroupLabel className="px-2 text-[11.5px] font-medium uppercase tracking-[0.08em] text-muted-foreground/80">
               {group.label}
@@ -131,17 +147,17 @@ export function AppSidebar() {
                   className="data-[state=open]:bg-sidebar-accent"
                 >
                   <Avatar className="size-9 rounded-lg">
-                    <AvatarImage src={CURRENT_USER.avatar} alt={CURRENT_USER.name} />
+                    <AvatarImage src={user?.avatar} alt={user?.name ?? ""} />
                     <AvatarFallback className="rounded-lg bg-gradient-to-br from-primary/15 to-primary/10 text-[12px] font-semibold text-primary">
-                      {initials(CURRENT_USER.name)}
+                      {user ? initials(user.name) : "—"}
                     </AvatarFallback>
                   </Avatar>
                   <div className="grid flex-1 text-left leading-tight">
                     <span className="truncate text-[13.5px] font-medium">
-                      {CURRENT_USER.name}
+                      {user?.name ?? "Sign in"}
                     </span>
                     <span className="truncate text-[11.5px] text-muted-foreground">
-                      {CURRENT_USER.email}
+                      {user ? ROLE_LABEL[user.role] : "No session"}
                     </span>
                   </div>
                   <ChevronsUpDown className="ms-auto size-4 text-muted-foreground" />
@@ -151,23 +167,25 @@ export function AppSidebar() {
                 align="end"
                 side="right"
                 sideOffset={8}
-                className="w-60 rounded-lg"
+                className="w-64 rounded-lg"
               >
                 <DropdownMenuLabel className="font-normal">
                   <div className="flex flex-col">
                     <span className="text-[13px] font-medium">
-                      {CURRENT_USER.name}
+                      {user?.name ?? "Guest"}
                     </span>
-                    <span className="text-[11px] text-muted-foreground">
-                      {CURRENT_USER.role} · {CURRENT_USER.email}
+                    <span className="text-[11.5px] text-muted-foreground">
+                      {user ? `${ROLE_LABEL[user.role]} · ${user.email}` : ""}
                     </span>
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuGroup>
-                  <DropdownMenuItem>
-                    <SettingsIcon className="size-4" />
-                    Workspace settings
+                  <DropdownMenuItem asChild>
+                    <Link href="/settings">
+                      <SettingsIcon className="size-4" />
+                      Workspace settings
+                    </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem>
                     <CircleHelp className="size-4" />
@@ -175,7 +193,7 @@ export function AppSidebar() {
                   </DropdownMenuItem>
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem variant="destructive">
+                <DropdownMenuItem variant="destructive" onSelect={handleSignOut}>
                   <LogOut className="size-4" />
                   Sign out
                 </DropdownMenuItem>

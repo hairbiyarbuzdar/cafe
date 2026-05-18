@@ -3,6 +3,7 @@ import {
   Boxes,
   CalendarRange,
   ChartLine,
+  ChefHat,
   CircleUserRound,
   Coffee,
   CreditCard,
@@ -25,12 +26,21 @@ export const PRIMARY_NAV: NavGroup[] = [
         href: "/dashboard",
         icon: LayoutDashboard,
         description: "Overview of today's performance",
+        permission: "dashboard.view",
+      },
+      {
+        title: "Kitchen",
+        href: "/kitchen",
+        icon: ChefHat,
+        description: "Live ticket queue",
+        permission: "kitchen.view",
       },
       {
         title: "Point of Sale",
         href: "/pos",
         icon: CreditCard,
         description: "Take orders and accept payments",
+        permission: "pos.access",
       },
       {
         title: "Orders",
@@ -38,6 +48,7 @@ export const PRIMARY_NAV: NavGroup[] = [
         icon: Receipt,
         badge: 12,
         description: "Live and historical orders",
+        permission: "orders.view",
       },
     ],
   },
@@ -50,40 +61,44 @@ export const PRIMARY_NAV: NavGroup[] = [
         icon: Boxes,
         badge: "4 low",
         description: "Stock levels and suppliers",
+        permission: "inventory.view",
       },
       {
         title: "Staff",
         href: "/staff",
         icon: Users,
         description: "Team, shifts, and attendance",
+        permission: "staff.view",
       },
       {
         title: "Reports",
         href: "/reports",
         icon: ChartLine,
         description: "Sales, products, and trends",
+        permission: "reports.view",
       },
     ],
   },
   {
-    label: "Workspace",
+    label: "Admin",
     items: [
       {
         title: "Settings",
         href: "/settings",
         icon: Settings,
         description: "Café, billing, and access",
+        permission: "settings.view",
       },
     ],
   },
 ];
 
 export const MOBILE_NAV: NavItem[] = [
-  { title: "Home", href: "/dashboard", icon: LayoutDashboard },
-  { title: "POS", href: "/pos", icon: CreditCard },
-  { title: "Orders", href: "/orders", icon: Receipt },
-  { title: "Stock", href: "/inventory", icon: Boxes },
-  { title: "More", href: "/settings", icon: Settings },
+  { title: "Home", href: "/dashboard", icon: LayoutDashboard, permission: "dashboard.view" },
+  { title: "POS", href: "/pos", icon: CreditCard, permission: "pos.access" },
+  { title: "Orders", href: "/orders", icon: Receipt, permission: "orders.view" },
+  { title: "Stock", href: "/inventory", icon: Boxes, permission: "inventory.view" },
+  { title: "More", href: "/settings", icon: Settings, permission: "settings.view" },
 ];
 
 export const QUICK_ACTIONS = [

@@ -4,16 +4,24 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { MOBILE_NAV } from "@/constants/nav";
+import { useCurrentUser } from "@/hooks/use-current-user";
+import { hasPermission } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 
 export function MobileTabbar() {
   const pathname = usePathname() ?? "";
+  const user = useCurrentUser();
+  const items = MOBILE_NAV.filter(
+    (item) => !item.permission || hasPermission(user, item.permission),
+  );
+  if (items.length === 0) return null;
   return (
     <nav
       aria-label="Primary mobile navigation"
-      className="sticky bottom-0 z-30 grid grid-cols-5 gap-1 border-t border-border/70 bg-background/95 px-1.5 pb-[max(env(safe-area-inset-bottom),0.5rem)] pt-2 backdrop-blur supports-[backdrop-filter]:bg-background/80 md:hidden"
+      style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}
+      className="sticky bottom-0 z-30 grid gap-1 border-t border-border/70 bg-background/95 px-1.5 pb-[max(env(safe-area-inset-bottom),0.5rem)] pt-2 backdrop-blur supports-[backdrop-filter]:bg-background/80 md:hidden"
     >
-      {MOBILE_NAV.map((item) => {
+      {items.map((item) => {
         const Icon = item.icon;
         const active =
           pathname === item.href || pathname.startsWith(`${item.href}/`);

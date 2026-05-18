@@ -20,7 +20,15 @@
       "Bash(curl -s -o /dev/null -w \"REPORTS=%{http_code}\\\\n\" http://localhost:3000/reports)",
       "Bash(curl -s -o /dev/null -w \"STAFF=%{http_code}\\\\n\" http://localhost:3000/staff)",
       "Bash(curl -s -o /dev/null -w \"SETTINGS=%{http_code}\\\\n\" http://localhost:3000/settings)",
-      "Bash(npx tsc *)"
+      "Bash(npx tsc *)",
+      "Bash(tasklist)",
+      "Bash(curl -s -o /dev/null -w \"FRESH=%{http_code}\\\\n\" http://localhost:3000/login)",
+      "Bash(curl -sI http://localhost:3000/dashboard)",
+      "Bash(tr -d '\\\\\\\\')",
+      "Bash(netstat -ano)",
+      "Bash(taskkill /PID 1492 /F)",
+      "Bash(powershell.exe -Command \"Stop-Process -Id 1492 -Force\")",
+      "Bash(npm ls *)"
     ],
     "additionalDirectories": [
       "C:\\AddsMint\\cafe\\src\\components"

@@ -34,7 +34,9 @@ import {
 } from "@/components/ui/select";
 import { SectionCard } from "@/components/shared/section-card";
 import { RoleBadge } from "@/features/staff/role-badge";
-import { STAFF } from "@/mock/staff";
+import { useCurrentUser } from "@/hooks/use-current-user";
+import { ROLE_LABEL } from "@/lib/permissions";
+import { MOCK_USERS } from "@/mock/users";
 import { cn, initials } from "@/lib/utils";
 
 export function GeneralPanel() {
@@ -258,33 +260,46 @@ const MATRIX: Record<string, Record<string, boolean>> = {
 };
 
 export function TeamPanel() {
+  const currentUser = useCurrentUser();
   return (
     <div className="space-y-4">
       <SectionCard
         title="Members"
         description="Manage who has access to this workspace"
-        action={<Button size="sm" className="h-8 rounded-md text-[12.5px]">Invite</Button>}
+        action={<Button size="sm" className="h-9 rounded-md text-[12.5px]">Invite</Button>}
         contentClassName="p-0"
       >
         <ul className="divide-y">
-          {STAFF.slice(0, 5).map((s) => (
-            <li
-              key={s.id}
-              className="flex items-center gap-3 px-4 py-3 md:px-5"
-            >
-              <span className="flex size-8 items-center justify-center rounded-md bg-primary/10 text-[11px] font-semibold text-primary">
-                {initials(s.name)}
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-[13px] font-medium">{s.name}</p>
-                <p className="truncate text-[11.5px] text-muted-foreground">{s.email}</p>
-              </div>
-              <RoleBadge role={s.role} />
-              <Badge variant="outline" className="rounded-md text-[10.5px] font-normal">
-                {s.status === "active" ? "Active" : s.status === "on-leave" ? "On leave" : "Off-duty"}
-              </Badge>
-            </li>
-          ))}
+          {MOCK_USERS.map((u) => {
+            const isMe = currentUser?.id === u.id;
+            return (
+              <li key={u.id} className="flex items-center gap-3 px-4 py-3 md:px-5">
+                <span className="flex size-9 items-center justify-center rounded-md bg-gradient-to-br from-primary/15 to-primary/10 text-[12px] font-semibold text-primary">
+                  {initials(u.name)}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="flex items-center gap-1.5 truncate text-[13px] font-medium">
+                    {u.name}
+                    {isMe ? (
+                      <Badge className="rounded-md border-primary/30 bg-primary/12 px-1.5 py-0 text-[10.5px] text-primary">
+                        You
+                      </Badge>
+                    ) : null}
+                  </p>
+                  <p className="truncate text-[11.5px] text-muted-foreground">
+                    {u.email}
+                  </p>
+                </div>
+                <RoleBadge role={u.role} />
+                <Badge
+                  variant="outline"
+                  className="rounded-md text-[10.5px] font-normal"
+                >
+                  {ROLE_LABEL[u.role]}
+                </Badge>
+              </li>
+            );
+          })}
         </ul>
       </SectionCard>
 

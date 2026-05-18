@@ -2,7 +2,7 @@ import * as React from "react";
 
 import { cn } from "@/lib/utils";
 
-type Props = React.HTMLAttributes<HTMLElement> & {
+type Props = Omit<React.HTMLAttributes<HTMLElement>, "title"> & {
   title?: React.ReactNode;
   description?: React.ReactNode;
   action?: React.ReactNode;
