@@ -73,7 +73,7 @@ export function CartPanel({ onChargeStart }: CartPanelProps = {}) {
 
   return (
     <aside className="flex h-full min-h-0 w-full flex-col bg-card">
-      <header className="flex items-center justify-between border-b px-4 py-3">
+      <header className="flex items-center justify-between border-b px-4 py-6">
         <div>
           <h2 className="text-[14px] font-semibold tracking-tight text-foreground">
             Current order
