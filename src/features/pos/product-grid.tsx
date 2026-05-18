@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { ChevronLeft, ChevronRight, Search, Sparkles } from "lucide-react";
+import { motion, type HTMLMotionProps } from "framer-motion";
 
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -132,10 +133,16 @@ export function ProductGrid() {
             )}
           />
 
-          <div
+          <motion.div
             ref={scrollRef}
             onScroll={checkScrollability} // Add onScroll event listener
             className="flex w-full gap-1.5 overflow-x-auto scroll-smooth pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            initial="hidden"
+            animate="visible"
+            variants={{
+              hidden: { opacity: 0 },
+              visible: { opacity: 1, transition: { staggerChildren: 0.05 } },
+            }}
           >
             <CategoryChip
               active={activeFilter === "popular"}
@@ -162,7 +169,7 @@ export function ProductGrid() {
                 data-category-id={c.id} // Add data attribute for identification
               />
             ))}
-          </div>
+          </motion.div>
 
           <button
             type="button"
@@ -216,12 +223,16 @@ function CategoryChip({
   count: number;
   dotColor?: string;
   icon?: React.ReactNode;
-} & React.ComponentPropsWithoutRef<"button">) { // Extend props for button
+} & HTMLMotionProps<"button">) { // Extend props for motion button
   return (
-    <button
+    <motion.button
       type="button"
       onClick={onClick}
       aria-pressed={active}
+      variants={{
+        hidden: { opacity: 0, y: 10, scale: 0.95 },
+        visible: { opacity: 1, y: 0, scale: 1 },
+      }}
       className={cn(
         "inline-flex h-7 shrink-0 items-center gap-1.5 rounded-md border bg-card px-2.5 text-[12px] font-medium transition-all",
         active
@@ -247,6 +258,6 @@ function CategoryChip({
       >
         {count}
       </span>
-    </button>
+    </motion.button>
   );
 }
