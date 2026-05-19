@@ -84,7 +84,7 @@ export function OrderDetailDrawer({
     <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
       <SheetContent
         side="right"
-        className="flex h-full w-full flex-col gap-0 p-0 sm:max-w-[460px]"
+        className="flex h-dvh w-full flex-col overflow-hidden p-0 sm:max-w-[460px]"
       >
         {order ? (
           <>
@@ -142,7 +142,7 @@ export function OrderDetailDrawer({
               </div>
             </SheetHeader>
 
-            <ScrollArea className="flex-1">
+            <ScrollArea className="min-h-0 flex-1">
               <div className="space-y-5 p-5">
                 <Section title="Timeline">
                   <ol className="space-y-3 ps-1 grid sm:grid-cols-2">
@@ -334,7 +334,7 @@ function OrderDrawerFooter({
 
   if (held) {
     return (
-      <div className="grid shrink-0 grid-cols-3 gap-2 border-t bg-surface-1 px-5 pt-3 pb-[calc(12px+env(safe-area-inset-bottom))]">
+      <div className="sticky bottom-0 z-10 grid shrink-0 grid-cols-3 gap-2 border-t bg-surface-1 px-5 pt-3 pb-[calc(12px+env(safe-area-inset-bottom))]">
         <Button
           variant="outline"
           size="sm"
@@ -385,7 +385,7 @@ function OrderDrawerFooter({
 
   // Already paid (or cancelled/refunded) — the original receipt + refund row.
   return (
-    <div className="grid shrink-0 grid-cols-3 gap-2 border-t bg-surface-1 px-5 pt-3 pb-[calc(12px+env(safe-area-inset-bottom))]">
+    <div className="sticky bottom-0 z-10 grid shrink-0 grid-cols-3 gap-2 border-t bg-surface-1 px-5 pt-3 pb-[calc(12px+env(safe-area-inset-bottom))]">
       <Button
         variant="outline"
         size="sm"
