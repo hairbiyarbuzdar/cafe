@@ -26,6 +26,8 @@ const ALL_PERMISSIONS: ReadonlySet<Permission> = new Set([
   "settings.edit",
   "kitchen.view",
   "dashboard.view",
+  "expenses.view",
+  "expenses.edit",
 ]);
 
 const ALLOWED_DEFAULT_ROUTES = new Set([
@@ -36,6 +38,7 @@ const ALLOWED_DEFAULT_ROUTES = new Set([
   "/menu",
   "/inventory",
   "/reports",
+  "/expenses",
   "/staff",
   "/settings",
 ]);

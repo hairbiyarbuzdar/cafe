@@ -91,6 +91,7 @@ const ROUTE_GUARDS: { prefix: string; permission: Permission }[] = [
   { prefix: "/staff", permission: "staff.view" },
   { prefix: "/settings", permission: "settings.view" },
   { prefix: "/kitchen", permission: "kitchen.view" },
+  { prefix: "/expenses", permission: "expenses.view" },
 ];
 
 export function routePermission(pathname: string): Permission | null {

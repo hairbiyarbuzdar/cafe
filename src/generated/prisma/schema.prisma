@@ -147,6 +147,8 @@ model PaymentChannel {
   inventoryMovements InventoryMovement[]
   /// After-the-fact supplier-due payments paid out of this channel.
   supplierPayments   SupplierPayment[]
+  /// Operational expenses (rent, utilities, etc.) paid out of this channel.
+  expenses           Expense[]
 }
 
 /// A money movement from one channel to another. The
@@ -337,6 +339,42 @@ model SupplierPayment {
   @@index([supplierId])
   @@index([paymentChannelId])
   @@index([createdAt])
+}
+
+/// Operating-expense category — rent, utilities, marketing, taxes,
+/// etc. Lets the operator group spend so reports can roll up cost
+/// of doing business by head. Archiving (rather than hard-delete)
+/// keeps historical expenses legible after a head is retired.
+model ExpenseHead {
+  id         String    @id @default(cuid())
+  name       String    @unique
+  archived   Boolean   @default(false)
+  archivedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  expenses   Expense[]
+}
+
+/// A single operating expense: amount paid out of a specific payment
+/// channel against a chosen head. The action that creates one debits
+/// the channel atomically so balances stay truthful.
+model Expense {
+  id               String         @id @default(cuid())
+  expenseHeadId    String
+  expenseHead      ExpenseHead    @relation(fields: [expenseHeadId], references: [id])
+  paymentChannelId String
+  paymentChannel   PaymentChannel @relation(fields: [paymentChannelId], references: [id])
+  amount           Decimal        @db.Decimal(14, 2)
+  detail           String?
+  /// Business date the spending happened on. Separate from `createdAt`
+  /// so an operator can backfill last week's expense without it
+  /// landing on today's report.
+  occurredAt       DateTime
+  createdAt        DateTime       @default(now())
+
+  @@index([expenseHeadId])
+  @@index([paymentChannelId])
+  @@index([occurredAt])
 }
 
 // ──────────────────────────────────────────────────────────────

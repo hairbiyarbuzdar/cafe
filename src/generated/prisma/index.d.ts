@@ -115,6 +115,21 @@ export type InventoryMovement = $Result.DefaultSelection<Prisma.$InventoryMoveme
  */
 export type SupplierPayment = $Result.DefaultSelection<Prisma.$SupplierPaymentPayload>
 /**
+ * Model ExpenseHead
+ * Operating-expense category — rent, utilities, marketing, taxes,
+ * etc. Lets the operator group spend so reports can roll up cost
+ * of doing business by head. Archiving (rather than hard-delete)
+ * keeps historical expenses legible after a head is retired.
+ */
+export type ExpenseHead = $Result.DefaultSelection<Prisma.$ExpenseHeadPayload>
+/**
+ * Model Expense
+ * A single operating expense: amount paid out of a specific payment
+ * channel against a chosen head. The action that creates one debits
+ * the channel atomically so balances stay truthful.
+ */
+export type Expense = $Result.DefaultSelection<Prisma.$ExpensePayload>
+/**
  * Model Table
  * 
  */
@@ -582,6 +597,26 @@ export class PrismaClient<
     * ```
     */
   get supplierPayment(): Prisma.SupplierPaymentDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.expenseHead`: Exposes CRUD operations for the **ExpenseHead** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more ExpenseHeads
+    * const expenseHeads = await prisma.expenseHead.findMany()
+    * ```
+    */
+  get expenseHead(): Prisma.ExpenseHeadDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.expense`: Exposes CRUD operations for the **Expense** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more Expenses
+    * const expenses = await prisma.expense.findMany()
+    * ```
+    */
+  get expense(): Prisma.ExpenseDelegate<ExtArgs, ClientOptions>;
 
   /**
    * `prisma.table`: Exposes CRUD operations for the **Table** model.
@@ -1141,6 +1176,8 @@ export namespace Prisma {
     RecipeIngredient: 'RecipeIngredient',
     InventoryMovement: 'InventoryMovement',
     SupplierPayment: 'SupplierPayment',
+    ExpenseHead: 'ExpenseHead',
+    Expense: 'Expense',
     Table: 'Table',
     Order: 'Order',
     OrderItem: 'OrderItem',
@@ -1167,7 +1204,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "role" | "user" | "session" | "pushSubscription" | "pendingMember" | "paymentChannel" | "paymentTransfer" | "kitchenStation" | "menuCategory" | "menuItem" | "supplier" | "inventoryItem" | "recipeIngredient" | "inventoryMovement" | "supplierPayment" | "table" | "order" | "orderItem" | "kitchenTicket" | "workspace" | "taxConfig" | "fiscalConfig" | "fiscalSubmission" | "shift" | "attendance" | "activity"
+      modelProps: "role" | "user" | "session" | "pushSubscription" | "pendingMember" | "paymentChannel" | "paymentTransfer" | "kitchenStation" | "menuCategory" | "menuItem" | "supplier" | "inventoryItem" | "recipeIngredient" | "inventoryMovement" | "supplierPayment" | "expenseHead" | "expense" | "table" | "order" | "orderItem" | "kitchenTicket" | "workspace" | "taxConfig" | "fiscalConfig" | "fiscalSubmission" | "shift" | "attendance" | "activity"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -2281,6 +2318,154 @@ export namespace Prisma {
           }
         }
       }
+      ExpenseHead: {
+        payload: Prisma.$ExpenseHeadPayload<ExtArgs>
+        fields: Prisma.ExpenseHeadFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.ExpenseHeadFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ExpenseHeadPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.ExpenseHeadFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ExpenseHeadPayload>
+          }
+          findFirst: {
+            args: Prisma.ExpenseHeadFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ExpenseHeadPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.ExpenseHeadFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ExpenseHeadPayload>
+          }
+          findMany: {
+            args: Prisma.ExpenseHeadFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ExpenseHeadPayload>[]
+          }
+          create: {
+            args: Prisma.ExpenseHeadCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ExpenseHeadPayload>
+          }
+          createMany: {
+            args: Prisma.ExpenseHeadCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.ExpenseHeadCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ExpenseHeadPayload>[]
+          }
+          delete: {
+            args: Prisma.ExpenseHeadDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ExpenseHeadPayload>
+          }
+          update: {
+            args: Prisma.ExpenseHeadUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ExpenseHeadPayload>
+          }
+          deleteMany: {
+            args: Prisma.ExpenseHeadDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.ExpenseHeadUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.ExpenseHeadUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ExpenseHeadPayload>[]
+          }
+          upsert: {
+            args: Prisma.ExpenseHeadUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ExpenseHeadPayload>
+          }
+          aggregate: {
+            args: Prisma.ExpenseHeadAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateExpenseHead>
+          }
+          groupBy: {
+            args: Prisma.ExpenseHeadGroupByArgs<ExtArgs>
+            result: $Utils.Optional<ExpenseHeadGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.ExpenseHeadCountArgs<ExtArgs>
+            result: $Utils.Optional<ExpenseHeadCountAggregateOutputType> | number
+          }
+        }
+      }
+      Expense: {
+        payload: Prisma.$ExpensePayload<ExtArgs>
+        fields: Prisma.ExpenseFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.ExpenseFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ExpensePayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.ExpenseFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ExpensePayload>
+          }
+          findFirst: {
+            args: Prisma.ExpenseFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ExpensePayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.ExpenseFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ExpensePayload>
+          }
+          findMany: {
+            args: Prisma.ExpenseFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ExpensePayload>[]
+          }
+          create: {
+            args: Prisma.ExpenseCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ExpensePayload>
+          }
+          createMany: {
+            args: Prisma.ExpenseCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.ExpenseCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ExpensePayload>[]
+          }
+          delete: {
+            args: Prisma.ExpenseDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ExpensePayload>
+          }
+          update: {
+            args: Prisma.ExpenseUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ExpensePayload>
+          }
+          deleteMany: {
+            args: Prisma.ExpenseDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.ExpenseUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.ExpenseUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ExpensePayload>[]
+          }
+          upsert: {
+            args: Prisma.ExpenseUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ExpensePayload>
+          }
+          aggregate: {
+            args: Prisma.ExpenseAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateExpense>
+          }
+          groupBy: {
+            args: Prisma.ExpenseGroupByArgs<ExtArgs>
+            result: $Utils.Optional<ExpenseGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.ExpenseCountArgs<ExtArgs>
+            result: $Utils.Optional<ExpenseCountAggregateOutputType> | number
+          }
+        }
+      }
       Table: {
         payload: Prisma.$TablePayload<ExtArgs>
         fields: Prisma.TableFieldRefs
@@ -3218,6 +3403,8 @@ export namespace Prisma {
     recipeIngredient?: RecipeIngredientOmit
     inventoryMovement?: InventoryMovementOmit
     supplierPayment?: SupplierPaymentOmit
+    expenseHead?: ExpenseHeadOmit
+    expense?: ExpenseOmit
     table?: TableOmit
     order?: OrderOmit
     orderItem?: OrderItemOmit
@@ -3412,6 +3599,7 @@ export namespace Prisma {
     orders: number
     inventoryMovements: number
     supplierPayments: number
+    expenses: number
   }
 
   export type PaymentChannelCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -3420,6 +3608,7 @@ export namespace Prisma {
     orders?: boolean | PaymentChannelCountOutputTypeCountOrdersArgs
     inventoryMovements?: boolean | PaymentChannelCountOutputTypeCountInventoryMovementsArgs
     supplierPayments?: boolean | PaymentChannelCountOutputTypeCountSupplierPaymentsArgs
+    expenses?: boolean | PaymentChannelCountOutputTypeCountExpensesArgs
   }
 
   // Custom InputTypes
@@ -3466,6 +3655,13 @@ export namespace Prisma {
    */
   export type PaymentChannelCountOutputTypeCountSupplierPaymentsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: SupplierPaymentWhereInput
+  }
+
+  /**
+   * PaymentChannelCountOutputType without action
+   */
+  export type PaymentChannelCountOutputTypeCountExpensesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ExpenseWhereInput
   }
 
 
@@ -3666,6 +3862,37 @@ export namespace Prisma {
    */
   export type InventoryItemCountOutputTypeCountMovementsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: InventoryMovementWhereInput
+  }
+
+
+  /**
+   * Count Type ExpenseHeadCountOutputType
+   */
+
+  export type ExpenseHeadCountOutputType = {
+    expenses: number
+  }
+
+  export type ExpenseHeadCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    expenses?: boolean | ExpenseHeadCountOutputTypeCountExpensesArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * ExpenseHeadCountOutputType without action
+   */
+  export type ExpenseHeadCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ExpenseHeadCountOutputType
+     */
+    select?: ExpenseHeadCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * ExpenseHeadCountOutputType without action
+   */
+  export type ExpenseHeadCountOutputTypeCountExpensesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ExpenseWhereInput
   }
 
 
@@ -9589,6 +9816,7 @@ export namespace Prisma {
     orders?: boolean | PaymentChannel$ordersArgs<ExtArgs>
     inventoryMovements?: boolean | PaymentChannel$inventoryMovementsArgs<ExtArgs>
     supplierPayments?: boolean | PaymentChannel$supplierPaymentsArgs<ExtArgs>
+    expenses?: boolean | PaymentChannel$expensesArgs<ExtArgs>
     _count?: boolean | PaymentChannelCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["paymentChannel"]>
 
@@ -9635,6 +9863,7 @@ export namespace Prisma {
     orders?: boolean | PaymentChannel$ordersArgs<ExtArgs>
     inventoryMovements?: boolean | PaymentChannel$inventoryMovementsArgs<ExtArgs>
     supplierPayments?: boolean | PaymentChannel$supplierPaymentsArgs<ExtArgs>
+    expenses?: boolean | PaymentChannel$expensesArgs<ExtArgs>
     _count?: boolean | PaymentChannelCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type PaymentChannelIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
@@ -9658,6 +9887,10 @@ export namespace Prisma {
        * After-the-fact supplier-due payments paid out of this channel.
        */
       supplierPayments: Prisma.$SupplierPaymentPayload<ExtArgs>[]
+      /**
+       * Operational expenses (rent, utilities, etc.) paid out of this channel.
+       */
+      expenses: Prisma.$ExpensePayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -10073,6 +10306,7 @@ export namespace Prisma {
     orders<T extends PaymentChannel$ordersArgs<ExtArgs> = {}>(args?: Subset<T, PaymentChannel$ordersArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$OrderPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     inventoryMovements<T extends PaymentChannel$inventoryMovementsArgs<ExtArgs> = {}>(args?: Subset<T, PaymentChannel$inventoryMovementsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$InventoryMovementPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     supplierPayments<T extends PaymentChannel$supplierPaymentsArgs<ExtArgs> = {}>(args?: Subset<T, PaymentChannel$supplierPaymentsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$SupplierPaymentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    expenses<T extends PaymentChannel$expensesArgs<ExtArgs> = {}>(args?: Subset<T, PaymentChannel$expensesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ExpensePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -10621,6 +10855,30 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: SupplierPaymentScalarFieldEnum | SupplierPaymentScalarFieldEnum[]
+  }
+
+  /**
+   * PaymentChannel.expenses
+   */
+  export type PaymentChannel$expensesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Expense
+     */
+    select?: ExpenseSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Expense
+     */
+    omit?: ExpenseOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ExpenseInclude<ExtArgs> | null
+    where?: ExpenseWhereInput
+    orderBy?: ExpenseOrderByWithRelationInput | ExpenseOrderByWithRelationInput[]
+    cursor?: ExpenseWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: ExpenseScalarFieldEnum | ExpenseScalarFieldEnum[]
   }
 
   /**
@@ -21255,6 +21513,2230 @@ export namespace Prisma {
      * Choose, which related nodes to fetch as well
      */
     include?: SupplierPaymentInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model ExpenseHead
+   */
+
+  export type AggregateExpenseHead = {
+    _count: ExpenseHeadCountAggregateOutputType | null
+    _min: ExpenseHeadMinAggregateOutputType | null
+    _max: ExpenseHeadMaxAggregateOutputType | null
+  }
+
+  export type ExpenseHeadMinAggregateOutputType = {
+    id: string | null
+    name: string | null
+    archived: boolean | null
+    archivedAt: Date | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type ExpenseHeadMaxAggregateOutputType = {
+    id: string | null
+    name: string | null
+    archived: boolean | null
+    archivedAt: Date | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type ExpenseHeadCountAggregateOutputType = {
+    id: number
+    name: number
+    archived: number
+    archivedAt: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type ExpenseHeadMinAggregateInputType = {
+    id?: true
+    name?: true
+    archived?: true
+    archivedAt?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type ExpenseHeadMaxAggregateInputType = {
+    id?: true
+    name?: true
+    archived?: true
+    archivedAt?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type ExpenseHeadCountAggregateInputType = {
+    id?: true
+    name?: true
+    archived?: true
+    archivedAt?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type ExpenseHeadAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ExpenseHead to aggregate.
+     */
+    where?: ExpenseHeadWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ExpenseHeads to fetch.
+     */
+    orderBy?: ExpenseHeadOrderByWithRelationInput | ExpenseHeadOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: ExpenseHeadWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ExpenseHeads from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ExpenseHeads.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned ExpenseHeads
+    **/
+    _count?: true | ExpenseHeadCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: ExpenseHeadMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: ExpenseHeadMaxAggregateInputType
+  }
+
+  export type GetExpenseHeadAggregateType<T extends ExpenseHeadAggregateArgs> = {
+        [P in keyof T & keyof AggregateExpenseHead]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateExpenseHead[P]>
+      : GetScalarType<T[P], AggregateExpenseHead[P]>
+  }
+
+
+
+
+  export type ExpenseHeadGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ExpenseHeadWhereInput
+    orderBy?: ExpenseHeadOrderByWithAggregationInput | ExpenseHeadOrderByWithAggregationInput[]
+    by: ExpenseHeadScalarFieldEnum[] | ExpenseHeadScalarFieldEnum
+    having?: ExpenseHeadScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: ExpenseHeadCountAggregateInputType | true
+    _min?: ExpenseHeadMinAggregateInputType
+    _max?: ExpenseHeadMaxAggregateInputType
+  }
+
+  export type ExpenseHeadGroupByOutputType = {
+    id: string
+    name: string
+    archived: boolean
+    archivedAt: Date | null
+    createdAt: Date
+    updatedAt: Date
+    _count: ExpenseHeadCountAggregateOutputType | null
+    _min: ExpenseHeadMinAggregateOutputType | null
+    _max: ExpenseHeadMaxAggregateOutputType | null
+  }
+
+  type GetExpenseHeadGroupByPayload<T extends ExpenseHeadGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<ExpenseHeadGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof ExpenseHeadGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], ExpenseHeadGroupByOutputType[P]>
+            : GetScalarType<T[P], ExpenseHeadGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type ExpenseHeadSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    name?: boolean
+    archived?: boolean
+    archivedAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    expenses?: boolean | ExpenseHead$expensesArgs<ExtArgs>
+    _count?: boolean | ExpenseHeadCountOutputTypeDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["expenseHead"]>
+
+  export type ExpenseHeadSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    name?: boolean
+    archived?: boolean
+    archivedAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["expenseHead"]>
+
+  export type ExpenseHeadSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    name?: boolean
+    archived?: boolean
+    archivedAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["expenseHead"]>
+
+  export type ExpenseHeadSelectScalar = {
+    id?: boolean
+    name?: boolean
+    archived?: boolean
+    archivedAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type ExpenseHeadOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "archived" | "archivedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["expenseHead"]>
+  export type ExpenseHeadInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    expenses?: boolean | ExpenseHead$expensesArgs<ExtArgs>
+    _count?: boolean | ExpenseHeadCountOutputTypeDefaultArgs<ExtArgs>
+  }
+  export type ExpenseHeadIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
+  export type ExpenseHeadIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
+
+  export type $ExpenseHeadPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "ExpenseHead"
+    objects: {
+      expenses: Prisma.$ExpensePayload<ExtArgs>[]
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      name: string
+      archived: boolean
+      archivedAt: Date | null
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["expenseHead"]>
+    composites: {}
+  }
+
+  type ExpenseHeadGetPayload<S extends boolean | null | undefined | ExpenseHeadDefaultArgs> = $Result.GetResult<Prisma.$ExpenseHeadPayload, S>
+
+  type ExpenseHeadCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<ExpenseHeadFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: ExpenseHeadCountAggregateInputType | true
+    }
+
+  export interface ExpenseHeadDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['ExpenseHead'], meta: { name: 'ExpenseHead' } }
+    /**
+     * Find zero or one ExpenseHead that matches the filter.
+     * @param {ExpenseHeadFindUniqueArgs} args - Arguments to find a ExpenseHead
+     * @example
+     * // Get one ExpenseHead
+     * const expenseHead = await prisma.expenseHead.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends ExpenseHeadFindUniqueArgs>(args: SelectSubset<T, ExpenseHeadFindUniqueArgs<ExtArgs>>): Prisma__ExpenseHeadClient<$Result.GetResult<Prisma.$ExpenseHeadPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one ExpenseHead that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {ExpenseHeadFindUniqueOrThrowArgs} args - Arguments to find a ExpenseHead
+     * @example
+     * // Get one ExpenseHead
+     * const expenseHead = await prisma.expenseHead.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends ExpenseHeadFindUniqueOrThrowArgs>(args: SelectSubset<T, ExpenseHeadFindUniqueOrThrowArgs<ExtArgs>>): Prisma__ExpenseHeadClient<$Result.GetResult<Prisma.$ExpenseHeadPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ExpenseHead that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ExpenseHeadFindFirstArgs} args - Arguments to find a ExpenseHead
+     * @example
+     * // Get one ExpenseHead
+     * const expenseHead = await prisma.expenseHead.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends ExpenseHeadFindFirstArgs>(args?: SelectSubset<T, ExpenseHeadFindFirstArgs<ExtArgs>>): Prisma__ExpenseHeadClient<$Result.GetResult<Prisma.$ExpenseHeadPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ExpenseHead that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ExpenseHeadFindFirstOrThrowArgs} args - Arguments to find a ExpenseHead
+     * @example
+     * // Get one ExpenseHead
+     * const expenseHead = await prisma.expenseHead.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends ExpenseHeadFindFirstOrThrowArgs>(args?: SelectSubset<T, ExpenseHeadFindFirstOrThrowArgs<ExtArgs>>): Prisma__ExpenseHeadClient<$Result.GetResult<Prisma.$ExpenseHeadPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more ExpenseHeads that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ExpenseHeadFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all ExpenseHeads
+     * const expenseHeads = await prisma.expenseHead.findMany()
+     * 
+     * // Get first 10 ExpenseHeads
+     * const expenseHeads = await prisma.expenseHead.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const expenseHeadWithIdOnly = await prisma.expenseHead.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends ExpenseHeadFindManyArgs>(args?: SelectSubset<T, ExpenseHeadFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ExpenseHeadPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a ExpenseHead.
+     * @param {ExpenseHeadCreateArgs} args - Arguments to create a ExpenseHead.
+     * @example
+     * // Create one ExpenseHead
+     * const ExpenseHead = await prisma.expenseHead.create({
+     *   data: {
+     *     // ... data to create a ExpenseHead
+     *   }
+     * })
+     * 
+     */
+    create<T extends ExpenseHeadCreateArgs>(args: SelectSubset<T, ExpenseHeadCreateArgs<ExtArgs>>): Prisma__ExpenseHeadClient<$Result.GetResult<Prisma.$ExpenseHeadPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many ExpenseHeads.
+     * @param {ExpenseHeadCreateManyArgs} args - Arguments to create many ExpenseHeads.
+     * @example
+     * // Create many ExpenseHeads
+     * const expenseHead = await prisma.expenseHead.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends ExpenseHeadCreateManyArgs>(args?: SelectSubset<T, ExpenseHeadCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many ExpenseHeads and returns the data saved in the database.
+     * @param {ExpenseHeadCreateManyAndReturnArgs} args - Arguments to create many ExpenseHeads.
+     * @example
+     * // Create many ExpenseHeads
+     * const expenseHead = await prisma.expenseHead.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many ExpenseHeads and only return the `id`
+     * const expenseHeadWithIdOnly = await prisma.expenseHead.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends ExpenseHeadCreateManyAndReturnArgs>(args?: SelectSubset<T, ExpenseHeadCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ExpenseHeadPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a ExpenseHead.
+     * @param {ExpenseHeadDeleteArgs} args - Arguments to delete one ExpenseHead.
+     * @example
+     * // Delete one ExpenseHead
+     * const ExpenseHead = await prisma.expenseHead.delete({
+     *   where: {
+     *     // ... filter to delete one ExpenseHead
+     *   }
+     * })
+     * 
+     */
+    delete<T extends ExpenseHeadDeleteArgs>(args: SelectSubset<T, ExpenseHeadDeleteArgs<ExtArgs>>): Prisma__ExpenseHeadClient<$Result.GetResult<Prisma.$ExpenseHeadPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one ExpenseHead.
+     * @param {ExpenseHeadUpdateArgs} args - Arguments to update one ExpenseHead.
+     * @example
+     * // Update one ExpenseHead
+     * const expenseHead = await prisma.expenseHead.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends ExpenseHeadUpdateArgs>(args: SelectSubset<T, ExpenseHeadUpdateArgs<ExtArgs>>): Prisma__ExpenseHeadClient<$Result.GetResult<Prisma.$ExpenseHeadPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more ExpenseHeads.
+     * @param {ExpenseHeadDeleteManyArgs} args - Arguments to filter ExpenseHeads to delete.
+     * @example
+     * // Delete a few ExpenseHeads
+     * const { count } = await prisma.expenseHead.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends ExpenseHeadDeleteManyArgs>(args?: SelectSubset<T, ExpenseHeadDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ExpenseHeads.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ExpenseHeadUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many ExpenseHeads
+     * const expenseHead = await prisma.expenseHead.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends ExpenseHeadUpdateManyArgs>(args: SelectSubset<T, ExpenseHeadUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ExpenseHeads and returns the data updated in the database.
+     * @param {ExpenseHeadUpdateManyAndReturnArgs} args - Arguments to update many ExpenseHeads.
+     * @example
+     * // Update many ExpenseHeads
+     * const expenseHead = await prisma.expenseHead.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more ExpenseHeads and only return the `id`
+     * const expenseHeadWithIdOnly = await prisma.expenseHead.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends ExpenseHeadUpdateManyAndReturnArgs>(args: SelectSubset<T, ExpenseHeadUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ExpenseHeadPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one ExpenseHead.
+     * @param {ExpenseHeadUpsertArgs} args - Arguments to update or create a ExpenseHead.
+     * @example
+     * // Update or create a ExpenseHead
+     * const expenseHead = await prisma.expenseHead.upsert({
+     *   create: {
+     *     // ... data to create a ExpenseHead
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the ExpenseHead we want to update
+     *   }
+     * })
+     */
+    upsert<T extends ExpenseHeadUpsertArgs>(args: SelectSubset<T, ExpenseHeadUpsertArgs<ExtArgs>>): Prisma__ExpenseHeadClient<$Result.GetResult<Prisma.$ExpenseHeadPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of ExpenseHeads.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ExpenseHeadCountArgs} args - Arguments to filter ExpenseHeads to count.
+     * @example
+     * // Count the number of ExpenseHeads
+     * const count = await prisma.expenseHead.count({
+     *   where: {
+     *     // ... the filter for the ExpenseHeads we want to count
+     *   }
+     * })
+    **/
+    count<T extends ExpenseHeadCountArgs>(
+      args?: Subset<T, ExpenseHeadCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], ExpenseHeadCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a ExpenseHead.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ExpenseHeadAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends ExpenseHeadAggregateArgs>(args: Subset<T, ExpenseHeadAggregateArgs>): Prisma.PrismaPromise<GetExpenseHeadAggregateType<T>>
+
+    /**
+     * Group by ExpenseHead.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ExpenseHeadGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends ExpenseHeadGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: ExpenseHeadGroupByArgs['orderBy'] }
+        : { orderBy?: ExpenseHeadGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, ExpenseHeadGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetExpenseHeadGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the ExpenseHead model
+   */
+  readonly fields: ExpenseHeadFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for ExpenseHead.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__ExpenseHeadClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    expenses<T extends ExpenseHead$expensesArgs<ExtArgs> = {}>(args?: Subset<T, ExpenseHead$expensesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ExpensePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the ExpenseHead model
+   */
+  interface ExpenseHeadFieldRefs {
+    readonly id: FieldRef<"ExpenseHead", 'String'>
+    readonly name: FieldRef<"ExpenseHead", 'String'>
+    readonly archived: FieldRef<"ExpenseHead", 'Boolean'>
+    readonly archivedAt: FieldRef<"ExpenseHead", 'DateTime'>
+    readonly createdAt: FieldRef<"ExpenseHead", 'DateTime'>
+    readonly updatedAt: FieldRef<"ExpenseHead", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * ExpenseHead findUnique
+   */
+  export type ExpenseHeadFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ExpenseHead
+     */
+    select?: ExpenseHeadSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ExpenseHead
+     */
+    omit?: ExpenseHeadOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ExpenseHeadInclude<ExtArgs> | null
+    /**
+     * Filter, which ExpenseHead to fetch.
+     */
+    where: ExpenseHeadWhereUniqueInput
+  }
+
+  /**
+   * ExpenseHead findUniqueOrThrow
+   */
+  export type ExpenseHeadFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ExpenseHead
+     */
+    select?: ExpenseHeadSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ExpenseHead
+     */
+    omit?: ExpenseHeadOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ExpenseHeadInclude<ExtArgs> | null
+    /**
+     * Filter, which ExpenseHead to fetch.
+     */
+    where: ExpenseHeadWhereUniqueInput
+  }
+
+  /**
+   * ExpenseHead findFirst
+   */
+  export type ExpenseHeadFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ExpenseHead
+     */
+    select?: ExpenseHeadSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ExpenseHead
+     */
+    omit?: ExpenseHeadOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ExpenseHeadInclude<ExtArgs> | null
+    /**
+     * Filter, which ExpenseHead to fetch.
+     */
+    where?: ExpenseHeadWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ExpenseHeads to fetch.
+     */
+    orderBy?: ExpenseHeadOrderByWithRelationInput | ExpenseHeadOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ExpenseHeads.
+     */
+    cursor?: ExpenseHeadWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ExpenseHeads from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ExpenseHeads.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ExpenseHeads.
+     */
+    distinct?: ExpenseHeadScalarFieldEnum | ExpenseHeadScalarFieldEnum[]
+  }
+
+  /**
+   * ExpenseHead findFirstOrThrow
+   */
+  export type ExpenseHeadFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ExpenseHead
+     */
+    select?: ExpenseHeadSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ExpenseHead
+     */
+    omit?: ExpenseHeadOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ExpenseHeadInclude<ExtArgs> | null
+    /**
+     * Filter, which ExpenseHead to fetch.
+     */
+    where?: ExpenseHeadWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ExpenseHeads to fetch.
+     */
+    orderBy?: ExpenseHeadOrderByWithRelationInput | ExpenseHeadOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ExpenseHeads.
+     */
+    cursor?: ExpenseHeadWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ExpenseHeads from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ExpenseHeads.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ExpenseHeads.
+     */
+    distinct?: ExpenseHeadScalarFieldEnum | ExpenseHeadScalarFieldEnum[]
+  }
+
+  /**
+   * ExpenseHead findMany
+   */
+  export type ExpenseHeadFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ExpenseHead
+     */
+    select?: ExpenseHeadSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ExpenseHead
+     */
+    omit?: ExpenseHeadOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ExpenseHeadInclude<ExtArgs> | null
+    /**
+     * Filter, which ExpenseHeads to fetch.
+     */
+    where?: ExpenseHeadWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ExpenseHeads to fetch.
+     */
+    orderBy?: ExpenseHeadOrderByWithRelationInput | ExpenseHeadOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing ExpenseHeads.
+     */
+    cursor?: ExpenseHeadWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ExpenseHeads from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ExpenseHeads.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ExpenseHeads.
+     */
+    distinct?: ExpenseHeadScalarFieldEnum | ExpenseHeadScalarFieldEnum[]
+  }
+
+  /**
+   * ExpenseHead create
+   */
+  export type ExpenseHeadCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ExpenseHead
+     */
+    select?: ExpenseHeadSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ExpenseHead
+     */
+    omit?: ExpenseHeadOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ExpenseHeadInclude<ExtArgs> | null
+    /**
+     * The data needed to create a ExpenseHead.
+     */
+    data: XOR<ExpenseHeadCreateInput, ExpenseHeadUncheckedCreateInput>
+  }
+
+  /**
+   * ExpenseHead createMany
+   */
+  export type ExpenseHeadCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many ExpenseHeads.
+     */
+    data: ExpenseHeadCreateManyInput | ExpenseHeadCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * ExpenseHead createManyAndReturn
+   */
+  export type ExpenseHeadCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ExpenseHead
+     */
+    select?: ExpenseHeadSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ExpenseHead
+     */
+    omit?: ExpenseHeadOmit<ExtArgs> | null
+    /**
+     * The data used to create many ExpenseHeads.
+     */
+    data: ExpenseHeadCreateManyInput | ExpenseHeadCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * ExpenseHead update
+   */
+  export type ExpenseHeadUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ExpenseHead
+     */
+    select?: ExpenseHeadSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ExpenseHead
+     */
+    omit?: ExpenseHeadOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ExpenseHeadInclude<ExtArgs> | null
+    /**
+     * The data needed to update a ExpenseHead.
+     */
+    data: XOR<ExpenseHeadUpdateInput, ExpenseHeadUncheckedUpdateInput>
+    /**
+     * Choose, which ExpenseHead to update.
+     */
+    where: ExpenseHeadWhereUniqueInput
+  }
+
+  /**
+   * ExpenseHead updateMany
+   */
+  export type ExpenseHeadUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update ExpenseHeads.
+     */
+    data: XOR<ExpenseHeadUpdateManyMutationInput, ExpenseHeadUncheckedUpdateManyInput>
+    /**
+     * Filter which ExpenseHeads to update
+     */
+    where?: ExpenseHeadWhereInput
+    /**
+     * Limit how many ExpenseHeads to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * ExpenseHead updateManyAndReturn
+   */
+  export type ExpenseHeadUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ExpenseHead
+     */
+    select?: ExpenseHeadSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ExpenseHead
+     */
+    omit?: ExpenseHeadOmit<ExtArgs> | null
+    /**
+     * The data used to update ExpenseHeads.
+     */
+    data: XOR<ExpenseHeadUpdateManyMutationInput, ExpenseHeadUncheckedUpdateManyInput>
+    /**
+     * Filter which ExpenseHeads to update
+     */
+    where?: ExpenseHeadWhereInput
+    /**
+     * Limit how many ExpenseHeads to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * ExpenseHead upsert
+   */
+  export type ExpenseHeadUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ExpenseHead
+     */
+    select?: ExpenseHeadSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ExpenseHead
+     */
+    omit?: ExpenseHeadOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ExpenseHeadInclude<ExtArgs> | null
+    /**
+     * The filter to search for the ExpenseHead to update in case it exists.
+     */
+    where: ExpenseHeadWhereUniqueInput
+    /**
+     * In case the ExpenseHead found by the `where` argument doesn't exist, create a new ExpenseHead with this data.
+     */
+    create: XOR<ExpenseHeadCreateInput, ExpenseHeadUncheckedCreateInput>
+    /**
+     * In case the ExpenseHead was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<ExpenseHeadUpdateInput, ExpenseHeadUncheckedUpdateInput>
+  }
+
+  /**
+   * ExpenseHead delete
+   */
+  export type ExpenseHeadDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ExpenseHead
+     */
+    select?: ExpenseHeadSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ExpenseHead
+     */
+    omit?: ExpenseHeadOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ExpenseHeadInclude<ExtArgs> | null
+    /**
+     * Filter which ExpenseHead to delete.
+     */
+    where: ExpenseHeadWhereUniqueInput
+  }
+
+  /**
+   * ExpenseHead deleteMany
+   */
+  export type ExpenseHeadDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ExpenseHeads to delete
+     */
+    where?: ExpenseHeadWhereInput
+    /**
+     * Limit how many ExpenseHeads to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * ExpenseHead.expenses
+   */
+  export type ExpenseHead$expensesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Expense
+     */
+    select?: ExpenseSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Expense
+     */
+    omit?: ExpenseOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ExpenseInclude<ExtArgs> | null
+    where?: ExpenseWhereInput
+    orderBy?: ExpenseOrderByWithRelationInput | ExpenseOrderByWithRelationInput[]
+    cursor?: ExpenseWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: ExpenseScalarFieldEnum | ExpenseScalarFieldEnum[]
+  }
+
+  /**
+   * ExpenseHead without action
+   */
+  export type ExpenseHeadDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ExpenseHead
+     */
+    select?: ExpenseHeadSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ExpenseHead
+     */
+    omit?: ExpenseHeadOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ExpenseHeadInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model Expense
+   */
+
+  export type AggregateExpense = {
+    _count: ExpenseCountAggregateOutputType | null
+    _avg: ExpenseAvgAggregateOutputType | null
+    _sum: ExpenseSumAggregateOutputType | null
+    _min: ExpenseMinAggregateOutputType | null
+    _max: ExpenseMaxAggregateOutputType | null
+  }
+
+  export type ExpenseAvgAggregateOutputType = {
+    amount: Decimal | null
+  }
+
+  export type ExpenseSumAggregateOutputType = {
+    amount: Decimal | null
+  }
+
+  export type ExpenseMinAggregateOutputType = {
+    id: string | null
+    expenseHeadId: string | null
+    paymentChannelId: string | null
+    amount: Decimal | null
+    detail: string | null
+    occurredAt: Date | null
+    createdAt: Date | null
+  }
+
+  export type ExpenseMaxAggregateOutputType = {
+    id: string | null
+    expenseHeadId: string | null
+    paymentChannelId: string | null
+    amount: Decimal | null
+    detail: string | null
+    occurredAt: Date | null
+    createdAt: Date | null
+  }
+
+  export type ExpenseCountAggregateOutputType = {
+    id: number
+    expenseHeadId: number
+    paymentChannelId: number
+    amount: number
+    detail: number
+    occurredAt: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type ExpenseAvgAggregateInputType = {
+    amount?: true
+  }
+
+  export type ExpenseSumAggregateInputType = {
+    amount?: true
+  }
+
+  export type ExpenseMinAggregateInputType = {
+    id?: true
+    expenseHeadId?: true
+    paymentChannelId?: true
+    amount?: true
+    detail?: true
+    occurredAt?: true
+    createdAt?: true
+  }
+
+  export type ExpenseMaxAggregateInputType = {
+    id?: true
+    expenseHeadId?: true
+    paymentChannelId?: true
+    amount?: true
+    detail?: true
+    occurredAt?: true
+    createdAt?: true
+  }
+
+  export type ExpenseCountAggregateInputType = {
+    id?: true
+    expenseHeadId?: true
+    paymentChannelId?: true
+    amount?: true
+    detail?: true
+    occurredAt?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type ExpenseAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which Expense to aggregate.
+     */
+    where?: ExpenseWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of Expenses to fetch.
+     */
+    orderBy?: ExpenseOrderByWithRelationInput | ExpenseOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: ExpenseWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` Expenses from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` Expenses.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned Expenses
+    **/
+    _count?: true | ExpenseCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: ExpenseAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: ExpenseSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: ExpenseMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: ExpenseMaxAggregateInputType
+  }
+
+  export type GetExpenseAggregateType<T extends ExpenseAggregateArgs> = {
+        [P in keyof T & keyof AggregateExpense]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateExpense[P]>
+      : GetScalarType<T[P], AggregateExpense[P]>
+  }
+
+
+
+
+  export type ExpenseGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ExpenseWhereInput
+    orderBy?: ExpenseOrderByWithAggregationInput | ExpenseOrderByWithAggregationInput[]
+    by: ExpenseScalarFieldEnum[] | ExpenseScalarFieldEnum
+    having?: ExpenseScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: ExpenseCountAggregateInputType | true
+    _avg?: ExpenseAvgAggregateInputType
+    _sum?: ExpenseSumAggregateInputType
+    _min?: ExpenseMinAggregateInputType
+    _max?: ExpenseMaxAggregateInputType
+  }
+
+  export type ExpenseGroupByOutputType = {
+    id: string
+    expenseHeadId: string
+    paymentChannelId: string
+    amount: Decimal
+    detail: string | null
+    occurredAt: Date
+    createdAt: Date
+    _count: ExpenseCountAggregateOutputType | null
+    _avg: ExpenseAvgAggregateOutputType | null
+    _sum: ExpenseSumAggregateOutputType | null
+    _min: ExpenseMinAggregateOutputType | null
+    _max: ExpenseMaxAggregateOutputType | null
+  }
+
+  type GetExpenseGroupByPayload<T extends ExpenseGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<ExpenseGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof ExpenseGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], ExpenseGroupByOutputType[P]>
+            : GetScalarType<T[P], ExpenseGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type ExpenseSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    expenseHeadId?: boolean
+    paymentChannelId?: boolean
+    amount?: boolean
+    detail?: boolean
+    occurredAt?: boolean
+    createdAt?: boolean
+    expenseHead?: boolean | ExpenseHeadDefaultArgs<ExtArgs>
+    paymentChannel?: boolean | PaymentChannelDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["expense"]>
+
+  export type ExpenseSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    expenseHeadId?: boolean
+    paymentChannelId?: boolean
+    amount?: boolean
+    detail?: boolean
+    occurredAt?: boolean
+    createdAt?: boolean
+    expenseHead?: boolean | ExpenseHeadDefaultArgs<ExtArgs>
+    paymentChannel?: boolean | PaymentChannelDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["expense"]>
+
+  export type ExpenseSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    expenseHeadId?: boolean
+    paymentChannelId?: boolean
+    amount?: boolean
+    detail?: boolean
+    occurredAt?: boolean
+    createdAt?: boolean
+    expenseHead?: boolean | ExpenseHeadDefaultArgs<ExtArgs>
+    paymentChannel?: boolean | PaymentChannelDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["expense"]>
+
+  export type ExpenseSelectScalar = {
+    id?: boolean
+    expenseHeadId?: boolean
+    paymentChannelId?: boolean
+    amount?: boolean
+    detail?: boolean
+    occurredAt?: boolean
+    createdAt?: boolean
+  }
+
+  export type ExpenseOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "expenseHeadId" | "paymentChannelId" | "amount" | "detail" | "occurredAt" | "createdAt", ExtArgs["result"]["expense"]>
+  export type ExpenseInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    expenseHead?: boolean | ExpenseHeadDefaultArgs<ExtArgs>
+    paymentChannel?: boolean | PaymentChannelDefaultArgs<ExtArgs>
+  }
+  export type ExpenseIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    expenseHead?: boolean | ExpenseHeadDefaultArgs<ExtArgs>
+    paymentChannel?: boolean | PaymentChannelDefaultArgs<ExtArgs>
+  }
+  export type ExpenseIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    expenseHead?: boolean | ExpenseHeadDefaultArgs<ExtArgs>
+    paymentChannel?: boolean | PaymentChannelDefaultArgs<ExtArgs>
+  }
+
+  export type $ExpensePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "Expense"
+    objects: {
+      expenseHead: Prisma.$ExpenseHeadPayload<ExtArgs>
+      paymentChannel: Prisma.$PaymentChannelPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      expenseHeadId: string
+      paymentChannelId: string
+      amount: Prisma.Decimal
+      detail: string | null
+      /**
+       * Business date the spending happened on. Separate from `createdAt`
+       * so an operator can backfill last week's expense without it
+       * landing on today's report.
+       */
+      occurredAt: Date
+      createdAt: Date
+    }, ExtArgs["result"]["expense"]>
+    composites: {}
+  }
+
+  type ExpenseGetPayload<S extends boolean | null | undefined | ExpenseDefaultArgs> = $Result.GetResult<Prisma.$ExpensePayload, S>
+
+  type ExpenseCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<ExpenseFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: ExpenseCountAggregateInputType | true
+    }
+
+  export interface ExpenseDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['Expense'], meta: { name: 'Expense' } }
+    /**
+     * Find zero or one Expense that matches the filter.
+     * @param {ExpenseFindUniqueArgs} args - Arguments to find a Expense
+     * @example
+     * // Get one Expense
+     * const expense = await prisma.expense.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends ExpenseFindUniqueArgs>(args: SelectSubset<T, ExpenseFindUniqueArgs<ExtArgs>>): Prisma__ExpenseClient<$Result.GetResult<Prisma.$ExpensePayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one Expense that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {ExpenseFindUniqueOrThrowArgs} args - Arguments to find a Expense
+     * @example
+     * // Get one Expense
+     * const expense = await prisma.expense.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends ExpenseFindUniqueOrThrowArgs>(args: SelectSubset<T, ExpenseFindUniqueOrThrowArgs<ExtArgs>>): Prisma__ExpenseClient<$Result.GetResult<Prisma.$ExpensePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first Expense that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ExpenseFindFirstArgs} args - Arguments to find a Expense
+     * @example
+     * // Get one Expense
+     * const expense = await prisma.expense.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends ExpenseFindFirstArgs>(args?: SelectSubset<T, ExpenseFindFirstArgs<ExtArgs>>): Prisma__ExpenseClient<$Result.GetResult<Prisma.$ExpensePayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first Expense that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ExpenseFindFirstOrThrowArgs} args - Arguments to find a Expense
+     * @example
+     * // Get one Expense
+     * const expense = await prisma.expense.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends ExpenseFindFirstOrThrowArgs>(args?: SelectSubset<T, ExpenseFindFirstOrThrowArgs<ExtArgs>>): Prisma__ExpenseClient<$Result.GetResult<Prisma.$ExpensePayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more Expenses that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ExpenseFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all Expenses
+     * const expenses = await prisma.expense.findMany()
+     * 
+     * // Get first 10 Expenses
+     * const expenses = await prisma.expense.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const expenseWithIdOnly = await prisma.expense.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends ExpenseFindManyArgs>(args?: SelectSubset<T, ExpenseFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ExpensePayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a Expense.
+     * @param {ExpenseCreateArgs} args - Arguments to create a Expense.
+     * @example
+     * // Create one Expense
+     * const Expense = await prisma.expense.create({
+     *   data: {
+     *     // ... data to create a Expense
+     *   }
+     * })
+     * 
+     */
+    create<T extends ExpenseCreateArgs>(args: SelectSubset<T, ExpenseCreateArgs<ExtArgs>>): Prisma__ExpenseClient<$Result.GetResult<Prisma.$ExpensePayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many Expenses.
+     * @param {ExpenseCreateManyArgs} args - Arguments to create many Expenses.
+     * @example
+     * // Create many Expenses
+     * const expense = await prisma.expense.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends ExpenseCreateManyArgs>(args?: SelectSubset<T, ExpenseCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many Expenses and returns the data saved in the database.
+     * @param {ExpenseCreateManyAndReturnArgs} args - Arguments to create many Expenses.
+     * @example
+     * // Create many Expenses
+     * const expense = await prisma.expense.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many Expenses and only return the `id`
+     * const expenseWithIdOnly = await prisma.expense.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends ExpenseCreateManyAndReturnArgs>(args?: SelectSubset<T, ExpenseCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ExpensePayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a Expense.
+     * @param {ExpenseDeleteArgs} args - Arguments to delete one Expense.
+     * @example
+     * // Delete one Expense
+     * const Expense = await prisma.expense.delete({
+     *   where: {
+     *     // ... filter to delete one Expense
+     *   }
+     * })
+     * 
+     */
+    delete<T extends ExpenseDeleteArgs>(args: SelectSubset<T, ExpenseDeleteArgs<ExtArgs>>): Prisma__ExpenseClient<$Result.GetResult<Prisma.$ExpensePayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one Expense.
+     * @param {ExpenseUpdateArgs} args - Arguments to update one Expense.
+     * @example
+     * // Update one Expense
+     * const expense = await prisma.expense.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends ExpenseUpdateArgs>(args: SelectSubset<T, ExpenseUpdateArgs<ExtArgs>>): Prisma__ExpenseClient<$Result.GetResult<Prisma.$ExpensePayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more Expenses.
+     * @param {ExpenseDeleteManyArgs} args - Arguments to filter Expenses to delete.
+     * @example
+     * // Delete a few Expenses
+     * const { count } = await prisma.expense.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends ExpenseDeleteManyArgs>(args?: SelectSubset<T, ExpenseDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Expenses.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ExpenseUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many Expenses
+     * const expense = await prisma.expense.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends ExpenseUpdateManyArgs>(args: SelectSubset<T, ExpenseUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Expenses and returns the data updated in the database.
+     * @param {ExpenseUpdateManyAndReturnArgs} args - Arguments to update many Expenses.
+     * @example
+     * // Update many Expenses
+     * const expense = await prisma.expense.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more Expenses and only return the `id`
+     * const expenseWithIdOnly = await prisma.expense.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends ExpenseUpdateManyAndReturnArgs>(args: SelectSubset<T, ExpenseUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ExpensePayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one Expense.
+     * @param {ExpenseUpsertArgs} args - Arguments to update or create a Expense.
+     * @example
+     * // Update or create a Expense
+     * const expense = await prisma.expense.upsert({
+     *   create: {
+     *     // ... data to create a Expense
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the Expense we want to update
+     *   }
+     * })
+     */
+    upsert<T extends ExpenseUpsertArgs>(args: SelectSubset<T, ExpenseUpsertArgs<ExtArgs>>): Prisma__ExpenseClient<$Result.GetResult<Prisma.$ExpensePayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of Expenses.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ExpenseCountArgs} args - Arguments to filter Expenses to count.
+     * @example
+     * // Count the number of Expenses
+     * const count = await prisma.expense.count({
+     *   where: {
+     *     // ... the filter for the Expenses we want to count
+     *   }
+     * })
+    **/
+    count<T extends ExpenseCountArgs>(
+      args?: Subset<T, ExpenseCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], ExpenseCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a Expense.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ExpenseAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends ExpenseAggregateArgs>(args: Subset<T, ExpenseAggregateArgs>): Prisma.PrismaPromise<GetExpenseAggregateType<T>>
+
+    /**
+     * Group by Expense.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ExpenseGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends ExpenseGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: ExpenseGroupByArgs['orderBy'] }
+        : { orderBy?: ExpenseGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, ExpenseGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetExpenseGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the Expense model
+   */
+  readonly fields: ExpenseFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for Expense.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__ExpenseClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    expenseHead<T extends ExpenseHeadDefaultArgs<ExtArgs> = {}>(args?: Subset<T, ExpenseHeadDefaultArgs<ExtArgs>>): Prisma__ExpenseHeadClient<$Result.GetResult<Prisma.$ExpenseHeadPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    paymentChannel<T extends PaymentChannelDefaultArgs<ExtArgs> = {}>(args?: Subset<T, PaymentChannelDefaultArgs<ExtArgs>>): Prisma__PaymentChannelClient<$Result.GetResult<Prisma.$PaymentChannelPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the Expense model
+   */
+  interface ExpenseFieldRefs {
+    readonly id: FieldRef<"Expense", 'String'>
+    readonly expenseHeadId: FieldRef<"Expense", 'String'>
+    readonly paymentChannelId: FieldRef<"Expense", 'String'>
+    readonly amount: FieldRef<"Expense", 'Decimal'>
+    readonly detail: FieldRef<"Expense", 'String'>
+    readonly occurredAt: FieldRef<"Expense", 'DateTime'>
+    readonly createdAt: FieldRef<"Expense", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * Expense findUnique
+   */
+  export type ExpenseFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Expense
+     */
+    select?: ExpenseSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Expense
+     */
+    omit?: ExpenseOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ExpenseInclude<ExtArgs> | null
+    /**
+     * Filter, which Expense to fetch.
+     */
+    where: ExpenseWhereUniqueInput
+  }
+
+  /**
+   * Expense findUniqueOrThrow
+   */
+  export type ExpenseFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Expense
+     */
+    select?: ExpenseSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Expense
+     */
+    omit?: ExpenseOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ExpenseInclude<ExtArgs> | null
+    /**
+     * Filter, which Expense to fetch.
+     */
+    where: ExpenseWhereUniqueInput
+  }
+
+  /**
+   * Expense findFirst
+   */
+  export type ExpenseFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Expense
+     */
+    select?: ExpenseSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Expense
+     */
+    omit?: ExpenseOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ExpenseInclude<ExtArgs> | null
+    /**
+     * Filter, which Expense to fetch.
+     */
+    where?: ExpenseWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of Expenses to fetch.
+     */
+    orderBy?: ExpenseOrderByWithRelationInput | ExpenseOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for Expenses.
+     */
+    cursor?: ExpenseWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` Expenses from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` Expenses.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of Expenses.
+     */
+    distinct?: ExpenseScalarFieldEnum | ExpenseScalarFieldEnum[]
+  }
+
+  /**
+   * Expense findFirstOrThrow
+   */
+  export type ExpenseFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Expense
+     */
+    select?: ExpenseSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Expense
+     */
+    omit?: ExpenseOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ExpenseInclude<ExtArgs> | null
+    /**
+     * Filter, which Expense to fetch.
+     */
+    where?: ExpenseWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of Expenses to fetch.
+     */
+    orderBy?: ExpenseOrderByWithRelationInput | ExpenseOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for Expenses.
+     */
+    cursor?: ExpenseWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` Expenses from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` Expenses.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of Expenses.
+     */
+    distinct?: ExpenseScalarFieldEnum | ExpenseScalarFieldEnum[]
+  }
+
+  /**
+   * Expense findMany
+   */
+  export type ExpenseFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Expense
+     */
+    select?: ExpenseSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Expense
+     */
+    omit?: ExpenseOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ExpenseInclude<ExtArgs> | null
+    /**
+     * Filter, which Expenses to fetch.
+     */
+    where?: ExpenseWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of Expenses to fetch.
+     */
+    orderBy?: ExpenseOrderByWithRelationInput | ExpenseOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing Expenses.
+     */
+    cursor?: ExpenseWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` Expenses from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` Expenses.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of Expenses.
+     */
+    distinct?: ExpenseScalarFieldEnum | ExpenseScalarFieldEnum[]
+  }
+
+  /**
+   * Expense create
+   */
+  export type ExpenseCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Expense
+     */
+    select?: ExpenseSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Expense
+     */
+    omit?: ExpenseOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ExpenseInclude<ExtArgs> | null
+    /**
+     * The data needed to create a Expense.
+     */
+    data: XOR<ExpenseCreateInput, ExpenseUncheckedCreateInput>
+  }
+
+  /**
+   * Expense createMany
+   */
+  export type ExpenseCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many Expenses.
+     */
+    data: ExpenseCreateManyInput | ExpenseCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * Expense createManyAndReturn
+   */
+  export type ExpenseCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Expense
+     */
+    select?: ExpenseSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the Expense
+     */
+    omit?: ExpenseOmit<ExtArgs> | null
+    /**
+     * The data used to create many Expenses.
+     */
+    data: ExpenseCreateManyInput | ExpenseCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ExpenseIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * Expense update
+   */
+  export type ExpenseUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Expense
+     */
+    select?: ExpenseSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Expense
+     */
+    omit?: ExpenseOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ExpenseInclude<ExtArgs> | null
+    /**
+     * The data needed to update a Expense.
+     */
+    data: XOR<ExpenseUpdateInput, ExpenseUncheckedUpdateInput>
+    /**
+     * Choose, which Expense to update.
+     */
+    where: ExpenseWhereUniqueInput
+  }
+
+  /**
+   * Expense updateMany
+   */
+  export type ExpenseUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update Expenses.
+     */
+    data: XOR<ExpenseUpdateManyMutationInput, ExpenseUncheckedUpdateManyInput>
+    /**
+     * Filter which Expenses to update
+     */
+    where?: ExpenseWhereInput
+    /**
+     * Limit how many Expenses to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * Expense updateManyAndReturn
+   */
+  export type ExpenseUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Expense
+     */
+    select?: ExpenseSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the Expense
+     */
+    omit?: ExpenseOmit<ExtArgs> | null
+    /**
+     * The data used to update Expenses.
+     */
+    data: XOR<ExpenseUpdateManyMutationInput, ExpenseUncheckedUpdateManyInput>
+    /**
+     * Filter which Expenses to update
+     */
+    where?: ExpenseWhereInput
+    /**
+     * Limit how many Expenses to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ExpenseIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * Expense upsert
+   */
+  export type ExpenseUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Expense
+     */
+    select?: ExpenseSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Expense
+     */
+    omit?: ExpenseOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ExpenseInclude<ExtArgs> | null
+    /**
+     * The filter to search for the Expense to update in case it exists.
+     */
+    where: ExpenseWhereUniqueInput
+    /**
+     * In case the Expense found by the `where` argument doesn't exist, create a new Expense with this data.
+     */
+    create: XOR<ExpenseCreateInput, ExpenseUncheckedCreateInput>
+    /**
+     * In case the Expense was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<ExpenseUpdateInput, ExpenseUncheckedUpdateInput>
+  }
+
+  /**
+   * Expense delete
+   */
+  export type ExpenseDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Expense
+     */
+    select?: ExpenseSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Expense
+     */
+    omit?: ExpenseOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ExpenseInclude<ExtArgs> | null
+    /**
+     * Filter which Expense to delete.
+     */
+    where: ExpenseWhereUniqueInput
+  }
+
+  /**
+   * Expense deleteMany
+   */
+  export type ExpenseDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which Expenses to delete
+     */
+    where?: ExpenseWhereInput
+    /**
+     * Limit how many Expenses to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * Expense without action
+   */
+  export type ExpenseDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Expense
+     */
+    select?: ExpenseSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Expense
+     */
+    omit?: ExpenseOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ExpenseInclude<ExtArgs> | null
   }
 
 
@@ -34321,6 +36803,31 @@ export namespace Prisma {
   export type SupplierPaymentScalarFieldEnum = (typeof SupplierPaymentScalarFieldEnum)[keyof typeof SupplierPaymentScalarFieldEnum]
 
 
+  export const ExpenseHeadScalarFieldEnum: {
+    id: 'id',
+    name: 'name',
+    archived: 'archived',
+    archivedAt: 'archivedAt',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type ExpenseHeadScalarFieldEnum = (typeof ExpenseHeadScalarFieldEnum)[keyof typeof ExpenseHeadScalarFieldEnum]
+
+
+  export const ExpenseScalarFieldEnum: {
+    id: 'id',
+    expenseHeadId: 'expenseHeadId',
+    paymentChannelId: 'paymentChannelId',
+    amount: 'amount',
+    detail: 'detail',
+    occurredAt: 'occurredAt',
+    createdAt: 'createdAt'
+  };
+
+  export type ExpenseScalarFieldEnum = (typeof ExpenseScalarFieldEnum)[keyof typeof ExpenseScalarFieldEnum]
+
+
   export const TableScalarFieldEnum: {
     id: 'id',
     name: 'name',
@@ -35129,6 +37636,7 @@ export namespace Prisma {
     orders?: OrderListRelationFilter
     inventoryMovements?: InventoryMovementListRelationFilter
     supplierPayments?: SupplierPaymentListRelationFilter
+    expenses?: ExpenseListRelationFilter
   }
 
   export type PaymentChannelOrderByWithRelationInput = {
@@ -35146,6 +37654,7 @@ export namespace Prisma {
     orders?: OrderOrderByRelationAggregateInput
     inventoryMovements?: InventoryMovementOrderByRelationAggregateInput
     supplierPayments?: SupplierPaymentOrderByRelationAggregateInput
+    expenses?: ExpenseOrderByRelationAggregateInput
   }
 
   export type PaymentChannelWhereUniqueInput = Prisma.AtLeast<{
@@ -35166,6 +37675,7 @@ export namespace Prisma {
     orders?: OrderListRelationFilter
     inventoryMovements?: InventoryMovementListRelationFilter
     supplierPayments?: SupplierPaymentListRelationFilter
+    expenses?: ExpenseListRelationFilter
   }, "id" | "name">
 
   export type PaymentChannelOrderByWithAggregationInput = {
@@ -35907,6 +38417,136 @@ export namespace Prisma {
     amount?: DecimalWithAggregatesFilter<"SupplierPayment"> | Decimal | DecimalJsLike | number | string
     note?: StringNullableWithAggregatesFilter<"SupplierPayment"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"SupplierPayment"> | Date | string
+  }
+
+  export type ExpenseHeadWhereInput = {
+    AND?: ExpenseHeadWhereInput | ExpenseHeadWhereInput[]
+    OR?: ExpenseHeadWhereInput[]
+    NOT?: ExpenseHeadWhereInput | ExpenseHeadWhereInput[]
+    id?: StringFilter<"ExpenseHead"> | string
+    name?: StringFilter<"ExpenseHead"> | string
+    archived?: BoolFilter<"ExpenseHead"> | boolean
+    archivedAt?: DateTimeNullableFilter<"ExpenseHead"> | Date | string | null
+    createdAt?: DateTimeFilter<"ExpenseHead"> | Date | string
+    updatedAt?: DateTimeFilter<"ExpenseHead"> | Date | string
+    expenses?: ExpenseListRelationFilter
+  }
+
+  export type ExpenseHeadOrderByWithRelationInput = {
+    id?: SortOrder
+    name?: SortOrder
+    archived?: SortOrder
+    archivedAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    expenses?: ExpenseOrderByRelationAggregateInput
+  }
+
+  export type ExpenseHeadWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    name?: string
+    AND?: ExpenseHeadWhereInput | ExpenseHeadWhereInput[]
+    OR?: ExpenseHeadWhereInput[]
+    NOT?: ExpenseHeadWhereInput | ExpenseHeadWhereInput[]
+    archived?: BoolFilter<"ExpenseHead"> | boolean
+    archivedAt?: DateTimeNullableFilter<"ExpenseHead"> | Date | string | null
+    createdAt?: DateTimeFilter<"ExpenseHead"> | Date | string
+    updatedAt?: DateTimeFilter<"ExpenseHead"> | Date | string
+    expenses?: ExpenseListRelationFilter
+  }, "id" | "name">
+
+  export type ExpenseHeadOrderByWithAggregationInput = {
+    id?: SortOrder
+    name?: SortOrder
+    archived?: SortOrder
+    archivedAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: ExpenseHeadCountOrderByAggregateInput
+    _max?: ExpenseHeadMaxOrderByAggregateInput
+    _min?: ExpenseHeadMinOrderByAggregateInput
+  }
+
+  export type ExpenseHeadScalarWhereWithAggregatesInput = {
+    AND?: ExpenseHeadScalarWhereWithAggregatesInput | ExpenseHeadScalarWhereWithAggregatesInput[]
+    OR?: ExpenseHeadScalarWhereWithAggregatesInput[]
+    NOT?: ExpenseHeadScalarWhereWithAggregatesInput | ExpenseHeadScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"ExpenseHead"> | string
+    name?: StringWithAggregatesFilter<"ExpenseHead"> | string
+    archived?: BoolWithAggregatesFilter<"ExpenseHead"> | boolean
+    archivedAt?: DateTimeNullableWithAggregatesFilter<"ExpenseHead"> | Date | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"ExpenseHead"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"ExpenseHead"> | Date | string
+  }
+
+  export type ExpenseWhereInput = {
+    AND?: ExpenseWhereInput | ExpenseWhereInput[]
+    OR?: ExpenseWhereInput[]
+    NOT?: ExpenseWhereInput | ExpenseWhereInput[]
+    id?: StringFilter<"Expense"> | string
+    expenseHeadId?: StringFilter<"Expense"> | string
+    paymentChannelId?: StringFilter<"Expense"> | string
+    amount?: DecimalFilter<"Expense"> | Decimal | DecimalJsLike | number | string
+    detail?: StringNullableFilter<"Expense"> | string | null
+    occurredAt?: DateTimeFilter<"Expense"> | Date | string
+    createdAt?: DateTimeFilter<"Expense"> | Date | string
+    expenseHead?: XOR<ExpenseHeadScalarRelationFilter, ExpenseHeadWhereInput>
+    paymentChannel?: XOR<PaymentChannelScalarRelationFilter, PaymentChannelWhereInput>
+  }
+
+  export type ExpenseOrderByWithRelationInput = {
+    id?: SortOrder
+    expenseHeadId?: SortOrder
+    paymentChannelId?: SortOrder
+    amount?: SortOrder
+    detail?: SortOrderInput | SortOrder
+    occurredAt?: SortOrder
+    createdAt?: SortOrder
+    expenseHead?: ExpenseHeadOrderByWithRelationInput
+    paymentChannel?: PaymentChannelOrderByWithRelationInput
+  }
+
+  export type ExpenseWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: ExpenseWhereInput | ExpenseWhereInput[]
+    OR?: ExpenseWhereInput[]
+    NOT?: ExpenseWhereInput | ExpenseWhereInput[]
+    expenseHeadId?: StringFilter<"Expense"> | string
+    paymentChannelId?: StringFilter<"Expense"> | string
+    amount?: DecimalFilter<"Expense"> | Decimal | DecimalJsLike | number | string
+    detail?: StringNullableFilter<"Expense"> | string | null
+    occurredAt?: DateTimeFilter<"Expense"> | Date | string
+    createdAt?: DateTimeFilter<"Expense"> | Date | string
+    expenseHead?: XOR<ExpenseHeadScalarRelationFilter, ExpenseHeadWhereInput>
+    paymentChannel?: XOR<PaymentChannelScalarRelationFilter, PaymentChannelWhereInput>
+  }, "id">
+
+  export type ExpenseOrderByWithAggregationInput = {
+    id?: SortOrder
+    expenseHeadId?: SortOrder
+    paymentChannelId?: SortOrder
+    amount?: SortOrder
+    detail?: SortOrderInput | SortOrder
+    occurredAt?: SortOrder
+    createdAt?: SortOrder
+    _count?: ExpenseCountOrderByAggregateInput
+    _avg?: ExpenseAvgOrderByAggregateInput
+    _max?: ExpenseMaxOrderByAggregateInput
+    _min?: ExpenseMinOrderByAggregateInput
+    _sum?: ExpenseSumOrderByAggregateInput
+  }
+
+  export type ExpenseScalarWhereWithAggregatesInput = {
+    AND?: ExpenseScalarWhereWithAggregatesInput | ExpenseScalarWhereWithAggregatesInput[]
+    OR?: ExpenseScalarWhereWithAggregatesInput[]
+    NOT?: ExpenseScalarWhereWithAggregatesInput | ExpenseScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"Expense"> | string
+    expenseHeadId?: StringWithAggregatesFilter<"Expense"> | string
+    paymentChannelId?: StringWithAggregatesFilter<"Expense"> | string
+    amount?: DecimalWithAggregatesFilter<"Expense"> | Decimal | DecimalJsLike | number | string
+    detail?: StringNullableWithAggregatesFilter<"Expense"> | string | null
+    occurredAt?: DateTimeWithAggregatesFilter<"Expense"> | Date | string
+    createdAt?: DateTimeWithAggregatesFilter<"Expense"> | Date | string
   }
 
   export type TableWhereInput = {
@@ -37276,6 +39916,7 @@ export namespace Prisma {
     orders?: OrderCreateNestedManyWithoutPaymentChannelInput
     inventoryMovements?: InventoryMovementCreateNestedManyWithoutPaymentChannelInput
     supplierPayments?: SupplierPaymentCreateNestedManyWithoutPaymentChannelInput
+    expenses?: ExpenseCreateNestedManyWithoutPaymentChannelInput
   }
 
   export type PaymentChannelUncheckedCreateInput = {
@@ -37293,6 +39934,7 @@ export namespace Prisma {
     orders?: OrderUncheckedCreateNestedManyWithoutPaymentChannelInput
     inventoryMovements?: InventoryMovementUncheckedCreateNestedManyWithoutPaymentChannelInput
     supplierPayments?: SupplierPaymentUncheckedCreateNestedManyWithoutPaymentChannelInput
+    expenses?: ExpenseUncheckedCreateNestedManyWithoutPaymentChannelInput
   }
 
   export type PaymentChannelUpdateInput = {
@@ -37310,6 +39952,7 @@ export namespace Prisma {
     orders?: OrderUpdateManyWithoutPaymentChannelNestedInput
     inventoryMovements?: InventoryMovementUpdateManyWithoutPaymentChannelNestedInput
     supplierPayments?: SupplierPaymentUpdateManyWithoutPaymentChannelNestedInput
+    expenses?: ExpenseUpdateManyWithoutPaymentChannelNestedInput
   }
 
   export type PaymentChannelUncheckedUpdateInput = {
@@ -37327,6 +39970,7 @@ export namespace Prisma {
     orders?: OrderUncheckedUpdateManyWithoutPaymentChannelNestedInput
     inventoryMovements?: InventoryMovementUncheckedUpdateManyWithoutPaymentChannelNestedInput
     supplierPayments?: SupplierPaymentUncheckedUpdateManyWithoutPaymentChannelNestedInput
+    expenses?: ExpenseUncheckedUpdateManyWithoutPaymentChannelNestedInput
   }
 
   export type PaymentChannelCreateManyInput = {
@@ -38118,6 +40762,141 @@ export namespace Prisma {
     paymentChannelId?: StringFieldUpdateOperationsInput | string
     amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     note?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ExpenseHeadCreateInput = {
+    id?: string
+    name: string
+    archived?: boolean
+    archivedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    expenses?: ExpenseCreateNestedManyWithoutExpenseHeadInput
+  }
+
+  export type ExpenseHeadUncheckedCreateInput = {
+    id?: string
+    name: string
+    archived?: boolean
+    archivedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    expenses?: ExpenseUncheckedCreateNestedManyWithoutExpenseHeadInput
+  }
+
+  export type ExpenseHeadUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    archived?: BoolFieldUpdateOperationsInput | boolean
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    expenses?: ExpenseUpdateManyWithoutExpenseHeadNestedInput
+  }
+
+  export type ExpenseHeadUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    archived?: BoolFieldUpdateOperationsInput | boolean
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    expenses?: ExpenseUncheckedUpdateManyWithoutExpenseHeadNestedInput
+  }
+
+  export type ExpenseHeadCreateManyInput = {
+    id?: string
+    name: string
+    archived?: boolean
+    archivedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ExpenseHeadUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    archived?: BoolFieldUpdateOperationsInput | boolean
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ExpenseHeadUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    archived?: BoolFieldUpdateOperationsInput | boolean
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ExpenseCreateInput = {
+    id?: string
+    amount: Decimal | DecimalJsLike | number | string
+    detail?: string | null
+    occurredAt: Date | string
+    createdAt?: Date | string
+    expenseHead: ExpenseHeadCreateNestedOneWithoutExpensesInput
+    paymentChannel: PaymentChannelCreateNestedOneWithoutExpensesInput
+  }
+
+  export type ExpenseUncheckedCreateInput = {
+    id?: string
+    expenseHeadId: string
+    paymentChannelId: string
+    amount: Decimal | DecimalJsLike | number | string
+    detail?: string | null
+    occurredAt: Date | string
+    createdAt?: Date | string
+  }
+
+  export type ExpenseUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    detail?: NullableStringFieldUpdateOperationsInput | string | null
+    occurredAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    expenseHead?: ExpenseHeadUpdateOneRequiredWithoutExpensesNestedInput
+    paymentChannel?: PaymentChannelUpdateOneRequiredWithoutExpensesNestedInput
+  }
+
+  export type ExpenseUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    expenseHeadId?: StringFieldUpdateOperationsInput | string
+    paymentChannelId?: StringFieldUpdateOperationsInput | string
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    detail?: NullableStringFieldUpdateOperationsInput | string | null
+    occurredAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ExpenseCreateManyInput = {
+    id?: string
+    expenseHeadId: string
+    paymentChannelId: string
+    amount: Decimal | DecimalJsLike | number | string
+    detail?: string | null
+    occurredAt: Date | string
+    createdAt?: Date | string
+  }
+
+  export type ExpenseUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    detail?: NullableStringFieldUpdateOperationsInput | string | null
+    occurredAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ExpenseUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    expenseHeadId?: StringFieldUpdateOperationsInput | string
+    paymentChannelId?: StringFieldUpdateOperationsInput | string
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    detail?: NullableStringFieldUpdateOperationsInput | string | null
+    occurredAt?: DateTimeFieldUpdateOperationsInput | Date | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -39698,6 +42477,12 @@ export namespace Prisma {
     none?: SupplierPaymentWhereInput
   }
 
+  export type ExpenseListRelationFilter = {
+    every?: ExpenseWhereInput
+    some?: ExpenseWhereInput
+    none?: ExpenseWhereInput
+  }
+
   export type PaymentTransferOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
@@ -39707,6 +42492,10 @@ export namespace Prisma {
   }
 
   export type SupplierPaymentOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type ExpenseOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -40367,6 +43156,76 @@ export namespace Prisma {
   }
 
   export type SupplierPaymentSumOrderByAggregateInput = {
+    amount?: SortOrder
+  }
+
+  export type ExpenseHeadCountOrderByAggregateInput = {
+    id?: SortOrder
+    name?: SortOrder
+    archived?: SortOrder
+    archivedAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ExpenseHeadMaxOrderByAggregateInput = {
+    id?: SortOrder
+    name?: SortOrder
+    archived?: SortOrder
+    archivedAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ExpenseHeadMinOrderByAggregateInput = {
+    id?: SortOrder
+    name?: SortOrder
+    archived?: SortOrder
+    archivedAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ExpenseHeadScalarRelationFilter = {
+    is?: ExpenseHeadWhereInput
+    isNot?: ExpenseHeadWhereInput
+  }
+
+  export type ExpenseCountOrderByAggregateInput = {
+    id?: SortOrder
+    expenseHeadId?: SortOrder
+    paymentChannelId?: SortOrder
+    amount?: SortOrder
+    detail?: SortOrder
+    occurredAt?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type ExpenseAvgOrderByAggregateInput = {
+    amount?: SortOrder
+  }
+
+  export type ExpenseMaxOrderByAggregateInput = {
+    id?: SortOrder
+    expenseHeadId?: SortOrder
+    paymentChannelId?: SortOrder
+    amount?: SortOrder
+    detail?: SortOrder
+    occurredAt?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type ExpenseMinOrderByAggregateInput = {
+    id?: SortOrder
+    expenseHeadId?: SortOrder
+    paymentChannelId?: SortOrder
+    amount?: SortOrder
+    detail?: SortOrder
+    occurredAt?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type ExpenseSumOrderByAggregateInput = {
     amount?: SortOrder
   }
 
@@ -41446,6 +44305,13 @@ export namespace Prisma {
     connect?: SupplierPaymentWhereUniqueInput | SupplierPaymentWhereUniqueInput[]
   }
 
+  export type ExpenseCreateNestedManyWithoutPaymentChannelInput = {
+    create?: XOR<ExpenseCreateWithoutPaymentChannelInput, ExpenseUncheckedCreateWithoutPaymentChannelInput> | ExpenseCreateWithoutPaymentChannelInput[] | ExpenseUncheckedCreateWithoutPaymentChannelInput[]
+    connectOrCreate?: ExpenseCreateOrConnectWithoutPaymentChannelInput | ExpenseCreateOrConnectWithoutPaymentChannelInput[]
+    createMany?: ExpenseCreateManyPaymentChannelInputEnvelope
+    connect?: ExpenseWhereUniqueInput | ExpenseWhereUniqueInput[]
+  }
+
   export type PaymentTransferUncheckedCreateNestedManyWithoutFromInput = {
     create?: XOR<PaymentTransferCreateWithoutFromInput, PaymentTransferUncheckedCreateWithoutFromInput> | PaymentTransferCreateWithoutFromInput[] | PaymentTransferUncheckedCreateWithoutFromInput[]
     connectOrCreate?: PaymentTransferCreateOrConnectWithoutFromInput | PaymentTransferCreateOrConnectWithoutFromInput[]
@@ -41479,6 +44345,13 @@ export namespace Prisma {
     connectOrCreate?: SupplierPaymentCreateOrConnectWithoutPaymentChannelInput | SupplierPaymentCreateOrConnectWithoutPaymentChannelInput[]
     createMany?: SupplierPaymentCreateManyPaymentChannelInputEnvelope
     connect?: SupplierPaymentWhereUniqueInput | SupplierPaymentWhereUniqueInput[]
+  }
+
+  export type ExpenseUncheckedCreateNestedManyWithoutPaymentChannelInput = {
+    create?: XOR<ExpenseCreateWithoutPaymentChannelInput, ExpenseUncheckedCreateWithoutPaymentChannelInput> | ExpenseCreateWithoutPaymentChannelInput[] | ExpenseUncheckedCreateWithoutPaymentChannelInput[]
+    connectOrCreate?: ExpenseCreateOrConnectWithoutPaymentChannelInput | ExpenseCreateOrConnectWithoutPaymentChannelInput[]
+    createMany?: ExpenseCreateManyPaymentChannelInputEnvelope
+    connect?: ExpenseWhereUniqueInput | ExpenseWhereUniqueInput[]
   }
 
   export type EnumPaymentMethodFieldUpdateOperationsInput = {
@@ -41567,6 +44440,20 @@ export namespace Prisma {
     deleteMany?: SupplierPaymentScalarWhereInput | SupplierPaymentScalarWhereInput[]
   }
 
+  export type ExpenseUpdateManyWithoutPaymentChannelNestedInput = {
+    create?: XOR<ExpenseCreateWithoutPaymentChannelInput, ExpenseUncheckedCreateWithoutPaymentChannelInput> | ExpenseCreateWithoutPaymentChannelInput[] | ExpenseUncheckedCreateWithoutPaymentChannelInput[]
+    connectOrCreate?: ExpenseCreateOrConnectWithoutPaymentChannelInput | ExpenseCreateOrConnectWithoutPaymentChannelInput[]
+    upsert?: ExpenseUpsertWithWhereUniqueWithoutPaymentChannelInput | ExpenseUpsertWithWhereUniqueWithoutPaymentChannelInput[]
+    createMany?: ExpenseCreateManyPaymentChannelInputEnvelope
+    set?: ExpenseWhereUniqueInput | ExpenseWhereUniqueInput[]
+    disconnect?: ExpenseWhereUniqueInput | ExpenseWhereUniqueInput[]
+    delete?: ExpenseWhereUniqueInput | ExpenseWhereUniqueInput[]
+    connect?: ExpenseWhereUniqueInput | ExpenseWhereUniqueInput[]
+    update?: ExpenseUpdateWithWhereUniqueWithoutPaymentChannelInput | ExpenseUpdateWithWhereUniqueWithoutPaymentChannelInput[]
+    updateMany?: ExpenseUpdateManyWithWhereWithoutPaymentChannelInput | ExpenseUpdateManyWithWhereWithoutPaymentChannelInput[]
+    deleteMany?: ExpenseScalarWhereInput | ExpenseScalarWhereInput[]
+  }
+
   export type PaymentTransferUncheckedUpdateManyWithoutFromNestedInput = {
     create?: XOR<PaymentTransferCreateWithoutFromInput, PaymentTransferUncheckedCreateWithoutFromInput> | PaymentTransferCreateWithoutFromInput[] | PaymentTransferUncheckedCreateWithoutFromInput[]
     connectOrCreate?: PaymentTransferCreateOrConnectWithoutFromInput | PaymentTransferCreateOrConnectWithoutFromInput[]
@@ -41635,6 +44522,20 @@ export namespace Prisma {
     update?: SupplierPaymentUpdateWithWhereUniqueWithoutPaymentChannelInput | SupplierPaymentUpdateWithWhereUniqueWithoutPaymentChannelInput[]
     updateMany?: SupplierPaymentUpdateManyWithWhereWithoutPaymentChannelInput | SupplierPaymentUpdateManyWithWhereWithoutPaymentChannelInput[]
     deleteMany?: SupplierPaymentScalarWhereInput | SupplierPaymentScalarWhereInput[]
+  }
+
+  export type ExpenseUncheckedUpdateManyWithoutPaymentChannelNestedInput = {
+    create?: XOR<ExpenseCreateWithoutPaymentChannelInput, ExpenseUncheckedCreateWithoutPaymentChannelInput> | ExpenseCreateWithoutPaymentChannelInput[] | ExpenseUncheckedCreateWithoutPaymentChannelInput[]
+    connectOrCreate?: ExpenseCreateOrConnectWithoutPaymentChannelInput | ExpenseCreateOrConnectWithoutPaymentChannelInput[]
+    upsert?: ExpenseUpsertWithWhereUniqueWithoutPaymentChannelInput | ExpenseUpsertWithWhereUniqueWithoutPaymentChannelInput[]
+    createMany?: ExpenseCreateManyPaymentChannelInputEnvelope
+    set?: ExpenseWhereUniqueInput | ExpenseWhereUniqueInput[]
+    disconnect?: ExpenseWhereUniqueInput | ExpenseWhereUniqueInput[]
+    delete?: ExpenseWhereUniqueInput | ExpenseWhereUniqueInput[]
+    connect?: ExpenseWhereUniqueInput | ExpenseWhereUniqueInput[]
+    update?: ExpenseUpdateWithWhereUniqueWithoutPaymentChannelInput | ExpenseUpdateWithWhereUniqueWithoutPaymentChannelInput[]
+    updateMany?: ExpenseUpdateManyWithWhereWithoutPaymentChannelInput | ExpenseUpdateManyWithWhereWithoutPaymentChannelInput[]
+    deleteMany?: ExpenseScalarWhereInput | ExpenseScalarWhereInput[]
   }
 
   export type PaymentChannelCreateNestedOneWithoutOutgoingInput = {
@@ -42245,6 +45146,76 @@ export namespace Prisma {
     upsert?: PaymentChannelUpsertWithoutSupplierPaymentsInput
     connect?: PaymentChannelWhereUniqueInput
     update?: XOR<XOR<PaymentChannelUpdateToOneWithWhereWithoutSupplierPaymentsInput, PaymentChannelUpdateWithoutSupplierPaymentsInput>, PaymentChannelUncheckedUpdateWithoutSupplierPaymentsInput>
+  }
+
+  export type ExpenseCreateNestedManyWithoutExpenseHeadInput = {
+    create?: XOR<ExpenseCreateWithoutExpenseHeadInput, ExpenseUncheckedCreateWithoutExpenseHeadInput> | ExpenseCreateWithoutExpenseHeadInput[] | ExpenseUncheckedCreateWithoutExpenseHeadInput[]
+    connectOrCreate?: ExpenseCreateOrConnectWithoutExpenseHeadInput | ExpenseCreateOrConnectWithoutExpenseHeadInput[]
+    createMany?: ExpenseCreateManyExpenseHeadInputEnvelope
+    connect?: ExpenseWhereUniqueInput | ExpenseWhereUniqueInput[]
+  }
+
+  export type ExpenseUncheckedCreateNestedManyWithoutExpenseHeadInput = {
+    create?: XOR<ExpenseCreateWithoutExpenseHeadInput, ExpenseUncheckedCreateWithoutExpenseHeadInput> | ExpenseCreateWithoutExpenseHeadInput[] | ExpenseUncheckedCreateWithoutExpenseHeadInput[]
+    connectOrCreate?: ExpenseCreateOrConnectWithoutExpenseHeadInput | ExpenseCreateOrConnectWithoutExpenseHeadInput[]
+    createMany?: ExpenseCreateManyExpenseHeadInputEnvelope
+    connect?: ExpenseWhereUniqueInput | ExpenseWhereUniqueInput[]
+  }
+
+  export type ExpenseUpdateManyWithoutExpenseHeadNestedInput = {
+    create?: XOR<ExpenseCreateWithoutExpenseHeadInput, ExpenseUncheckedCreateWithoutExpenseHeadInput> | ExpenseCreateWithoutExpenseHeadInput[] | ExpenseUncheckedCreateWithoutExpenseHeadInput[]
+    connectOrCreate?: ExpenseCreateOrConnectWithoutExpenseHeadInput | ExpenseCreateOrConnectWithoutExpenseHeadInput[]
+    upsert?: ExpenseUpsertWithWhereUniqueWithoutExpenseHeadInput | ExpenseUpsertWithWhereUniqueWithoutExpenseHeadInput[]
+    createMany?: ExpenseCreateManyExpenseHeadInputEnvelope
+    set?: ExpenseWhereUniqueInput | ExpenseWhereUniqueInput[]
+    disconnect?: ExpenseWhereUniqueInput | ExpenseWhereUniqueInput[]
+    delete?: ExpenseWhereUniqueInput | ExpenseWhereUniqueInput[]
+    connect?: ExpenseWhereUniqueInput | ExpenseWhereUniqueInput[]
+    update?: ExpenseUpdateWithWhereUniqueWithoutExpenseHeadInput | ExpenseUpdateWithWhereUniqueWithoutExpenseHeadInput[]
+    updateMany?: ExpenseUpdateManyWithWhereWithoutExpenseHeadInput | ExpenseUpdateManyWithWhereWithoutExpenseHeadInput[]
+    deleteMany?: ExpenseScalarWhereInput | ExpenseScalarWhereInput[]
+  }
+
+  export type ExpenseUncheckedUpdateManyWithoutExpenseHeadNestedInput = {
+    create?: XOR<ExpenseCreateWithoutExpenseHeadInput, ExpenseUncheckedCreateWithoutExpenseHeadInput> | ExpenseCreateWithoutExpenseHeadInput[] | ExpenseUncheckedCreateWithoutExpenseHeadInput[]
+    connectOrCreate?: ExpenseCreateOrConnectWithoutExpenseHeadInput | ExpenseCreateOrConnectWithoutExpenseHeadInput[]
+    upsert?: ExpenseUpsertWithWhereUniqueWithoutExpenseHeadInput | ExpenseUpsertWithWhereUniqueWithoutExpenseHeadInput[]
+    createMany?: ExpenseCreateManyExpenseHeadInputEnvelope
+    set?: ExpenseWhereUniqueInput | ExpenseWhereUniqueInput[]
+    disconnect?: ExpenseWhereUniqueInput | ExpenseWhereUniqueInput[]
+    delete?: ExpenseWhereUniqueInput | ExpenseWhereUniqueInput[]
+    connect?: ExpenseWhereUniqueInput | ExpenseWhereUniqueInput[]
+    update?: ExpenseUpdateWithWhereUniqueWithoutExpenseHeadInput | ExpenseUpdateWithWhereUniqueWithoutExpenseHeadInput[]
+    updateMany?: ExpenseUpdateManyWithWhereWithoutExpenseHeadInput | ExpenseUpdateManyWithWhereWithoutExpenseHeadInput[]
+    deleteMany?: ExpenseScalarWhereInput | ExpenseScalarWhereInput[]
+  }
+
+  export type ExpenseHeadCreateNestedOneWithoutExpensesInput = {
+    create?: XOR<ExpenseHeadCreateWithoutExpensesInput, ExpenseHeadUncheckedCreateWithoutExpensesInput>
+    connectOrCreate?: ExpenseHeadCreateOrConnectWithoutExpensesInput
+    connect?: ExpenseHeadWhereUniqueInput
+  }
+
+  export type PaymentChannelCreateNestedOneWithoutExpensesInput = {
+    create?: XOR<PaymentChannelCreateWithoutExpensesInput, PaymentChannelUncheckedCreateWithoutExpensesInput>
+    connectOrCreate?: PaymentChannelCreateOrConnectWithoutExpensesInput
+    connect?: PaymentChannelWhereUniqueInput
+  }
+
+  export type ExpenseHeadUpdateOneRequiredWithoutExpensesNestedInput = {
+    create?: XOR<ExpenseHeadCreateWithoutExpensesInput, ExpenseHeadUncheckedCreateWithoutExpensesInput>
+    connectOrCreate?: ExpenseHeadCreateOrConnectWithoutExpensesInput
+    upsert?: ExpenseHeadUpsertWithoutExpensesInput
+    connect?: ExpenseHeadWhereUniqueInput
+    update?: XOR<XOR<ExpenseHeadUpdateToOneWithWhereWithoutExpensesInput, ExpenseHeadUpdateWithoutExpensesInput>, ExpenseHeadUncheckedUpdateWithoutExpensesInput>
+  }
+
+  export type PaymentChannelUpdateOneRequiredWithoutExpensesNestedInput = {
+    create?: XOR<PaymentChannelCreateWithoutExpensesInput, PaymentChannelUncheckedCreateWithoutExpensesInput>
+    connectOrCreate?: PaymentChannelCreateOrConnectWithoutExpensesInput
+    upsert?: PaymentChannelUpsertWithoutExpensesInput
+    connect?: PaymentChannelWhereUniqueInput
+    update?: XOR<XOR<PaymentChannelUpdateToOneWithWhereWithoutExpensesInput, PaymentChannelUpdateWithoutExpensesInput>, PaymentChannelUncheckedUpdateWithoutExpensesInput>
   }
 
   export type OrderCreateNestedManyWithoutTableInput = {
@@ -43916,6 +46887,34 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type ExpenseCreateWithoutPaymentChannelInput = {
+    id?: string
+    amount: Decimal | DecimalJsLike | number | string
+    detail?: string | null
+    occurredAt: Date | string
+    createdAt?: Date | string
+    expenseHead: ExpenseHeadCreateNestedOneWithoutExpensesInput
+  }
+
+  export type ExpenseUncheckedCreateWithoutPaymentChannelInput = {
+    id?: string
+    expenseHeadId: string
+    amount: Decimal | DecimalJsLike | number | string
+    detail?: string | null
+    occurredAt: Date | string
+    createdAt?: Date | string
+  }
+
+  export type ExpenseCreateOrConnectWithoutPaymentChannelInput = {
+    where: ExpenseWhereUniqueInput
+    create: XOR<ExpenseCreateWithoutPaymentChannelInput, ExpenseUncheckedCreateWithoutPaymentChannelInput>
+  }
+
+  export type ExpenseCreateManyPaymentChannelInputEnvelope = {
+    data: ExpenseCreateManyPaymentChannelInput | ExpenseCreateManyPaymentChannelInput[]
+    skipDuplicates?: boolean
+  }
+
   export type PaymentTransferUpsertWithWhereUniqueWithoutFromInput = {
     where: PaymentTransferWhereUniqueInput
     update: XOR<PaymentTransferUpdateWithoutFromInput, PaymentTransferUncheckedUpdateWithoutFromInput>
@@ -44037,6 +47036,35 @@ export namespace Prisma {
     createdAt?: DateTimeFilter<"SupplierPayment"> | Date | string
   }
 
+  export type ExpenseUpsertWithWhereUniqueWithoutPaymentChannelInput = {
+    where: ExpenseWhereUniqueInput
+    update: XOR<ExpenseUpdateWithoutPaymentChannelInput, ExpenseUncheckedUpdateWithoutPaymentChannelInput>
+    create: XOR<ExpenseCreateWithoutPaymentChannelInput, ExpenseUncheckedCreateWithoutPaymentChannelInput>
+  }
+
+  export type ExpenseUpdateWithWhereUniqueWithoutPaymentChannelInput = {
+    where: ExpenseWhereUniqueInput
+    data: XOR<ExpenseUpdateWithoutPaymentChannelInput, ExpenseUncheckedUpdateWithoutPaymentChannelInput>
+  }
+
+  export type ExpenseUpdateManyWithWhereWithoutPaymentChannelInput = {
+    where: ExpenseScalarWhereInput
+    data: XOR<ExpenseUpdateManyMutationInput, ExpenseUncheckedUpdateManyWithoutPaymentChannelInput>
+  }
+
+  export type ExpenseScalarWhereInput = {
+    AND?: ExpenseScalarWhereInput | ExpenseScalarWhereInput[]
+    OR?: ExpenseScalarWhereInput[]
+    NOT?: ExpenseScalarWhereInput | ExpenseScalarWhereInput[]
+    id?: StringFilter<"Expense"> | string
+    expenseHeadId?: StringFilter<"Expense"> | string
+    paymentChannelId?: StringFilter<"Expense"> | string
+    amount?: DecimalFilter<"Expense"> | Decimal | DecimalJsLike | number | string
+    detail?: StringNullableFilter<"Expense"> | string | null
+    occurredAt?: DateTimeFilter<"Expense"> | Date | string
+    createdAt?: DateTimeFilter<"Expense"> | Date | string
+  }
+
   export type PaymentChannelCreateWithoutOutgoingInput = {
     id?: string
     name: string
@@ -44051,6 +47079,7 @@ export namespace Prisma {
     orders?: OrderCreateNestedManyWithoutPaymentChannelInput
     inventoryMovements?: InventoryMovementCreateNestedManyWithoutPaymentChannelInput
     supplierPayments?: SupplierPaymentCreateNestedManyWithoutPaymentChannelInput
+    expenses?: ExpenseCreateNestedManyWithoutPaymentChannelInput
   }
 
   export type PaymentChannelUncheckedCreateWithoutOutgoingInput = {
@@ -44067,6 +47096,7 @@ export namespace Prisma {
     orders?: OrderUncheckedCreateNestedManyWithoutPaymentChannelInput
     inventoryMovements?: InventoryMovementUncheckedCreateNestedManyWithoutPaymentChannelInput
     supplierPayments?: SupplierPaymentUncheckedCreateNestedManyWithoutPaymentChannelInput
+    expenses?: ExpenseUncheckedCreateNestedManyWithoutPaymentChannelInput
   }
 
   export type PaymentChannelCreateOrConnectWithoutOutgoingInput = {
@@ -44088,6 +47118,7 @@ export namespace Prisma {
     orders?: OrderCreateNestedManyWithoutPaymentChannelInput
     inventoryMovements?: InventoryMovementCreateNestedManyWithoutPaymentChannelInput
     supplierPayments?: SupplierPaymentCreateNestedManyWithoutPaymentChannelInput
+    expenses?: ExpenseCreateNestedManyWithoutPaymentChannelInput
   }
 
   export type PaymentChannelUncheckedCreateWithoutIncomingInput = {
@@ -44104,6 +47135,7 @@ export namespace Prisma {
     orders?: OrderUncheckedCreateNestedManyWithoutPaymentChannelInput
     inventoryMovements?: InventoryMovementUncheckedCreateNestedManyWithoutPaymentChannelInput
     supplierPayments?: SupplierPaymentUncheckedCreateNestedManyWithoutPaymentChannelInput
+    expenses?: ExpenseUncheckedCreateNestedManyWithoutPaymentChannelInput
   }
 
   export type PaymentChannelCreateOrConnectWithoutIncomingInput = {
@@ -44136,6 +47168,7 @@ export namespace Prisma {
     orders?: OrderUpdateManyWithoutPaymentChannelNestedInput
     inventoryMovements?: InventoryMovementUpdateManyWithoutPaymentChannelNestedInput
     supplierPayments?: SupplierPaymentUpdateManyWithoutPaymentChannelNestedInput
+    expenses?: ExpenseUpdateManyWithoutPaymentChannelNestedInput
   }
 
   export type PaymentChannelUncheckedUpdateWithoutOutgoingInput = {
@@ -44152,6 +47185,7 @@ export namespace Prisma {
     orders?: OrderUncheckedUpdateManyWithoutPaymentChannelNestedInput
     inventoryMovements?: InventoryMovementUncheckedUpdateManyWithoutPaymentChannelNestedInput
     supplierPayments?: SupplierPaymentUncheckedUpdateManyWithoutPaymentChannelNestedInput
+    expenses?: ExpenseUncheckedUpdateManyWithoutPaymentChannelNestedInput
   }
 
   export type PaymentChannelUpsertWithoutIncomingInput = {
@@ -44179,6 +47213,7 @@ export namespace Prisma {
     orders?: OrderUpdateManyWithoutPaymentChannelNestedInput
     inventoryMovements?: InventoryMovementUpdateManyWithoutPaymentChannelNestedInput
     supplierPayments?: SupplierPaymentUpdateManyWithoutPaymentChannelNestedInput
+    expenses?: ExpenseUpdateManyWithoutPaymentChannelNestedInput
   }
 
   export type PaymentChannelUncheckedUpdateWithoutIncomingInput = {
@@ -44195,6 +47230,7 @@ export namespace Prisma {
     orders?: OrderUncheckedUpdateManyWithoutPaymentChannelNestedInput
     inventoryMovements?: InventoryMovementUncheckedUpdateManyWithoutPaymentChannelNestedInput
     supplierPayments?: SupplierPaymentUncheckedUpdateManyWithoutPaymentChannelNestedInput
+    expenses?: ExpenseUncheckedUpdateManyWithoutPaymentChannelNestedInput
   }
 
   export type MenuItemCreateWithoutStationInput = {
@@ -45189,6 +48225,7 @@ export namespace Prisma {
     incoming?: PaymentTransferCreateNestedManyWithoutToInput
     orders?: OrderCreateNestedManyWithoutPaymentChannelInput
     supplierPayments?: SupplierPaymentCreateNestedManyWithoutPaymentChannelInput
+    expenses?: ExpenseCreateNestedManyWithoutPaymentChannelInput
   }
 
   export type PaymentChannelUncheckedCreateWithoutInventoryMovementsInput = {
@@ -45205,6 +48242,7 @@ export namespace Prisma {
     incoming?: PaymentTransferUncheckedCreateNestedManyWithoutToInput
     orders?: OrderUncheckedCreateNestedManyWithoutPaymentChannelInput
     supplierPayments?: SupplierPaymentUncheckedCreateNestedManyWithoutPaymentChannelInput
+    expenses?: ExpenseUncheckedCreateNestedManyWithoutPaymentChannelInput
   }
 
   export type PaymentChannelCreateOrConnectWithoutInventoryMovementsInput = {
@@ -45313,6 +48351,7 @@ export namespace Prisma {
     incoming?: PaymentTransferUpdateManyWithoutToNestedInput
     orders?: OrderUpdateManyWithoutPaymentChannelNestedInput
     supplierPayments?: SupplierPaymentUpdateManyWithoutPaymentChannelNestedInput
+    expenses?: ExpenseUpdateManyWithoutPaymentChannelNestedInput
   }
 
   export type PaymentChannelUncheckedUpdateWithoutInventoryMovementsInput = {
@@ -45329,6 +48368,7 @@ export namespace Prisma {
     incoming?: PaymentTransferUncheckedUpdateManyWithoutToNestedInput
     orders?: OrderUncheckedUpdateManyWithoutPaymentChannelNestedInput
     supplierPayments?: SupplierPaymentUncheckedUpdateManyWithoutPaymentChannelNestedInput
+    expenses?: ExpenseUncheckedUpdateManyWithoutPaymentChannelNestedInput
   }
 
   export type SupplierUpsertWithoutMovementsInput = {
@@ -45413,6 +48453,7 @@ export namespace Prisma {
     incoming?: PaymentTransferCreateNestedManyWithoutToInput
     orders?: OrderCreateNestedManyWithoutPaymentChannelInput
     inventoryMovements?: InventoryMovementCreateNestedManyWithoutPaymentChannelInput
+    expenses?: ExpenseCreateNestedManyWithoutPaymentChannelInput
   }
 
   export type PaymentChannelUncheckedCreateWithoutSupplierPaymentsInput = {
@@ -45429,6 +48470,7 @@ export namespace Prisma {
     incoming?: PaymentTransferUncheckedCreateNestedManyWithoutToInput
     orders?: OrderUncheckedCreateNestedManyWithoutPaymentChannelInput
     inventoryMovements?: InventoryMovementUncheckedCreateNestedManyWithoutPaymentChannelInput
+    expenses?: ExpenseUncheckedCreateNestedManyWithoutPaymentChannelInput
   }
 
   export type PaymentChannelCreateOrConnectWithoutSupplierPaymentsInput = {
@@ -45498,6 +48540,7 @@ export namespace Prisma {
     incoming?: PaymentTransferUpdateManyWithoutToNestedInput
     orders?: OrderUpdateManyWithoutPaymentChannelNestedInput
     inventoryMovements?: InventoryMovementUpdateManyWithoutPaymentChannelNestedInput
+    expenses?: ExpenseUpdateManyWithoutPaymentChannelNestedInput
   }
 
   export type PaymentChannelUncheckedUpdateWithoutSupplierPaymentsInput = {
@@ -45514,6 +48557,187 @@ export namespace Prisma {
     incoming?: PaymentTransferUncheckedUpdateManyWithoutToNestedInput
     orders?: OrderUncheckedUpdateManyWithoutPaymentChannelNestedInput
     inventoryMovements?: InventoryMovementUncheckedUpdateManyWithoutPaymentChannelNestedInput
+    expenses?: ExpenseUncheckedUpdateManyWithoutPaymentChannelNestedInput
+  }
+
+  export type ExpenseCreateWithoutExpenseHeadInput = {
+    id?: string
+    amount: Decimal | DecimalJsLike | number | string
+    detail?: string | null
+    occurredAt: Date | string
+    createdAt?: Date | string
+    paymentChannel: PaymentChannelCreateNestedOneWithoutExpensesInput
+  }
+
+  export type ExpenseUncheckedCreateWithoutExpenseHeadInput = {
+    id?: string
+    paymentChannelId: string
+    amount: Decimal | DecimalJsLike | number | string
+    detail?: string | null
+    occurredAt: Date | string
+    createdAt?: Date | string
+  }
+
+  export type ExpenseCreateOrConnectWithoutExpenseHeadInput = {
+    where: ExpenseWhereUniqueInput
+    create: XOR<ExpenseCreateWithoutExpenseHeadInput, ExpenseUncheckedCreateWithoutExpenseHeadInput>
+  }
+
+  export type ExpenseCreateManyExpenseHeadInputEnvelope = {
+    data: ExpenseCreateManyExpenseHeadInput | ExpenseCreateManyExpenseHeadInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type ExpenseUpsertWithWhereUniqueWithoutExpenseHeadInput = {
+    where: ExpenseWhereUniqueInput
+    update: XOR<ExpenseUpdateWithoutExpenseHeadInput, ExpenseUncheckedUpdateWithoutExpenseHeadInput>
+    create: XOR<ExpenseCreateWithoutExpenseHeadInput, ExpenseUncheckedCreateWithoutExpenseHeadInput>
+  }
+
+  export type ExpenseUpdateWithWhereUniqueWithoutExpenseHeadInput = {
+    where: ExpenseWhereUniqueInput
+    data: XOR<ExpenseUpdateWithoutExpenseHeadInput, ExpenseUncheckedUpdateWithoutExpenseHeadInput>
+  }
+
+  export type ExpenseUpdateManyWithWhereWithoutExpenseHeadInput = {
+    where: ExpenseScalarWhereInput
+    data: XOR<ExpenseUpdateManyMutationInput, ExpenseUncheckedUpdateManyWithoutExpenseHeadInput>
+  }
+
+  export type ExpenseHeadCreateWithoutExpensesInput = {
+    id?: string
+    name: string
+    archived?: boolean
+    archivedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ExpenseHeadUncheckedCreateWithoutExpensesInput = {
+    id?: string
+    name: string
+    archived?: boolean
+    archivedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ExpenseHeadCreateOrConnectWithoutExpensesInput = {
+    where: ExpenseHeadWhereUniqueInput
+    create: XOR<ExpenseHeadCreateWithoutExpensesInput, ExpenseHeadUncheckedCreateWithoutExpensesInput>
+  }
+
+  export type PaymentChannelCreateWithoutExpensesInput = {
+    id?: string
+    name: string
+    kind?: $Enums.PaymentMethod
+    openingBalance: Decimal | DecimalJsLike | number | string
+    currentBalance: Decimal | DecimalJsLike | number | string
+    archived?: boolean
+    archivedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    outgoing?: PaymentTransferCreateNestedManyWithoutFromInput
+    incoming?: PaymentTransferCreateNestedManyWithoutToInput
+    orders?: OrderCreateNestedManyWithoutPaymentChannelInput
+    inventoryMovements?: InventoryMovementCreateNestedManyWithoutPaymentChannelInput
+    supplierPayments?: SupplierPaymentCreateNestedManyWithoutPaymentChannelInput
+  }
+
+  export type PaymentChannelUncheckedCreateWithoutExpensesInput = {
+    id?: string
+    name: string
+    kind?: $Enums.PaymentMethod
+    openingBalance: Decimal | DecimalJsLike | number | string
+    currentBalance: Decimal | DecimalJsLike | number | string
+    archived?: boolean
+    archivedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    outgoing?: PaymentTransferUncheckedCreateNestedManyWithoutFromInput
+    incoming?: PaymentTransferUncheckedCreateNestedManyWithoutToInput
+    orders?: OrderUncheckedCreateNestedManyWithoutPaymentChannelInput
+    inventoryMovements?: InventoryMovementUncheckedCreateNestedManyWithoutPaymentChannelInput
+    supplierPayments?: SupplierPaymentUncheckedCreateNestedManyWithoutPaymentChannelInput
+  }
+
+  export type PaymentChannelCreateOrConnectWithoutExpensesInput = {
+    where: PaymentChannelWhereUniqueInput
+    create: XOR<PaymentChannelCreateWithoutExpensesInput, PaymentChannelUncheckedCreateWithoutExpensesInput>
+  }
+
+  export type ExpenseHeadUpsertWithoutExpensesInput = {
+    update: XOR<ExpenseHeadUpdateWithoutExpensesInput, ExpenseHeadUncheckedUpdateWithoutExpensesInput>
+    create: XOR<ExpenseHeadCreateWithoutExpensesInput, ExpenseHeadUncheckedCreateWithoutExpensesInput>
+    where?: ExpenseHeadWhereInput
+  }
+
+  export type ExpenseHeadUpdateToOneWithWhereWithoutExpensesInput = {
+    where?: ExpenseHeadWhereInput
+    data: XOR<ExpenseHeadUpdateWithoutExpensesInput, ExpenseHeadUncheckedUpdateWithoutExpensesInput>
+  }
+
+  export type ExpenseHeadUpdateWithoutExpensesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    archived?: BoolFieldUpdateOperationsInput | boolean
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ExpenseHeadUncheckedUpdateWithoutExpensesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    archived?: BoolFieldUpdateOperationsInput | boolean
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PaymentChannelUpsertWithoutExpensesInput = {
+    update: XOR<PaymentChannelUpdateWithoutExpensesInput, PaymentChannelUncheckedUpdateWithoutExpensesInput>
+    create: XOR<PaymentChannelCreateWithoutExpensesInput, PaymentChannelUncheckedCreateWithoutExpensesInput>
+    where?: PaymentChannelWhereInput
+  }
+
+  export type PaymentChannelUpdateToOneWithWhereWithoutExpensesInput = {
+    where?: PaymentChannelWhereInput
+    data: XOR<PaymentChannelUpdateWithoutExpensesInput, PaymentChannelUncheckedUpdateWithoutExpensesInput>
+  }
+
+  export type PaymentChannelUpdateWithoutExpensesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    kind?: EnumPaymentMethodFieldUpdateOperationsInput | $Enums.PaymentMethod
+    openingBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    currentBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    archived?: BoolFieldUpdateOperationsInput | boolean
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    outgoing?: PaymentTransferUpdateManyWithoutFromNestedInput
+    incoming?: PaymentTransferUpdateManyWithoutToNestedInput
+    orders?: OrderUpdateManyWithoutPaymentChannelNestedInput
+    inventoryMovements?: InventoryMovementUpdateManyWithoutPaymentChannelNestedInput
+    supplierPayments?: SupplierPaymentUpdateManyWithoutPaymentChannelNestedInput
+  }
+
+  export type PaymentChannelUncheckedUpdateWithoutExpensesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    kind?: EnumPaymentMethodFieldUpdateOperationsInput | $Enums.PaymentMethod
+    openingBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    currentBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    archived?: BoolFieldUpdateOperationsInput | boolean
+    archivedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    outgoing?: PaymentTransferUncheckedUpdateManyWithoutFromNestedInput
+    incoming?: PaymentTransferUncheckedUpdateManyWithoutToNestedInput
+    orders?: OrderUncheckedUpdateManyWithoutPaymentChannelNestedInput
+    inventoryMovements?: InventoryMovementUncheckedUpdateManyWithoutPaymentChannelNestedInput
+    supplierPayments?: SupplierPaymentUncheckedUpdateManyWithoutPaymentChannelNestedInput
   }
 
   export type OrderCreateWithoutTableInput = {
@@ -45682,6 +48906,7 @@ export namespace Prisma {
     incoming?: PaymentTransferCreateNestedManyWithoutToInput
     inventoryMovements?: InventoryMovementCreateNestedManyWithoutPaymentChannelInput
     supplierPayments?: SupplierPaymentCreateNestedManyWithoutPaymentChannelInput
+    expenses?: ExpenseCreateNestedManyWithoutPaymentChannelInput
   }
 
   export type PaymentChannelUncheckedCreateWithoutOrdersInput = {
@@ -45698,6 +48923,7 @@ export namespace Prisma {
     incoming?: PaymentTransferUncheckedCreateNestedManyWithoutToInput
     inventoryMovements?: InventoryMovementUncheckedCreateNestedManyWithoutPaymentChannelInput
     supplierPayments?: SupplierPaymentUncheckedCreateNestedManyWithoutPaymentChannelInput
+    expenses?: ExpenseUncheckedCreateNestedManyWithoutPaymentChannelInput
   }
 
   export type PaymentChannelCreateOrConnectWithoutOrdersInput = {
@@ -45904,6 +49130,7 @@ export namespace Prisma {
     incoming?: PaymentTransferUpdateManyWithoutToNestedInput
     inventoryMovements?: InventoryMovementUpdateManyWithoutPaymentChannelNestedInput
     supplierPayments?: SupplierPaymentUpdateManyWithoutPaymentChannelNestedInput
+    expenses?: ExpenseUpdateManyWithoutPaymentChannelNestedInput
   }
 
   export type PaymentChannelUncheckedUpdateWithoutOrdersInput = {
@@ -45920,6 +49147,7 @@ export namespace Prisma {
     incoming?: PaymentTransferUncheckedUpdateManyWithoutToNestedInput
     inventoryMovements?: InventoryMovementUncheckedUpdateManyWithoutPaymentChannelNestedInput
     supplierPayments?: SupplierPaymentUncheckedUpdateManyWithoutPaymentChannelNestedInput
+    expenses?: ExpenseUncheckedUpdateManyWithoutPaymentChannelNestedInput
   }
 
   export type FiscalSubmissionUpsertWithWhereUniqueWithoutOrderInput = {
@@ -47123,6 +50351,15 @@ export namespace Prisma {
     createdAt?: Date | string
   }
 
+  export type ExpenseCreateManyPaymentChannelInput = {
+    id?: string
+    expenseHeadId: string
+    amount: Decimal | DecimalJsLike | number | string
+    detail?: string | null
+    occurredAt: Date | string
+    createdAt?: Date | string
+  }
+
   export type PaymentTransferUpdateWithoutFromInput = {
     id?: StringFieldUpdateOperationsInput | string
     amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
@@ -47324,6 +50561,33 @@ export namespace Prisma {
     supplierId?: StringFieldUpdateOperationsInput | string
     amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     note?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ExpenseUpdateWithoutPaymentChannelInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    detail?: NullableStringFieldUpdateOperationsInput | string | null
+    occurredAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    expenseHead?: ExpenseHeadUpdateOneRequiredWithoutExpensesNestedInput
+  }
+
+  export type ExpenseUncheckedUpdateWithoutPaymentChannelInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    expenseHeadId?: StringFieldUpdateOperationsInput | string
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    detail?: NullableStringFieldUpdateOperationsInput | string | null
+    occurredAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ExpenseUncheckedUpdateManyWithoutPaymentChannelInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    expenseHeadId?: StringFieldUpdateOperationsInput | string
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    detail?: NullableStringFieldUpdateOperationsInput | string | null
+    occurredAt?: DateTimeFieldUpdateOperationsInput | Date | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -47800,6 +51064,42 @@ export namespace Prisma {
     amount?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     paidAmount?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     supplierId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ExpenseCreateManyExpenseHeadInput = {
+    id?: string
+    paymentChannelId: string
+    amount: Decimal | DecimalJsLike | number | string
+    detail?: string | null
+    occurredAt: Date | string
+    createdAt?: Date | string
+  }
+
+  export type ExpenseUpdateWithoutExpenseHeadInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    detail?: NullableStringFieldUpdateOperationsInput | string | null
+    occurredAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    paymentChannel?: PaymentChannelUpdateOneRequiredWithoutExpensesNestedInput
+  }
+
+  export type ExpenseUncheckedUpdateWithoutExpenseHeadInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    paymentChannelId?: StringFieldUpdateOperationsInput | string
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    detail?: NullableStringFieldUpdateOperationsInput | string | null
+    occurredAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ExpenseUncheckedUpdateManyWithoutExpenseHeadInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    paymentChannelId?: StringFieldUpdateOperationsInput | string
+    amount?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    detail?: NullableStringFieldUpdateOperationsInput | string | null
+    occurredAt?: DateTimeFieldUpdateOperationsInput | Date | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 

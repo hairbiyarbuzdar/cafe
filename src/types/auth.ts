@@ -37,7 +37,9 @@ export type Permission =
   | "settings.view"
   | "settings.edit"
   | "kitchen.view"
-  | "dashboard.view";
+  | "dashboard.view"
+  | "expenses.view"
+  | "expenses.edit";
 
 /**
  * The shape any UI surface needs to render a user. Never includes

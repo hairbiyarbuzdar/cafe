@@ -31,6 +31,8 @@ const ALL_PERMISSIONS: Permission[] = [
   "settings.edit",
   "kitchen.view",
   "dashboard.view",
+  "expenses.view",
+  "expenses.edit",
 ];
 
 type BuiltInRole = {
@@ -66,6 +68,8 @@ export const BUILT_IN_ROLES: BuiltInRole[] = [
       "menu.edit",
       "reports.view",
       "staff.view",
+      "expenses.view",
+      "expenses.edit",
     ],
     defaultRoute: "/pos",
   },

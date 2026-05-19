@@ -286,6 +286,25 @@ exports.Prisma.SupplierPaymentScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
+exports.Prisma.ExpenseHeadScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  archived: 'archived',
+  archivedAt: 'archivedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.ExpenseScalarFieldEnum = {
+  id: 'id',
+  expenseHeadId: 'expenseHeadId',
+  paymentChannelId: 'paymentChannelId',
+  amount: 'amount',
+  detail: 'detail',
+  occurredAt: 'occurredAt',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.TableScalarFieldEnum = {
   id: 'id',
   name: 'name',
@@ -545,6 +564,8 @@ exports.Prisma.ModelName = {
   RecipeIngredient: 'RecipeIngredient',
   InventoryMovement: 'InventoryMovement',
   SupplierPayment: 'SupplierPayment',
+  ExpenseHead: 'ExpenseHead',
+  Expense: 'Expense',
   Table: 'Table',
   Order: 'Order',
   OrderItem: 'OrderItem',

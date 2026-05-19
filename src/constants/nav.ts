@@ -11,6 +11,7 @@ import {
   LayoutDashboard,
   ListChecks,
   Receipt,
+  ReceiptText,
   Settings,
   ShoppingBag,
   Users,
@@ -78,6 +79,13 @@ export const PRIMARY_NAV: NavGroup[] = [
         icon: Users,
         description: "Team, shifts, and attendance",
         permission: "staff.view",
+      },
+      {
+        title: "Expenses",
+        href: "/expenses",
+        icon: ReceiptText,
+        description: "Operating spend by head and channel",
+        permission: "expenses.view",
       },
       {
         title: "Reports",

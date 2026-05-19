@@ -66,6 +66,21 @@ const PERMISSION_GROUPS: {
     ],
   },
   {
+    label: "Expenses",
+    permissions: [
+      {
+        id: "expenses.view",
+        label: "View expenses",
+        hint: "See spending against payment methods",
+      },
+      {
+        id: "expenses.edit",
+        label: "Record / manage expenses",
+        hint: "Add expense heads and record new expenses",
+      },
+    ],
+  },
+  {
     label: "Staff & settings",
     permissions: [
       { id: "staff.view", label: "View staff" },
@@ -85,6 +100,7 @@ const ROUTE_OPTIONS: { value: string; label: string }[] = [
   { value: "/menu", label: "Menu" },
   { value: "/inventory", label: "Inventory" },
   { value: "/reports", label: "Reports" },
+  { value: "/expenses", label: "Expenses" },
   { value: "/staff", label: "Staff" },
   { value: "/settings", label: "Settings" },
 ];
