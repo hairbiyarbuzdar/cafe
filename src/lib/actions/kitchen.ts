@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { prisma } from "@/lib/prisma";
+import { publish } from "@/lib/realtime/bus";
 import type { TicketStatus } from "@/types";
 
 const TICKET_STATUSES: readonly TicketStatus[] = [
@@ -107,6 +108,9 @@ export async function setKitchenTicketStatusAction(
 
     revalidatePath("/kitchen");
     revalidatePath("/orders");
+
+    publish({ type: "ticket.status", orderId, stationId, status });
+
     return { ok: true };
   } catch (err) {
     console.error("setKitchenTicketStatusAction failed", err);

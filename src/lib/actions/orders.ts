@@ -7,6 +7,7 @@ import { logActivity } from "@/lib/activity";
 import { getServerSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getOrderById } from "@/lib/queries/orders";
+import { publish } from "@/lib/realtime/bus";
 import type { Order, OrderChannel, PaymentMethod, ProductModifier } from "@/types";
 
 export type LoadOrderResult =
@@ -202,6 +203,12 @@ export async function placeOrderAction(
     revalidatePath("/dashboard");
     if (isDineIn) revalidatePath("/pos");
 
+    publish({
+      type: "order.placed",
+      orderId: order.id,
+      orderNumber: order.number,
+    });
+
     const itemCount = priced.lines.reduce((s, p) => s + p.line.quantity, 0);
     await logActivity({
       type: "order",
@@ -327,6 +334,8 @@ export async function addItemsToHeldOrderAction(
     revalidatePath("/kitchen");
     revalidatePath("/inventory");
 
+    publish({ type: "order.updated", orderId: order.id });
+
     const addedQty = priced.lines.reduce((s, p) => s + p.line.quantity, 0);
     await logActivity({
       type: "order",
@@ -440,6 +449,8 @@ export async function cancelHeldOrderAction(
     revalidatePath("/kitchen");
     revalidatePath("/inventory");
     if (order.tableId) revalidatePath("/pos");
+
+    publish({ type: "order.cancelled", orderId: order.id });
 
     await logActivity({
       type: "order",
@@ -556,6 +567,8 @@ export async function payOrderAction(
     revalidatePath("/kitchen");
     revalidatePath("/dashboard");
     if (order.tableId) revalidatePath("/pos");
+
+    publish({ type: "order.paid", orderId: order.id });
 
     await logActivity({
       type: "order",
