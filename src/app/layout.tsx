@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 
 import { AppProviders } from "@/providers/app-providers";
+import { ServiceWorkerRegistration } from "@/features/pwa/service-worker-registration";
 import { BRAND } from "@/constants/nav";
 import "./globals.css";
 
@@ -50,6 +51,7 @@ export default function RootLayout({
     >
       <body className="min-h-full bg-background text-foreground">
         <AppProviders>{children}</AppProviders>
+        <ServiceWorkerRegistration />
       </body>
     </html>
   );

@@ -3,7 +3,18 @@ import { NextResponse, type NextRequest } from "next/server";
 import { parseSession, SESSION_COOKIE } from "@/lib/session";
 import { hasPermission, ROLE_HOME, routePermission } from "@/lib/permissions";
 
-const PUBLIC_PATHS = ["/login", "/onboarding", "/unauthorized"];
+const PUBLIC_PATHS = [
+  "/login",
+  "/onboarding",
+  "/unauthorized",
+  // PWA assets — must load on the login screen too so the manifest
+  // and SW can register before authentication. None of these expose
+  // PII; they're branding + cache plumbing.
+  "/sw.js",
+  "/manifest.webmanifest",
+  "/icon",
+  "/apple-icon",
+];
 
 /**
  * Renamed from `middleware` in Next.js 16. Same shape — gates the
