@@ -125,6 +125,8 @@ export type OnboardingInput = {
   ownerName: string;
   ownerEmail: string;
   password: string;
+  cafeName?: string;
+  city?: string;
 };
 
 /**
@@ -159,6 +161,24 @@ export async function completeOnboardingAction(
       error: "A workspace already exists. Sign in or run `npm run db:wipe` to reset.",
     };
   }
+
+  // Seed the singleton Workspace row from the onboarding form so the
+  // sidebar/dashboard/settings panels show the operator's café name
+  // and city immediately — instead of falling back to "My café".
+  const cafeName = input.cafeName?.trim();
+  const city = input.city?.trim();
+  await prisma.workspace.upsert({
+    where: { id: "default" },
+    create: {
+      id: "default",
+      name: cafeName && cafeName.length >= 2 ? cafeName : "My café",
+      city: city || null,
+    },
+    update: {
+      ...(cafeName && cafeName.length >= 2 ? { name: cafeName } : {}),
+      ...(city ? { city } : {}),
+    },
+  });
 
   const passwordHash = await bcrypt.hash(password, 10);
   const row = await prisma.user.create({

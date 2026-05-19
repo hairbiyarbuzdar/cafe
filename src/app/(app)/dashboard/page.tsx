@@ -10,6 +10,7 @@ import { QuickActions } from "@/features/dashboard/quick-actions";
 import { RecentActivity } from "@/features/dashboard/recent-activity";
 import { RevenueChart } from "@/features/dashboard/revenue-chart";
 import { TopProducts } from "@/features/dashboard/top-products";
+import { getCurrentUser } from "@/lib/auth";
 import { listRecentActivity } from "@/lib/queries/activity";
 import {
   channelMix,
@@ -18,37 +19,71 @@ import {
   todaysKpis,
   topProducts,
 } from "@/lib/queries/analytics";
+import { getOrCreateWorkspace, type WeekDay } from "@/lib/queries/workspace";
 
 export const metadata = { title: "Dashboard" };
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+function timeOfDayGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good morning";
+  if (hour < 17) return "Good afternoon";
+  return "Good evening";
+}
+
+const DAY_KEYS: WeekDay[] = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
+
+function format12h(value: string | null): string | null {
+  if (!value) return null;
+  const m = /^(\d{1,2}):(\d{2})$/.exec(value.trim());
+  if (!m) return null;
+  const h24 = Number(m[1]);
+  const minute = m[2];
+  const ampm = h24 < 12 ? "AM" : "PM";
+  const h12 = h24 % 12 === 0 ? 12 : h24 % 12;
+  return `${h12}:${minute} ${ampm}`;
+}
+
 export default async function DashboardPage() {
-  const [kpis, revenue, channels, hourly, top, activity] = await Promise.all([
-    todaysKpis(),
-    revenue14d(),
-    channelMix(),
-    hourlyOrdersToday(),
-    topProducts(7),
-    listRecentActivity(12),
-  ]);
+  const [kpis, revenue, channels, hourly, top, activity, workspace, user] =
+    await Promise.all([
+      todaysKpis(),
+      revenue14d(),
+      channelMix(),
+      hourlyOrdersToday(),
+      topProducts(7),
+      listRecentActivity(12),
+      getOrCreateWorkspace(),
+      getCurrentUser(),
+    ]);
+
+  const firstName = user?.name.split(/\s+/)[0] ?? "there";
+  const place = workspace.addressLine || workspace.city || workspace.name;
+  const todayKey = DAY_KEYS[new Date().getDay()]!;
+  const todayHours = workspace.hours[todayKey];
+  const openLabel = format12h(todayHours.open);
+  const closeLabel = format12h(todayHours.close);
+  const isOpen = !!openLabel && !!closeLabel;
 
   return (
     <>
       <PageHeader
-        title="Good morning, Elena"
-        description="Here's what's happening at Mission St. today."
+        title={`${timeOfDayGreeting()}, ${firstName}`}
+        description={`Here's what's happening at ${place} today.`}
         meta={
           <>
-            <Badge variant="secondary" className="rounded-md font-normal">
-              <span className="me-1 inline-block size-1.5 rounded-full bg-success" />
-              Store open · 06:30–20:30
-            </Badge>
-            <Badge variant="outline" className="rounded-md font-normal text-muted-foreground">
-              4 staff on shift
-            </Badge>
-            <Badge variant="outline" className="rounded-md font-normal text-muted-foreground">
-              12 active orders
+            <Badge
+              variant="secondary"
+              className="rounded-md font-normal"
+              title={isOpen ? "Today's hours from Settings → Workspace" : undefined}
+            >
+              <span
+                className={`me-1 inline-block size-1.5 rounded-full ${isOpen ? "bg-success" : "bg-muted-foreground"}`}
+              />
+              {isOpen
+                ? `Store open · ${openLabel}–${closeLabel}`
+                : "Closed today"}
             </Badge>
           </>
         }

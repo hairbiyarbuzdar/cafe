@@ -318,6 +318,33 @@ exports.Prisma.KitchenTicketScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.WorkspaceScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  legalEntity: 'legalEntity',
+  taxId: 'taxId',
+  currency: 'currency',
+  timezone: 'timezone',
+  city: 'city',
+  addressLine: 'addressLine',
+  receiptFooter: 'receiptFooter',
+  hoursMonOpen: 'hoursMonOpen',
+  hoursMonClose: 'hoursMonClose',
+  hoursTueOpen: 'hoursTueOpen',
+  hoursTueClose: 'hoursTueClose',
+  hoursWedOpen: 'hoursWedOpen',
+  hoursWedClose: 'hoursWedClose',
+  hoursThuOpen: 'hoursThuOpen',
+  hoursThuClose: 'hoursThuClose',
+  hoursFriOpen: 'hoursFriOpen',
+  hoursFriClose: 'hoursFriClose',
+  hoursSatOpen: 'hoursSatOpen',
+  hoursSatClose: 'hoursSatClose',
+  hoursSunOpen: 'hoursSunOpen',
+  hoursSunClose: 'hoursSunClose',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.TaxConfigScalarFieldEnum = {
   id: 'id',
   rate: 'rate',
@@ -492,6 +519,7 @@ exports.Prisma.ModelName = {
   Order: 'Order',
   OrderItem: 'OrderItem',
   KitchenTicket: 'KitchenTicket',
+  Workspace: 'Workspace',
   TaxConfig: 'TaxConfig',
   FiscalConfig: 'FiscalConfig',
   FiscalSubmission: 'FiscalSubmission',

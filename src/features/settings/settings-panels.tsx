@@ -44,84 +44,6 @@ import type { PendingMember } from "@/lib/queries/users";
 import type { SessionUser } from "@/types/auth";
 import { cn, initials } from "@/lib/utils";
 
-export function GeneralPanel() {
-  return (
-    <div className="space-y-4">
-      <SectionCard
-        title="Workspace details"
-        description="How your café appears across receipts and reports"
-      >
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <Field label="Café name">
-            <Input defaultValue="Brewline" className="h-9" />
-          </Field>
-          <Field label="Legal entity">
-            <Input defaultValue="Brewline Coffee Co. LLC" className="h-9" />
-          </Field>
-          <Field label="Tax ID">
-            <Input defaultValue="38-7724918" className="h-9" />
-          </Field>
-          <Field label="Currency">
-            <Select defaultValue="usd">
-              <SelectTrigger className="h-9">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="usd">US Dollar (USD)</SelectItem>
-                <SelectItem value="eur">Euro (EUR)</SelectItem>
-                <SelectItem value="gbp">British Pound (GBP)</SelectItem>
-                <SelectItem value="cad">Canadian Dollar (CAD)</SelectItem>
-              </SelectContent>
-            </Select>
-          </Field>
-          <Field label="Time zone" className="md:col-span-2">
-            <Select defaultValue="pst">
-              <SelectTrigger className="h-9">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="pst">Pacific Time — PST</SelectItem>
-                <SelectItem value="est">Eastern Time — EST</SelectItem>
-                <SelectItem value="cet">Central European — CET</SelectItem>
-                <SelectItem value="utc">UTC</SelectItem>
-              </SelectContent>
-            </Select>
-          </Field>
-          <Field label="Receipt footer" className="md:col-span-2">
-            <Textarea
-              rows={3}
-              defaultValue="Thanks for visiting Brewline! Follow @brewline for daily specials."
-            />
-          </Field>
-        </div>
-      </SectionCard>
-
-      <SectionCard
-        title="Operating hours"
-        description="Default hours used for scheduling and reporting"
-      >
-        <ul className="space-y-2">
-          {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map(
-            (day) => (
-              <li
-                key={day}
-                className="grid grid-cols-[100px_1fr_1fr_auto] items-center gap-3 text-[12.5px]"
-              >
-                <span className="font-medium">{day}</span>
-                <Input defaultValue="06:30" className="h-8 text-[12px]" />
-                <Input defaultValue="20:30" className="h-8 text-[12px]" />
-                <Switch defaultChecked />
-              </li>
-            ),
-          )}
-        </ul>
-      </SectionCard>
-
-      <FooterSave />
-    </div>
-  );
-}
-
 export function AppearancePanel() {
   const { theme, setTheme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = React.useState(false);
@@ -652,45 +574,6 @@ function PlanCard({
       >
         {current ? "Manage" : "Switch"}
       </Button>
-    </div>
-  );
-}
-
-function Field({
-  label,
-  children,
-  className,
-}: {
-  label: string;
-  children: React.ReactNode;
-  className?: string;
-}) {
-  return (
-    <div className={cn("space-y-1.5", className)}>
-      <Label className="text-[12px] font-medium text-foreground">{label}</Label>
-      {children}
-    </div>
-  );
-}
-
-function FooterSave() {
-  return (
-    <div className="sticky bottom-3 z-10 flex items-center justify-between gap-3 rounded-lg border bg-card/95 px-4 py-2.5 shadow-elevated backdrop-blur">
-      <p className="text-[12.5px] text-muted-foreground">
-        Unsaved changes will sync to all team members.
-      </p>
-      <div className="flex items-center gap-2">
-        <Button variant="ghost" size="sm" className="h-8 rounded-md text-[12.5px]">
-          Discard
-        </Button>
-        <Button
-          size="sm"
-          className="h-8 rounded-md text-[12.5px]"
-          onClick={() => toast.success("Settings saved")}
-        >
-          <Check className="size-3.5" /> Save changes
-        </Button>
-      </div>
     </div>
   );
 }

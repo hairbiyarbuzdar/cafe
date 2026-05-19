@@ -12,6 +12,7 @@ import { listMenuCategories, listMenuItems } from "@/lib/queries/menu";
 import { listKitchenStations } from "@/lib/queries/stations";
 import { listTables } from "@/lib/queries/tables";
 import { getTaxConfig } from "@/lib/queries/tax";
+import { getOrCreateWorkspace } from "@/lib/queries/workspace";
 import { DataHydrator } from "@/providers/data-hydrator";
 import { SessionProvider } from "@/providers/session-provider";
 
@@ -28,16 +29,25 @@ export default async function AppLayout({
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
-  const [cookieStore, items, stations, categories, inventory, tables, tax] =
-    await Promise.all([
-      cookies(),
-      listMenuItems(),
-      listKitchenStations(),
-      listMenuCategories(),
-      listInventory(),
-      listTables(),
-      getTaxConfig(),
-    ]);
+  const [
+    cookieStore,
+    items,
+    stations,
+    categories,
+    inventory,
+    tables,
+    tax,
+    workspace,
+  ] = await Promise.all([
+    cookies(),
+    listMenuItems(),
+    listKitchenStations(),
+    listMenuCategories(),
+    listInventory(),
+    listTables(),
+    getTaxConfig(),
+    getOrCreateWorkspace(),
+  ]);
   const defaultOpen = cookieStore.get("sidebar_state")?.value !== "false";
 
   return (
@@ -52,7 +62,7 @@ export default async function AppLayout({
       />
       <SidebarProvider defaultOpen={defaultOpen}>
         <AmbientBackground />
-        <AppSidebar />
+        <AppSidebar workspace={workspace} />
         <SidebarInset className="min-w-0 border border-border/60 bg-background shadow-elevated">
           <AppTopbar />
           <main className="relative flex-1 px-3 py-4 pb-20 md:px-6 md:py-6 md:pb-8">

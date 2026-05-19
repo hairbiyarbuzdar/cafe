@@ -61,6 +61,8 @@ export function OnboardingForm() {
         ownerName: ownerName,
         ownerEmail: ownerEmail,
         password,
+        cafeName: cafeName,
+        city: city,
       });
       if (!result.ok) {
         toast.error("Could not provision workspace", { description: result.error });

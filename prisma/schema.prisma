@@ -391,6 +391,49 @@ enum FiscalEnvironment {
 ///
 /// `bearerToken` and `accessCode` are sensitive; never expose either
 /// in client-bound payloads (the query helper strips them).
+/// Workspace identity — name, location, currency, time zone, receipt
+/// footer, operating hours. Singleton (`id = "default"`) seeded by
+/// `ensureWorkspace()` on first onboarding and edited from
+/// Settings → Workspace.
+///
+/// The four "Sun..Sat" hour pairs encode operating hours per day; an
+/// empty/null pair means "closed that day". Kept on the Workspace
+/// row (rather than a Hours table) because the UI works on the same
+/// row in a single save.
+model Workspace {
+  id            String   @id @default("default")
+  name          String   @default("My café")
+  legalEntity   String?
+  taxId         String?
+  /// ISO-ish currency code. Drives downstream formatting helpers.
+  currency      String   @default("PKR")
+  /// IANA tz string, e.g. "Asia/Karachi".
+  timezone      String   @default("Asia/Karachi")
+  /// City the café operates in — captured during onboarding.
+  city          String?
+  /// Street-level address line, e.g. "123 Mission St". Surfaced in
+  /// the sidebar when set, else falls back to `city`.
+  addressLine   String?
+  /// Footer line printed on each receipt.
+  receiptFooter String?
+  /// Per-day operating hours. Null = closed that day. Format "HH:mm".
+  hoursMonOpen  String?  @default("06:30")
+  hoursMonClose String?  @default("20:30")
+  hoursTueOpen  String?  @default("06:30")
+  hoursTueClose String?  @default("20:30")
+  hoursWedOpen  String?  @default("06:30")
+  hoursWedClose String?  @default("20:30")
+  hoursThuOpen  String?  @default("06:30")
+  hoursThuClose String?  @default("20:30")
+  hoursFriOpen  String?  @default("06:30")
+  hoursFriClose String?  @default("20:30")
+  hoursSatOpen  String?  @default("06:30")
+  hoursSatClose String?  @default("20:30")
+  hoursSunOpen  String?  @default("06:30")
+  hoursSunClose String?  @default("20:30")
+  updatedAt     DateTime @updatedAt
+}
+
 /// Workspace-wide tax configuration. Singleton — the cart picks it up
 /// on hydrate. `rate` is decimal (0.085 = 8.5%), `label` lets you say
 /// "GST" / "Sales tax" / "VAT" instead of the default "Tax".

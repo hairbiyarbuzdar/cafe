@@ -10,11 +10,11 @@ import { SettingsNav, type SettingsTab } from "@/features/settings/settings-nav"
 import {
   AppearancePanel,
   BillingPanel,
-  GeneralPanel,
   NotificationsPanel,
   SecurityPanel,
   TeamPanel,
 } from "@/features/settings/settings-panels";
+import { WorkspacePanel } from "@/features/settings/workspace/workspace-panel";
 import { TaxPanel } from "@/features/settings/tax/tax-panel";
 import type {
   FiscalSubmissionSummary,
@@ -27,6 +27,7 @@ import type {
 import type { Role } from "@/lib/queries/roles";
 import type { TaxConfig } from "@/lib/queries/tax";
 import type { PendingMember } from "@/lib/queries/users";
+import type { Workspace } from "@/lib/queries/workspace";
 import type { SessionUser } from "@/types/auth";
 
 export function SettingsShell({
@@ -39,6 +40,7 @@ export function SettingsShell({
   fiscalSubmissions,
   taxConfig,
   roles,
+  workspace,
 }: {
   currentUser: SessionUser;
   teamMembers: SessionUser[];
@@ -49,6 +51,7 @@ export function SettingsShell({
   fiscalSubmissions: FiscalSubmissionSummary[];
   taxConfig: TaxConfig;
   roles: Role[];
+  workspace: Workspace;
 }) {
   const [tab, setTab] = React.useState<SettingsTab>("profile");
 
@@ -60,7 +63,7 @@ export function SettingsShell({
 
       <div className="min-w-0">
         {tab === "profile" ? <ProfilePanel user={currentUser} /> : null}
-        {tab === "general" ? <GeneralPanel /> : null}
+        {tab === "general" ? <WorkspacePanel workspace={workspace} /> : null}
         {tab === "appearance" ? <AppearancePanel /> : null}
         {tab === "team" ? (
           <TeamPanel

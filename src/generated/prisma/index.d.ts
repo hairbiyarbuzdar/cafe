@@ -116,13 +116,26 @@ export type OrderItem = $Result.DefaultSelection<Prisma.$OrderItemPayload>
  */
 export type KitchenTicket = $Result.DefaultSelection<Prisma.$KitchenTicketPayload>
 /**
- * Model TaxConfig
+ * Model Workspace
  * Workspace-wide configuration for invoice fiscalization with the
  * Balochistan Revenue Authority (BRA). A single row is enough — we
  * use a fixed primary key ("default") and upsert it on save.
  * 
  * `bearerToken` and `accessCode` are sensitive; never expose either
  * in client-bound payloads (the query helper strips them).
+ * Workspace identity — name, location, currency, time zone, receipt
+ * footer, operating hours. Singleton (`id = "default"`) seeded by
+ * `ensureWorkspace()` on first onboarding and edited from
+ * Settings → Workspace.
+ * 
+ * The four "Sun..Sat" hour pairs encode operating hours per day; an
+ * empty/null pair means "closed that day". Kept on the Workspace
+ * row (rather than a Hours table) because the UI works on the same
+ * row in a single save.
+ */
+export type Workspace = $Result.DefaultSelection<Prisma.$WorkspacePayload>
+/**
+ * Model TaxConfig
  * Workspace-wide tax configuration. Singleton — the cart picks it up
  * on hydrate. `rate` is decimal (0.085 = 8.5%), `label` lets you say
  * "GST" / "Sales tax" / "VAT" instead of the default "Tax".
@@ -570,6 +583,16 @@ export class PrismaClient<
     * ```
     */
   get kitchenTicket(): Prisma.KitchenTicketDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.workspace`: Exposes CRUD operations for the **Workspace** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more Workspaces
+    * const workspaces = await prisma.workspace.findMany()
+    * ```
+    */
+  get workspace(): Prisma.WorkspaceDelegate<ExtArgs, ClientOptions>;
 
   /**
    * `prisma.taxConfig`: Exposes CRUD operations for the **TaxConfig** model.
@@ -1081,6 +1104,7 @@ export namespace Prisma {
     Order: 'Order',
     OrderItem: 'OrderItem',
     KitchenTicket: 'KitchenTicket',
+    Workspace: 'Workspace',
     TaxConfig: 'TaxConfig',
     FiscalConfig: 'FiscalConfig',
     FiscalSubmission: 'FiscalSubmission',
@@ -1102,7 +1126,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "role" | "user" | "session" | "pendingMember" | "paymentChannel" | "paymentTransfer" | "kitchenStation" | "menuCategory" | "menuItem" | "supplier" | "inventoryItem" | "recipeIngredient" | "inventoryMovement" | "table" | "order" | "orderItem" | "kitchenTicket" | "taxConfig" | "fiscalConfig" | "fiscalSubmission" | "shift" | "attendance" | "activity"
+      modelProps: "role" | "user" | "session" | "pendingMember" | "paymentChannel" | "paymentTransfer" | "kitchenStation" | "menuCategory" | "menuItem" | "supplier" | "inventoryItem" | "recipeIngredient" | "inventoryMovement" | "table" | "order" | "orderItem" | "kitchenTicket" | "workspace" | "taxConfig" | "fiscalConfig" | "fiscalSubmission" | "shift" | "attendance" | "activity"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -2364,6 +2388,80 @@ export namespace Prisma {
           }
         }
       }
+      Workspace: {
+        payload: Prisma.$WorkspacePayload<ExtArgs>
+        fields: Prisma.WorkspaceFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.WorkspaceFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkspacePayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.WorkspaceFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkspacePayload>
+          }
+          findFirst: {
+            args: Prisma.WorkspaceFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkspacePayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.WorkspaceFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkspacePayload>
+          }
+          findMany: {
+            args: Prisma.WorkspaceFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkspacePayload>[]
+          }
+          create: {
+            args: Prisma.WorkspaceCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkspacePayload>
+          }
+          createMany: {
+            args: Prisma.WorkspaceCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.WorkspaceCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkspacePayload>[]
+          }
+          delete: {
+            args: Prisma.WorkspaceDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkspacePayload>
+          }
+          update: {
+            args: Prisma.WorkspaceUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkspacePayload>
+          }
+          deleteMany: {
+            args: Prisma.WorkspaceDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.WorkspaceUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.WorkspaceUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkspacePayload>[]
+          }
+          upsert: {
+            args: Prisma.WorkspaceUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkspacePayload>
+          }
+          aggregate: {
+            args: Prisma.WorkspaceAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateWorkspace>
+          }
+          groupBy: {
+            args: Prisma.WorkspaceGroupByArgs<ExtArgs>
+            result: $Utils.Optional<WorkspaceGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.WorkspaceCountArgs<ExtArgs>
+            result: $Utils.Optional<WorkspaceCountAggregateOutputType> | number
+          }
+        }
+      }
       TaxConfig: {
         payload: Prisma.$TaxConfigPayload<ExtArgs>
         fields: Prisma.TaxConfigFieldRefs
@@ -2933,6 +3031,7 @@ export namespace Prisma {
     order?: OrderOmit
     orderItem?: OrderItemOmit
     kitchenTicket?: KitchenTicketOmit
+    workspace?: WorkspaceOmit
     taxConfig?: TaxConfigOmit
     fiscalConfig?: FiscalConfigOmit
     fiscalSubmission?: FiscalSubmissionOmit
@@ -23236,6 +23335,1272 @@ export namespace Prisma {
 
 
   /**
+   * Model Workspace
+   */
+
+  export type AggregateWorkspace = {
+    _count: WorkspaceCountAggregateOutputType | null
+    _min: WorkspaceMinAggregateOutputType | null
+    _max: WorkspaceMaxAggregateOutputType | null
+  }
+
+  export type WorkspaceMinAggregateOutputType = {
+    id: string | null
+    name: string | null
+    legalEntity: string | null
+    taxId: string | null
+    currency: string | null
+    timezone: string | null
+    city: string | null
+    addressLine: string | null
+    receiptFooter: string | null
+    hoursMonOpen: string | null
+    hoursMonClose: string | null
+    hoursTueOpen: string | null
+    hoursTueClose: string | null
+    hoursWedOpen: string | null
+    hoursWedClose: string | null
+    hoursThuOpen: string | null
+    hoursThuClose: string | null
+    hoursFriOpen: string | null
+    hoursFriClose: string | null
+    hoursSatOpen: string | null
+    hoursSatClose: string | null
+    hoursSunOpen: string | null
+    hoursSunClose: string | null
+    updatedAt: Date | null
+  }
+
+  export type WorkspaceMaxAggregateOutputType = {
+    id: string | null
+    name: string | null
+    legalEntity: string | null
+    taxId: string | null
+    currency: string | null
+    timezone: string | null
+    city: string | null
+    addressLine: string | null
+    receiptFooter: string | null
+    hoursMonOpen: string | null
+    hoursMonClose: string | null
+    hoursTueOpen: string | null
+    hoursTueClose: string | null
+    hoursWedOpen: string | null
+    hoursWedClose: string | null
+    hoursThuOpen: string | null
+    hoursThuClose: string | null
+    hoursFriOpen: string | null
+    hoursFriClose: string | null
+    hoursSatOpen: string | null
+    hoursSatClose: string | null
+    hoursSunOpen: string | null
+    hoursSunClose: string | null
+    updatedAt: Date | null
+  }
+
+  export type WorkspaceCountAggregateOutputType = {
+    id: number
+    name: number
+    legalEntity: number
+    taxId: number
+    currency: number
+    timezone: number
+    city: number
+    addressLine: number
+    receiptFooter: number
+    hoursMonOpen: number
+    hoursMonClose: number
+    hoursTueOpen: number
+    hoursTueClose: number
+    hoursWedOpen: number
+    hoursWedClose: number
+    hoursThuOpen: number
+    hoursThuClose: number
+    hoursFriOpen: number
+    hoursFriClose: number
+    hoursSatOpen: number
+    hoursSatClose: number
+    hoursSunOpen: number
+    hoursSunClose: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type WorkspaceMinAggregateInputType = {
+    id?: true
+    name?: true
+    legalEntity?: true
+    taxId?: true
+    currency?: true
+    timezone?: true
+    city?: true
+    addressLine?: true
+    receiptFooter?: true
+    hoursMonOpen?: true
+    hoursMonClose?: true
+    hoursTueOpen?: true
+    hoursTueClose?: true
+    hoursWedOpen?: true
+    hoursWedClose?: true
+    hoursThuOpen?: true
+    hoursThuClose?: true
+    hoursFriOpen?: true
+    hoursFriClose?: true
+    hoursSatOpen?: true
+    hoursSatClose?: true
+    hoursSunOpen?: true
+    hoursSunClose?: true
+    updatedAt?: true
+  }
+
+  export type WorkspaceMaxAggregateInputType = {
+    id?: true
+    name?: true
+    legalEntity?: true
+    taxId?: true
+    currency?: true
+    timezone?: true
+    city?: true
+    addressLine?: true
+    receiptFooter?: true
+    hoursMonOpen?: true
+    hoursMonClose?: true
+    hoursTueOpen?: true
+    hoursTueClose?: true
+    hoursWedOpen?: true
+    hoursWedClose?: true
+    hoursThuOpen?: true
+    hoursThuClose?: true
+    hoursFriOpen?: true
+    hoursFriClose?: true
+    hoursSatOpen?: true
+    hoursSatClose?: true
+    hoursSunOpen?: true
+    hoursSunClose?: true
+    updatedAt?: true
+  }
+
+  export type WorkspaceCountAggregateInputType = {
+    id?: true
+    name?: true
+    legalEntity?: true
+    taxId?: true
+    currency?: true
+    timezone?: true
+    city?: true
+    addressLine?: true
+    receiptFooter?: true
+    hoursMonOpen?: true
+    hoursMonClose?: true
+    hoursTueOpen?: true
+    hoursTueClose?: true
+    hoursWedOpen?: true
+    hoursWedClose?: true
+    hoursThuOpen?: true
+    hoursThuClose?: true
+    hoursFriOpen?: true
+    hoursFriClose?: true
+    hoursSatOpen?: true
+    hoursSatClose?: true
+    hoursSunOpen?: true
+    hoursSunClose?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type WorkspaceAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which Workspace to aggregate.
+     */
+    where?: WorkspaceWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of Workspaces to fetch.
+     */
+    orderBy?: WorkspaceOrderByWithRelationInput | WorkspaceOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: WorkspaceWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` Workspaces from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` Workspaces.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned Workspaces
+    **/
+    _count?: true | WorkspaceCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: WorkspaceMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: WorkspaceMaxAggregateInputType
+  }
+
+  export type GetWorkspaceAggregateType<T extends WorkspaceAggregateArgs> = {
+        [P in keyof T & keyof AggregateWorkspace]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateWorkspace[P]>
+      : GetScalarType<T[P], AggregateWorkspace[P]>
+  }
+
+
+
+
+  export type WorkspaceGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: WorkspaceWhereInput
+    orderBy?: WorkspaceOrderByWithAggregationInput | WorkspaceOrderByWithAggregationInput[]
+    by: WorkspaceScalarFieldEnum[] | WorkspaceScalarFieldEnum
+    having?: WorkspaceScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: WorkspaceCountAggregateInputType | true
+    _min?: WorkspaceMinAggregateInputType
+    _max?: WorkspaceMaxAggregateInputType
+  }
+
+  export type WorkspaceGroupByOutputType = {
+    id: string
+    name: string
+    legalEntity: string | null
+    taxId: string | null
+    currency: string
+    timezone: string
+    city: string | null
+    addressLine: string | null
+    receiptFooter: string | null
+    hoursMonOpen: string | null
+    hoursMonClose: string | null
+    hoursTueOpen: string | null
+    hoursTueClose: string | null
+    hoursWedOpen: string | null
+    hoursWedClose: string | null
+    hoursThuOpen: string | null
+    hoursThuClose: string | null
+    hoursFriOpen: string | null
+    hoursFriClose: string | null
+    hoursSatOpen: string | null
+    hoursSatClose: string | null
+    hoursSunOpen: string | null
+    hoursSunClose: string | null
+    updatedAt: Date
+    _count: WorkspaceCountAggregateOutputType | null
+    _min: WorkspaceMinAggregateOutputType | null
+    _max: WorkspaceMaxAggregateOutputType | null
+  }
+
+  type GetWorkspaceGroupByPayload<T extends WorkspaceGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<WorkspaceGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof WorkspaceGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], WorkspaceGroupByOutputType[P]>
+            : GetScalarType<T[P], WorkspaceGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type WorkspaceSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    name?: boolean
+    legalEntity?: boolean
+    taxId?: boolean
+    currency?: boolean
+    timezone?: boolean
+    city?: boolean
+    addressLine?: boolean
+    receiptFooter?: boolean
+    hoursMonOpen?: boolean
+    hoursMonClose?: boolean
+    hoursTueOpen?: boolean
+    hoursTueClose?: boolean
+    hoursWedOpen?: boolean
+    hoursWedClose?: boolean
+    hoursThuOpen?: boolean
+    hoursThuClose?: boolean
+    hoursFriOpen?: boolean
+    hoursFriClose?: boolean
+    hoursSatOpen?: boolean
+    hoursSatClose?: boolean
+    hoursSunOpen?: boolean
+    hoursSunClose?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["workspace"]>
+
+  export type WorkspaceSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    name?: boolean
+    legalEntity?: boolean
+    taxId?: boolean
+    currency?: boolean
+    timezone?: boolean
+    city?: boolean
+    addressLine?: boolean
+    receiptFooter?: boolean
+    hoursMonOpen?: boolean
+    hoursMonClose?: boolean
+    hoursTueOpen?: boolean
+    hoursTueClose?: boolean
+    hoursWedOpen?: boolean
+    hoursWedClose?: boolean
+    hoursThuOpen?: boolean
+    hoursThuClose?: boolean
+    hoursFriOpen?: boolean
+    hoursFriClose?: boolean
+    hoursSatOpen?: boolean
+    hoursSatClose?: boolean
+    hoursSunOpen?: boolean
+    hoursSunClose?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["workspace"]>
+
+  export type WorkspaceSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    name?: boolean
+    legalEntity?: boolean
+    taxId?: boolean
+    currency?: boolean
+    timezone?: boolean
+    city?: boolean
+    addressLine?: boolean
+    receiptFooter?: boolean
+    hoursMonOpen?: boolean
+    hoursMonClose?: boolean
+    hoursTueOpen?: boolean
+    hoursTueClose?: boolean
+    hoursWedOpen?: boolean
+    hoursWedClose?: boolean
+    hoursThuOpen?: boolean
+    hoursThuClose?: boolean
+    hoursFriOpen?: boolean
+    hoursFriClose?: boolean
+    hoursSatOpen?: boolean
+    hoursSatClose?: boolean
+    hoursSunOpen?: boolean
+    hoursSunClose?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["workspace"]>
+
+  export type WorkspaceSelectScalar = {
+    id?: boolean
+    name?: boolean
+    legalEntity?: boolean
+    taxId?: boolean
+    currency?: boolean
+    timezone?: boolean
+    city?: boolean
+    addressLine?: boolean
+    receiptFooter?: boolean
+    hoursMonOpen?: boolean
+    hoursMonClose?: boolean
+    hoursTueOpen?: boolean
+    hoursTueClose?: boolean
+    hoursWedOpen?: boolean
+    hoursWedClose?: boolean
+    hoursThuOpen?: boolean
+    hoursThuClose?: boolean
+    hoursFriOpen?: boolean
+    hoursFriClose?: boolean
+    hoursSatOpen?: boolean
+    hoursSatClose?: boolean
+    hoursSunOpen?: boolean
+    hoursSunClose?: boolean
+    updatedAt?: boolean
+  }
+
+  export type WorkspaceOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "legalEntity" | "taxId" | "currency" | "timezone" | "city" | "addressLine" | "receiptFooter" | "hoursMonOpen" | "hoursMonClose" | "hoursTueOpen" | "hoursTueClose" | "hoursWedOpen" | "hoursWedClose" | "hoursThuOpen" | "hoursThuClose" | "hoursFriOpen" | "hoursFriClose" | "hoursSatOpen" | "hoursSatClose" | "hoursSunOpen" | "hoursSunClose" | "updatedAt", ExtArgs["result"]["workspace"]>
+
+  export type $WorkspacePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "Workspace"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      name: string
+      legalEntity: string | null
+      taxId: string | null
+      /**
+       * ISO-ish currency code. Drives downstream formatting helpers.
+       */
+      currency: string
+      /**
+       * IANA tz string, e.g. "Asia/Karachi".
+       */
+      timezone: string
+      /**
+       * City the café operates in — captured during onboarding.
+       */
+      city: string | null
+      /**
+       * Street-level address line, e.g. "123 Mission St". Surfaced in
+       * the sidebar when set, else falls back to `city`.
+       */
+      addressLine: string | null
+      /**
+       * Footer line printed on each receipt.
+       */
+      receiptFooter: string | null
+      /**
+       * Per-day operating hours. Null = closed that day. Format "HH:mm".
+       */
+      hoursMonOpen: string | null
+      hoursMonClose: string | null
+      hoursTueOpen: string | null
+      hoursTueClose: string | null
+      hoursWedOpen: string | null
+      hoursWedClose: string | null
+      hoursThuOpen: string | null
+      hoursThuClose: string | null
+      hoursFriOpen: string | null
+      hoursFriClose: string | null
+      hoursSatOpen: string | null
+      hoursSatClose: string | null
+      hoursSunOpen: string | null
+      hoursSunClose: string | null
+      updatedAt: Date
+    }, ExtArgs["result"]["workspace"]>
+    composites: {}
+  }
+
+  type WorkspaceGetPayload<S extends boolean | null | undefined | WorkspaceDefaultArgs> = $Result.GetResult<Prisma.$WorkspacePayload, S>
+
+  type WorkspaceCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<WorkspaceFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: WorkspaceCountAggregateInputType | true
+    }
+
+  export interface WorkspaceDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['Workspace'], meta: { name: 'Workspace' } }
+    /**
+     * Find zero or one Workspace that matches the filter.
+     * @param {WorkspaceFindUniqueArgs} args - Arguments to find a Workspace
+     * @example
+     * // Get one Workspace
+     * const workspace = await prisma.workspace.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends WorkspaceFindUniqueArgs>(args: SelectSubset<T, WorkspaceFindUniqueArgs<ExtArgs>>): Prisma__WorkspaceClient<$Result.GetResult<Prisma.$WorkspacePayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one Workspace that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {WorkspaceFindUniqueOrThrowArgs} args - Arguments to find a Workspace
+     * @example
+     * // Get one Workspace
+     * const workspace = await prisma.workspace.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends WorkspaceFindUniqueOrThrowArgs>(args: SelectSubset<T, WorkspaceFindUniqueOrThrowArgs<ExtArgs>>): Prisma__WorkspaceClient<$Result.GetResult<Prisma.$WorkspacePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first Workspace that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WorkspaceFindFirstArgs} args - Arguments to find a Workspace
+     * @example
+     * // Get one Workspace
+     * const workspace = await prisma.workspace.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends WorkspaceFindFirstArgs>(args?: SelectSubset<T, WorkspaceFindFirstArgs<ExtArgs>>): Prisma__WorkspaceClient<$Result.GetResult<Prisma.$WorkspacePayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first Workspace that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WorkspaceFindFirstOrThrowArgs} args - Arguments to find a Workspace
+     * @example
+     * // Get one Workspace
+     * const workspace = await prisma.workspace.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends WorkspaceFindFirstOrThrowArgs>(args?: SelectSubset<T, WorkspaceFindFirstOrThrowArgs<ExtArgs>>): Prisma__WorkspaceClient<$Result.GetResult<Prisma.$WorkspacePayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more Workspaces that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WorkspaceFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all Workspaces
+     * const workspaces = await prisma.workspace.findMany()
+     * 
+     * // Get first 10 Workspaces
+     * const workspaces = await prisma.workspace.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const workspaceWithIdOnly = await prisma.workspace.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends WorkspaceFindManyArgs>(args?: SelectSubset<T, WorkspaceFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$WorkspacePayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a Workspace.
+     * @param {WorkspaceCreateArgs} args - Arguments to create a Workspace.
+     * @example
+     * // Create one Workspace
+     * const Workspace = await prisma.workspace.create({
+     *   data: {
+     *     // ... data to create a Workspace
+     *   }
+     * })
+     * 
+     */
+    create<T extends WorkspaceCreateArgs>(args: SelectSubset<T, WorkspaceCreateArgs<ExtArgs>>): Prisma__WorkspaceClient<$Result.GetResult<Prisma.$WorkspacePayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many Workspaces.
+     * @param {WorkspaceCreateManyArgs} args - Arguments to create many Workspaces.
+     * @example
+     * // Create many Workspaces
+     * const workspace = await prisma.workspace.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends WorkspaceCreateManyArgs>(args?: SelectSubset<T, WorkspaceCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many Workspaces and returns the data saved in the database.
+     * @param {WorkspaceCreateManyAndReturnArgs} args - Arguments to create many Workspaces.
+     * @example
+     * // Create many Workspaces
+     * const workspace = await prisma.workspace.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many Workspaces and only return the `id`
+     * const workspaceWithIdOnly = await prisma.workspace.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends WorkspaceCreateManyAndReturnArgs>(args?: SelectSubset<T, WorkspaceCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$WorkspacePayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a Workspace.
+     * @param {WorkspaceDeleteArgs} args - Arguments to delete one Workspace.
+     * @example
+     * // Delete one Workspace
+     * const Workspace = await prisma.workspace.delete({
+     *   where: {
+     *     // ... filter to delete one Workspace
+     *   }
+     * })
+     * 
+     */
+    delete<T extends WorkspaceDeleteArgs>(args: SelectSubset<T, WorkspaceDeleteArgs<ExtArgs>>): Prisma__WorkspaceClient<$Result.GetResult<Prisma.$WorkspacePayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one Workspace.
+     * @param {WorkspaceUpdateArgs} args - Arguments to update one Workspace.
+     * @example
+     * // Update one Workspace
+     * const workspace = await prisma.workspace.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends WorkspaceUpdateArgs>(args: SelectSubset<T, WorkspaceUpdateArgs<ExtArgs>>): Prisma__WorkspaceClient<$Result.GetResult<Prisma.$WorkspacePayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more Workspaces.
+     * @param {WorkspaceDeleteManyArgs} args - Arguments to filter Workspaces to delete.
+     * @example
+     * // Delete a few Workspaces
+     * const { count } = await prisma.workspace.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends WorkspaceDeleteManyArgs>(args?: SelectSubset<T, WorkspaceDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Workspaces.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WorkspaceUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many Workspaces
+     * const workspace = await prisma.workspace.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends WorkspaceUpdateManyArgs>(args: SelectSubset<T, WorkspaceUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Workspaces and returns the data updated in the database.
+     * @param {WorkspaceUpdateManyAndReturnArgs} args - Arguments to update many Workspaces.
+     * @example
+     * // Update many Workspaces
+     * const workspace = await prisma.workspace.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more Workspaces and only return the `id`
+     * const workspaceWithIdOnly = await prisma.workspace.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends WorkspaceUpdateManyAndReturnArgs>(args: SelectSubset<T, WorkspaceUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$WorkspacePayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one Workspace.
+     * @param {WorkspaceUpsertArgs} args - Arguments to update or create a Workspace.
+     * @example
+     * // Update or create a Workspace
+     * const workspace = await prisma.workspace.upsert({
+     *   create: {
+     *     // ... data to create a Workspace
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the Workspace we want to update
+     *   }
+     * })
+     */
+    upsert<T extends WorkspaceUpsertArgs>(args: SelectSubset<T, WorkspaceUpsertArgs<ExtArgs>>): Prisma__WorkspaceClient<$Result.GetResult<Prisma.$WorkspacePayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of Workspaces.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WorkspaceCountArgs} args - Arguments to filter Workspaces to count.
+     * @example
+     * // Count the number of Workspaces
+     * const count = await prisma.workspace.count({
+     *   where: {
+     *     // ... the filter for the Workspaces we want to count
+     *   }
+     * })
+    **/
+    count<T extends WorkspaceCountArgs>(
+      args?: Subset<T, WorkspaceCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], WorkspaceCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a Workspace.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WorkspaceAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends WorkspaceAggregateArgs>(args: Subset<T, WorkspaceAggregateArgs>): Prisma.PrismaPromise<GetWorkspaceAggregateType<T>>
+
+    /**
+     * Group by Workspace.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WorkspaceGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends WorkspaceGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: WorkspaceGroupByArgs['orderBy'] }
+        : { orderBy?: WorkspaceGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, WorkspaceGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetWorkspaceGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the Workspace model
+   */
+  readonly fields: WorkspaceFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for Workspace.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__WorkspaceClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the Workspace model
+   */
+  interface WorkspaceFieldRefs {
+    readonly id: FieldRef<"Workspace", 'String'>
+    readonly name: FieldRef<"Workspace", 'String'>
+    readonly legalEntity: FieldRef<"Workspace", 'String'>
+    readonly taxId: FieldRef<"Workspace", 'String'>
+    readonly currency: FieldRef<"Workspace", 'String'>
+    readonly timezone: FieldRef<"Workspace", 'String'>
+    readonly city: FieldRef<"Workspace", 'String'>
+    readonly addressLine: FieldRef<"Workspace", 'String'>
+    readonly receiptFooter: FieldRef<"Workspace", 'String'>
+    readonly hoursMonOpen: FieldRef<"Workspace", 'String'>
+    readonly hoursMonClose: FieldRef<"Workspace", 'String'>
+    readonly hoursTueOpen: FieldRef<"Workspace", 'String'>
+    readonly hoursTueClose: FieldRef<"Workspace", 'String'>
+    readonly hoursWedOpen: FieldRef<"Workspace", 'String'>
+    readonly hoursWedClose: FieldRef<"Workspace", 'String'>
+    readonly hoursThuOpen: FieldRef<"Workspace", 'String'>
+    readonly hoursThuClose: FieldRef<"Workspace", 'String'>
+    readonly hoursFriOpen: FieldRef<"Workspace", 'String'>
+    readonly hoursFriClose: FieldRef<"Workspace", 'String'>
+    readonly hoursSatOpen: FieldRef<"Workspace", 'String'>
+    readonly hoursSatClose: FieldRef<"Workspace", 'String'>
+    readonly hoursSunOpen: FieldRef<"Workspace", 'String'>
+    readonly hoursSunClose: FieldRef<"Workspace", 'String'>
+    readonly updatedAt: FieldRef<"Workspace", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * Workspace findUnique
+   */
+  export type WorkspaceFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Workspace
+     */
+    select?: WorkspaceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Workspace
+     */
+    omit?: WorkspaceOmit<ExtArgs> | null
+    /**
+     * Filter, which Workspace to fetch.
+     */
+    where: WorkspaceWhereUniqueInput
+  }
+
+  /**
+   * Workspace findUniqueOrThrow
+   */
+  export type WorkspaceFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Workspace
+     */
+    select?: WorkspaceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Workspace
+     */
+    omit?: WorkspaceOmit<ExtArgs> | null
+    /**
+     * Filter, which Workspace to fetch.
+     */
+    where: WorkspaceWhereUniqueInput
+  }
+
+  /**
+   * Workspace findFirst
+   */
+  export type WorkspaceFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Workspace
+     */
+    select?: WorkspaceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Workspace
+     */
+    omit?: WorkspaceOmit<ExtArgs> | null
+    /**
+     * Filter, which Workspace to fetch.
+     */
+    where?: WorkspaceWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of Workspaces to fetch.
+     */
+    orderBy?: WorkspaceOrderByWithRelationInput | WorkspaceOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for Workspaces.
+     */
+    cursor?: WorkspaceWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` Workspaces from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` Workspaces.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of Workspaces.
+     */
+    distinct?: WorkspaceScalarFieldEnum | WorkspaceScalarFieldEnum[]
+  }
+
+  /**
+   * Workspace findFirstOrThrow
+   */
+  export type WorkspaceFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Workspace
+     */
+    select?: WorkspaceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Workspace
+     */
+    omit?: WorkspaceOmit<ExtArgs> | null
+    /**
+     * Filter, which Workspace to fetch.
+     */
+    where?: WorkspaceWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of Workspaces to fetch.
+     */
+    orderBy?: WorkspaceOrderByWithRelationInput | WorkspaceOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for Workspaces.
+     */
+    cursor?: WorkspaceWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` Workspaces from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` Workspaces.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of Workspaces.
+     */
+    distinct?: WorkspaceScalarFieldEnum | WorkspaceScalarFieldEnum[]
+  }
+
+  /**
+   * Workspace findMany
+   */
+  export type WorkspaceFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Workspace
+     */
+    select?: WorkspaceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Workspace
+     */
+    omit?: WorkspaceOmit<ExtArgs> | null
+    /**
+     * Filter, which Workspaces to fetch.
+     */
+    where?: WorkspaceWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of Workspaces to fetch.
+     */
+    orderBy?: WorkspaceOrderByWithRelationInput | WorkspaceOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing Workspaces.
+     */
+    cursor?: WorkspaceWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` Workspaces from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` Workspaces.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of Workspaces.
+     */
+    distinct?: WorkspaceScalarFieldEnum | WorkspaceScalarFieldEnum[]
+  }
+
+  /**
+   * Workspace create
+   */
+  export type WorkspaceCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Workspace
+     */
+    select?: WorkspaceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Workspace
+     */
+    omit?: WorkspaceOmit<ExtArgs> | null
+    /**
+     * The data needed to create a Workspace.
+     */
+    data: XOR<WorkspaceCreateInput, WorkspaceUncheckedCreateInput>
+  }
+
+  /**
+   * Workspace createMany
+   */
+  export type WorkspaceCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many Workspaces.
+     */
+    data: WorkspaceCreateManyInput | WorkspaceCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * Workspace createManyAndReturn
+   */
+  export type WorkspaceCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Workspace
+     */
+    select?: WorkspaceSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the Workspace
+     */
+    omit?: WorkspaceOmit<ExtArgs> | null
+    /**
+     * The data used to create many Workspaces.
+     */
+    data: WorkspaceCreateManyInput | WorkspaceCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * Workspace update
+   */
+  export type WorkspaceUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Workspace
+     */
+    select?: WorkspaceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Workspace
+     */
+    omit?: WorkspaceOmit<ExtArgs> | null
+    /**
+     * The data needed to update a Workspace.
+     */
+    data: XOR<WorkspaceUpdateInput, WorkspaceUncheckedUpdateInput>
+    /**
+     * Choose, which Workspace to update.
+     */
+    where: WorkspaceWhereUniqueInput
+  }
+
+  /**
+   * Workspace updateMany
+   */
+  export type WorkspaceUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update Workspaces.
+     */
+    data: XOR<WorkspaceUpdateManyMutationInput, WorkspaceUncheckedUpdateManyInput>
+    /**
+     * Filter which Workspaces to update
+     */
+    where?: WorkspaceWhereInput
+    /**
+     * Limit how many Workspaces to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * Workspace updateManyAndReturn
+   */
+  export type WorkspaceUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Workspace
+     */
+    select?: WorkspaceSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the Workspace
+     */
+    omit?: WorkspaceOmit<ExtArgs> | null
+    /**
+     * The data used to update Workspaces.
+     */
+    data: XOR<WorkspaceUpdateManyMutationInput, WorkspaceUncheckedUpdateManyInput>
+    /**
+     * Filter which Workspaces to update
+     */
+    where?: WorkspaceWhereInput
+    /**
+     * Limit how many Workspaces to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * Workspace upsert
+   */
+  export type WorkspaceUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Workspace
+     */
+    select?: WorkspaceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Workspace
+     */
+    omit?: WorkspaceOmit<ExtArgs> | null
+    /**
+     * The filter to search for the Workspace to update in case it exists.
+     */
+    where: WorkspaceWhereUniqueInput
+    /**
+     * In case the Workspace found by the `where` argument doesn't exist, create a new Workspace with this data.
+     */
+    create: XOR<WorkspaceCreateInput, WorkspaceUncheckedCreateInput>
+    /**
+     * In case the Workspace was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<WorkspaceUpdateInput, WorkspaceUncheckedUpdateInput>
+  }
+
+  /**
+   * Workspace delete
+   */
+  export type WorkspaceDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Workspace
+     */
+    select?: WorkspaceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Workspace
+     */
+    omit?: WorkspaceOmit<ExtArgs> | null
+    /**
+     * Filter which Workspace to delete.
+     */
+    where: WorkspaceWhereUniqueInput
+  }
+
+  /**
+   * Workspace deleteMany
+   */
+  export type WorkspaceDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which Workspaces to delete
+     */
+    where?: WorkspaceWhereInput
+    /**
+     * Limit how many Workspaces to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * Workspace without action
+   */
+  export type WorkspaceDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Workspace
+     */
+    select?: WorkspaceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Workspace
+     */
+    omit?: WorkspaceOmit<ExtArgs> | null
+  }
+
+
+  /**
    * Model TaxConfig
    */
 
@@ -30097,6 +31462,36 @@ export namespace Prisma {
   export type KitchenTicketScalarFieldEnum = (typeof KitchenTicketScalarFieldEnum)[keyof typeof KitchenTicketScalarFieldEnum]
 
 
+  export const WorkspaceScalarFieldEnum: {
+    id: 'id',
+    name: 'name',
+    legalEntity: 'legalEntity',
+    taxId: 'taxId',
+    currency: 'currency',
+    timezone: 'timezone',
+    city: 'city',
+    addressLine: 'addressLine',
+    receiptFooter: 'receiptFooter',
+    hoursMonOpen: 'hoursMonOpen',
+    hoursMonClose: 'hoursMonClose',
+    hoursTueOpen: 'hoursTueOpen',
+    hoursTueClose: 'hoursTueClose',
+    hoursWedOpen: 'hoursWedOpen',
+    hoursWedClose: 'hoursWedClose',
+    hoursThuOpen: 'hoursThuOpen',
+    hoursThuClose: 'hoursThuClose',
+    hoursFriOpen: 'hoursFriOpen',
+    hoursFriClose: 'hoursFriClose',
+    hoursSatOpen: 'hoursSatOpen',
+    hoursSatClose: 'hoursSatClose',
+    hoursSunOpen: 'hoursSunOpen',
+    hoursSunClose: 'hoursSunClose',
+    updatedAt: 'updatedAt'
+  };
+
+  export type WorkspaceScalarFieldEnum = (typeof WorkspaceScalarFieldEnum)[keyof typeof WorkspaceScalarFieldEnum]
+
+
   export const TaxConfigScalarFieldEnum: {
     id: 'id',
     rate: 'rate',
@@ -31767,6 +33162,153 @@ export namespace Prisma {
     status?: EnumTicketStatusWithAggregatesFilter<"KitchenTicket"> | $Enums.TicketStatus
     createdAt?: DateTimeWithAggregatesFilter<"KitchenTicket"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"KitchenTicket"> | Date | string
+  }
+
+  export type WorkspaceWhereInput = {
+    AND?: WorkspaceWhereInput | WorkspaceWhereInput[]
+    OR?: WorkspaceWhereInput[]
+    NOT?: WorkspaceWhereInput | WorkspaceWhereInput[]
+    id?: StringFilter<"Workspace"> | string
+    name?: StringFilter<"Workspace"> | string
+    legalEntity?: StringNullableFilter<"Workspace"> | string | null
+    taxId?: StringNullableFilter<"Workspace"> | string | null
+    currency?: StringFilter<"Workspace"> | string
+    timezone?: StringFilter<"Workspace"> | string
+    city?: StringNullableFilter<"Workspace"> | string | null
+    addressLine?: StringNullableFilter<"Workspace"> | string | null
+    receiptFooter?: StringNullableFilter<"Workspace"> | string | null
+    hoursMonOpen?: StringNullableFilter<"Workspace"> | string | null
+    hoursMonClose?: StringNullableFilter<"Workspace"> | string | null
+    hoursTueOpen?: StringNullableFilter<"Workspace"> | string | null
+    hoursTueClose?: StringNullableFilter<"Workspace"> | string | null
+    hoursWedOpen?: StringNullableFilter<"Workspace"> | string | null
+    hoursWedClose?: StringNullableFilter<"Workspace"> | string | null
+    hoursThuOpen?: StringNullableFilter<"Workspace"> | string | null
+    hoursThuClose?: StringNullableFilter<"Workspace"> | string | null
+    hoursFriOpen?: StringNullableFilter<"Workspace"> | string | null
+    hoursFriClose?: StringNullableFilter<"Workspace"> | string | null
+    hoursSatOpen?: StringNullableFilter<"Workspace"> | string | null
+    hoursSatClose?: StringNullableFilter<"Workspace"> | string | null
+    hoursSunOpen?: StringNullableFilter<"Workspace"> | string | null
+    hoursSunClose?: StringNullableFilter<"Workspace"> | string | null
+    updatedAt?: DateTimeFilter<"Workspace"> | Date | string
+  }
+
+  export type WorkspaceOrderByWithRelationInput = {
+    id?: SortOrder
+    name?: SortOrder
+    legalEntity?: SortOrderInput | SortOrder
+    taxId?: SortOrderInput | SortOrder
+    currency?: SortOrder
+    timezone?: SortOrder
+    city?: SortOrderInput | SortOrder
+    addressLine?: SortOrderInput | SortOrder
+    receiptFooter?: SortOrderInput | SortOrder
+    hoursMonOpen?: SortOrderInput | SortOrder
+    hoursMonClose?: SortOrderInput | SortOrder
+    hoursTueOpen?: SortOrderInput | SortOrder
+    hoursTueClose?: SortOrderInput | SortOrder
+    hoursWedOpen?: SortOrderInput | SortOrder
+    hoursWedClose?: SortOrderInput | SortOrder
+    hoursThuOpen?: SortOrderInput | SortOrder
+    hoursThuClose?: SortOrderInput | SortOrder
+    hoursFriOpen?: SortOrderInput | SortOrder
+    hoursFriClose?: SortOrderInput | SortOrder
+    hoursSatOpen?: SortOrderInput | SortOrder
+    hoursSatClose?: SortOrderInput | SortOrder
+    hoursSunOpen?: SortOrderInput | SortOrder
+    hoursSunClose?: SortOrderInput | SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type WorkspaceWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: WorkspaceWhereInput | WorkspaceWhereInput[]
+    OR?: WorkspaceWhereInput[]
+    NOT?: WorkspaceWhereInput | WorkspaceWhereInput[]
+    name?: StringFilter<"Workspace"> | string
+    legalEntity?: StringNullableFilter<"Workspace"> | string | null
+    taxId?: StringNullableFilter<"Workspace"> | string | null
+    currency?: StringFilter<"Workspace"> | string
+    timezone?: StringFilter<"Workspace"> | string
+    city?: StringNullableFilter<"Workspace"> | string | null
+    addressLine?: StringNullableFilter<"Workspace"> | string | null
+    receiptFooter?: StringNullableFilter<"Workspace"> | string | null
+    hoursMonOpen?: StringNullableFilter<"Workspace"> | string | null
+    hoursMonClose?: StringNullableFilter<"Workspace"> | string | null
+    hoursTueOpen?: StringNullableFilter<"Workspace"> | string | null
+    hoursTueClose?: StringNullableFilter<"Workspace"> | string | null
+    hoursWedOpen?: StringNullableFilter<"Workspace"> | string | null
+    hoursWedClose?: StringNullableFilter<"Workspace"> | string | null
+    hoursThuOpen?: StringNullableFilter<"Workspace"> | string | null
+    hoursThuClose?: StringNullableFilter<"Workspace"> | string | null
+    hoursFriOpen?: StringNullableFilter<"Workspace"> | string | null
+    hoursFriClose?: StringNullableFilter<"Workspace"> | string | null
+    hoursSatOpen?: StringNullableFilter<"Workspace"> | string | null
+    hoursSatClose?: StringNullableFilter<"Workspace"> | string | null
+    hoursSunOpen?: StringNullableFilter<"Workspace"> | string | null
+    hoursSunClose?: StringNullableFilter<"Workspace"> | string | null
+    updatedAt?: DateTimeFilter<"Workspace"> | Date | string
+  }, "id">
+
+  export type WorkspaceOrderByWithAggregationInput = {
+    id?: SortOrder
+    name?: SortOrder
+    legalEntity?: SortOrderInput | SortOrder
+    taxId?: SortOrderInput | SortOrder
+    currency?: SortOrder
+    timezone?: SortOrder
+    city?: SortOrderInput | SortOrder
+    addressLine?: SortOrderInput | SortOrder
+    receiptFooter?: SortOrderInput | SortOrder
+    hoursMonOpen?: SortOrderInput | SortOrder
+    hoursMonClose?: SortOrderInput | SortOrder
+    hoursTueOpen?: SortOrderInput | SortOrder
+    hoursTueClose?: SortOrderInput | SortOrder
+    hoursWedOpen?: SortOrderInput | SortOrder
+    hoursWedClose?: SortOrderInput | SortOrder
+    hoursThuOpen?: SortOrderInput | SortOrder
+    hoursThuClose?: SortOrderInput | SortOrder
+    hoursFriOpen?: SortOrderInput | SortOrder
+    hoursFriClose?: SortOrderInput | SortOrder
+    hoursSatOpen?: SortOrderInput | SortOrder
+    hoursSatClose?: SortOrderInput | SortOrder
+    hoursSunOpen?: SortOrderInput | SortOrder
+    hoursSunClose?: SortOrderInput | SortOrder
+    updatedAt?: SortOrder
+    _count?: WorkspaceCountOrderByAggregateInput
+    _max?: WorkspaceMaxOrderByAggregateInput
+    _min?: WorkspaceMinOrderByAggregateInput
+  }
+
+  export type WorkspaceScalarWhereWithAggregatesInput = {
+    AND?: WorkspaceScalarWhereWithAggregatesInput | WorkspaceScalarWhereWithAggregatesInput[]
+    OR?: WorkspaceScalarWhereWithAggregatesInput[]
+    NOT?: WorkspaceScalarWhereWithAggregatesInput | WorkspaceScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"Workspace"> | string
+    name?: StringWithAggregatesFilter<"Workspace"> | string
+    legalEntity?: StringNullableWithAggregatesFilter<"Workspace"> | string | null
+    taxId?: StringNullableWithAggregatesFilter<"Workspace"> | string | null
+    currency?: StringWithAggregatesFilter<"Workspace"> | string
+    timezone?: StringWithAggregatesFilter<"Workspace"> | string
+    city?: StringNullableWithAggregatesFilter<"Workspace"> | string | null
+    addressLine?: StringNullableWithAggregatesFilter<"Workspace"> | string | null
+    receiptFooter?: StringNullableWithAggregatesFilter<"Workspace"> | string | null
+    hoursMonOpen?: StringNullableWithAggregatesFilter<"Workspace"> | string | null
+    hoursMonClose?: StringNullableWithAggregatesFilter<"Workspace"> | string | null
+    hoursTueOpen?: StringNullableWithAggregatesFilter<"Workspace"> | string | null
+    hoursTueClose?: StringNullableWithAggregatesFilter<"Workspace"> | string | null
+    hoursWedOpen?: StringNullableWithAggregatesFilter<"Workspace"> | string | null
+    hoursWedClose?: StringNullableWithAggregatesFilter<"Workspace"> | string | null
+    hoursThuOpen?: StringNullableWithAggregatesFilter<"Workspace"> | string | null
+    hoursThuClose?: StringNullableWithAggregatesFilter<"Workspace"> | string | null
+    hoursFriOpen?: StringNullableWithAggregatesFilter<"Workspace"> | string | null
+    hoursFriClose?: StringNullableWithAggregatesFilter<"Workspace"> | string | null
+    hoursSatOpen?: StringNullableWithAggregatesFilter<"Workspace"> | string | null
+    hoursSatClose?: StringNullableWithAggregatesFilter<"Workspace"> | string | null
+    hoursSunOpen?: StringNullableWithAggregatesFilter<"Workspace"> | string | null
+    hoursSunClose?: StringNullableWithAggregatesFilter<"Workspace"> | string | null
+    updatedAt?: DateTimeWithAggregatesFilter<"Workspace"> | Date | string
   }
 
   export type TaxConfigWhereInput = {
@@ -33661,6 +35203,195 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type WorkspaceCreateInput = {
+    id?: string
+    name?: string
+    legalEntity?: string | null
+    taxId?: string | null
+    currency?: string
+    timezone?: string
+    city?: string | null
+    addressLine?: string | null
+    receiptFooter?: string | null
+    hoursMonOpen?: string | null
+    hoursMonClose?: string | null
+    hoursTueOpen?: string | null
+    hoursTueClose?: string | null
+    hoursWedOpen?: string | null
+    hoursWedClose?: string | null
+    hoursThuOpen?: string | null
+    hoursThuClose?: string | null
+    hoursFriOpen?: string | null
+    hoursFriClose?: string | null
+    hoursSatOpen?: string | null
+    hoursSatClose?: string | null
+    hoursSunOpen?: string | null
+    hoursSunClose?: string | null
+    updatedAt?: Date | string
+  }
+
+  export type WorkspaceUncheckedCreateInput = {
+    id?: string
+    name?: string
+    legalEntity?: string | null
+    taxId?: string | null
+    currency?: string
+    timezone?: string
+    city?: string | null
+    addressLine?: string | null
+    receiptFooter?: string | null
+    hoursMonOpen?: string | null
+    hoursMonClose?: string | null
+    hoursTueOpen?: string | null
+    hoursTueClose?: string | null
+    hoursWedOpen?: string | null
+    hoursWedClose?: string | null
+    hoursThuOpen?: string | null
+    hoursThuClose?: string | null
+    hoursFriOpen?: string | null
+    hoursFriClose?: string | null
+    hoursSatOpen?: string | null
+    hoursSatClose?: string | null
+    hoursSunOpen?: string | null
+    hoursSunClose?: string | null
+    updatedAt?: Date | string
+  }
+
+  export type WorkspaceUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    legalEntity?: NullableStringFieldUpdateOperationsInput | string | null
+    taxId?: NullableStringFieldUpdateOperationsInput | string | null
+    currency?: StringFieldUpdateOperationsInput | string
+    timezone?: StringFieldUpdateOperationsInput | string
+    city?: NullableStringFieldUpdateOperationsInput | string | null
+    addressLine?: NullableStringFieldUpdateOperationsInput | string | null
+    receiptFooter?: NullableStringFieldUpdateOperationsInput | string | null
+    hoursMonOpen?: NullableStringFieldUpdateOperationsInput | string | null
+    hoursMonClose?: NullableStringFieldUpdateOperationsInput | string | null
+    hoursTueOpen?: NullableStringFieldUpdateOperationsInput | string | null
+    hoursTueClose?: NullableStringFieldUpdateOperationsInput | string | null
+    hoursWedOpen?: NullableStringFieldUpdateOperationsInput | string | null
+    hoursWedClose?: NullableStringFieldUpdateOperationsInput | string | null
+    hoursThuOpen?: NullableStringFieldUpdateOperationsInput | string | null
+    hoursThuClose?: NullableStringFieldUpdateOperationsInput | string | null
+    hoursFriOpen?: NullableStringFieldUpdateOperationsInput | string | null
+    hoursFriClose?: NullableStringFieldUpdateOperationsInput | string | null
+    hoursSatOpen?: NullableStringFieldUpdateOperationsInput | string | null
+    hoursSatClose?: NullableStringFieldUpdateOperationsInput | string | null
+    hoursSunOpen?: NullableStringFieldUpdateOperationsInput | string | null
+    hoursSunClose?: NullableStringFieldUpdateOperationsInput | string | null
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type WorkspaceUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    legalEntity?: NullableStringFieldUpdateOperationsInput | string | null
+    taxId?: NullableStringFieldUpdateOperationsInput | string | null
+    currency?: StringFieldUpdateOperationsInput | string
+    timezone?: StringFieldUpdateOperationsInput | string
+    city?: NullableStringFieldUpdateOperationsInput | string | null
+    addressLine?: NullableStringFieldUpdateOperationsInput | string | null
+    receiptFooter?: NullableStringFieldUpdateOperationsInput | string | null
+    hoursMonOpen?: NullableStringFieldUpdateOperationsInput | string | null
+    hoursMonClose?: NullableStringFieldUpdateOperationsInput | string | null
+    hoursTueOpen?: NullableStringFieldUpdateOperationsInput | string | null
+    hoursTueClose?: NullableStringFieldUpdateOperationsInput | string | null
+    hoursWedOpen?: NullableStringFieldUpdateOperationsInput | string | null
+    hoursWedClose?: NullableStringFieldUpdateOperationsInput | string | null
+    hoursThuOpen?: NullableStringFieldUpdateOperationsInput | string | null
+    hoursThuClose?: NullableStringFieldUpdateOperationsInput | string | null
+    hoursFriOpen?: NullableStringFieldUpdateOperationsInput | string | null
+    hoursFriClose?: NullableStringFieldUpdateOperationsInput | string | null
+    hoursSatOpen?: NullableStringFieldUpdateOperationsInput | string | null
+    hoursSatClose?: NullableStringFieldUpdateOperationsInput | string | null
+    hoursSunOpen?: NullableStringFieldUpdateOperationsInput | string | null
+    hoursSunClose?: NullableStringFieldUpdateOperationsInput | string | null
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type WorkspaceCreateManyInput = {
+    id?: string
+    name?: string
+    legalEntity?: string | null
+    taxId?: string | null
+    currency?: string
+    timezone?: string
+    city?: string | null
+    addressLine?: string | null
+    receiptFooter?: string | null
+    hoursMonOpen?: string | null
+    hoursMonClose?: string | null
+    hoursTueOpen?: string | null
+    hoursTueClose?: string | null
+    hoursWedOpen?: string | null
+    hoursWedClose?: string | null
+    hoursThuOpen?: string | null
+    hoursThuClose?: string | null
+    hoursFriOpen?: string | null
+    hoursFriClose?: string | null
+    hoursSatOpen?: string | null
+    hoursSatClose?: string | null
+    hoursSunOpen?: string | null
+    hoursSunClose?: string | null
+    updatedAt?: Date | string
+  }
+
+  export type WorkspaceUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    legalEntity?: NullableStringFieldUpdateOperationsInput | string | null
+    taxId?: NullableStringFieldUpdateOperationsInput | string | null
+    currency?: StringFieldUpdateOperationsInput | string
+    timezone?: StringFieldUpdateOperationsInput | string
+    city?: NullableStringFieldUpdateOperationsInput | string | null
+    addressLine?: NullableStringFieldUpdateOperationsInput | string | null
+    receiptFooter?: NullableStringFieldUpdateOperationsInput | string | null
+    hoursMonOpen?: NullableStringFieldUpdateOperationsInput | string | null
+    hoursMonClose?: NullableStringFieldUpdateOperationsInput | string | null
+    hoursTueOpen?: NullableStringFieldUpdateOperationsInput | string | null
+    hoursTueClose?: NullableStringFieldUpdateOperationsInput | string | null
+    hoursWedOpen?: NullableStringFieldUpdateOperationsInput | string | null
+    hoursWedClose?: NullableStringFieldUpdateOperationsInput | string | null
+    hoursThuOpen?: NullableStringFieldUpdateOperationsInput | string | null
+    hoursThuClose?: NullableStringFieldUpdateOperationsInput | string | null
+    hoursFriOpen?: NullableStringFieldUpdateOperationsInput | string | null
+    hoursFriClose?: NullableStringFieldUpdateOperationsInput | string | null
+    hoursSatOpen?: NullableStringFieldUpdateOperationsInput | string | null
+    hoursSatClose?: NullableStringFieldUpdateOperationsInput | string | null
+    hoursSunOpen?: NullableStringFieldUpdateOperationsInput | string | null
+    hoursSunClose?: NullableStringFieldUpdateOperationsInput | string | null
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type WorkspaceUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    legalEntity?: NullableStringFieldUpdateOperationsInput | string | null
+    taxId?: NullableStringFieldUpdateOperationsInput | string | null
+    currency?: StringFieldUpdateOperationsInput | string
+    timezone?: StringFieldUpdateOperationsInput | string
+    city?: NullableStringFieldUpdateOperationsInput | string | null
+    addressLine?: NullableStringFieldUpdateOperationsInput | string | null
+    receiptFooter?: NullableStringFieldUpdateOperationsInput | string | null
+    hoursMonOpen?: NullableStringFieldUpdateOperationsInput | string | null
+    hoursMonClose?: NullableStringFieldUpdateOperationsInput | string | null
+    hoursTueOpen?: NullableStringFieldUpdateOperationsInput | string | null
+    hoursTueClose?: NullableStringFieldUpdateOperationsInput | string | null
+    hoursWedOpen?: NullableStringFieldUpdateOperationsInput | string | null
+    hoursWedClose?: NullableStringFieldUpdateOperationsInput | string | null
+    hoursThuOpen?: NullableStringFieldUpdateOperationsInput | string | null
+    hoursThuClose?: NullableStringFieldUpdateOperationsInput | string | null
+    hoursFriOpen?: NullableStringFieldUpdateOperationsInput | string | null
+    hoursFriClose?: NullableStringFieldUpdateOperationsInput | string | null
+    hoursSatOpen?: NullableStringFieldUpdateOperationsInput | string | null
+    hoursSatClose?: NullableStringFieldUpdateOperationsInput | string | null
+    hoursSunOpen?: NullableStringFieldUpdateOperationsInput | string | null
+    hoursSunClose?: NullableStringFieldUpdateOperationsInput | string | null
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type TaxConfigCreateInput = {
     id?: string
     rate?: number
@@ -35488,6 +37219,87 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumTicketStatusFilter<$PrismaModel>
     _max?: NestedEnumTicketStatusFilter<$PrismaModel>
+  }
+
+  export type WorkspaceCountOrderByAggregateInput = {
+    id?: SortOrder
+    name?: SortOrder
+    legalEntity?: SortOrder
+    taxId?: SortOrder
+    currency?: SortOrder
+    timezone?: SortOrder
+    city?: SortOrder
+    addressLine?: SortOrder
+    receiptFooter?: SortOrder
+    hoursMonOpen?: SortOrder
+    hoursMonClose?: SortOrder
+    hoursTueOpen?: SortOrder
+    hoursTueClose?: SortOrder
+    hoursWedOpen?: SortOrder
+    hoursWedClose?: SortOrder
+    hoursThuOpen?: SortOrder
+    hoursThuClose?: SortOrder
+    hoursFriOpen?: SortOrder
+    hoursFriClose?: SortOrder
+    hoursSatOpen?: SortOrder
+    hoursSatClose?: SortOrder
+    hoursSunOpen?: SortOrder
+    hoursSunClose?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type WorkspaceMaxOrderByAggregateInput = {
+    id?: SortOrder
+    name?: SortOrder
+    legalEntity?: SortOrder
+    taxId?: SortOrder
+    currency?: SortOrder
+    timezone?: SortOrder
+    city?: SortOrder
+    addressLine?: SortOrder
+    receiptFooter?: SortOrder
+    hoursMonOpen?: SortOrder
+    hoursMonClose?: SortOrder
+    hoursTueOpen?: SortOrder
+    hoursTueClose?: SortOrder
+    hoursWedOpen?: SortOrder
+    hoursWedClose?: SortOrder
+    hoursThuOpen?: SortOrder
+    hoursThuClose?: SortOrder
+    hoursFriOpen?: SortOrder
+    hoursFriClose?: SortOrder
+    hoursSatOpen?: SortOrder
+    hoursSatClose?: SortOrder
+    hoursSunOpen?: SortOrder
+    hoursSunClose?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type WorkspaceMinOrderByAggregateInput = {
+    id?: SortOrder
+    name?: SortOrder
+    legalEntity?: SortOrder
+    taxId?: SortOrder
+    currency?: SortOrder
+    timezone?: SortOrder
+    city?: SortOrder
+    addressLine?: SortOrder
+    receiptFooter?: SortOrder
+    hoursMonOpen?: SortOrder
+    hoursMonClose?: SortOrder
+    hoursTueOpen?: SortOrder
+    hoursTueClose?: SortOrder
+    hoursWedOpen?: SortOrder
+    hoursWedClose?: SortOrder
+    hoursThuOpen?: SortOrder
+    hoursThuClose?: SortOrder
+    hoursFriOpen?: SortOrder
+    hoursFriClose?: SortOrder
+    hoursSatOpen?: SortOrder
+    hoursSatClose?: SortOrder
+    hoursSunOpen?: SortOrder
+    hoursSunClose?: SortOrder
+    updatedAt?: SortOrder
   }
 
   export type TaxConfigCountOrderByAggregateInput = {

@@ -14,6 +14,7 @@ import {
 import { listRoles } from "@/lib/queries/roles";
 import { getTaxConfig } from "@/lib/queries/tax";
 import { listPendingMembers, listPublicUsers } from "@/lib/queries/users";
+import { getOrCreateWorkspace } from "@/lib/queries/workspace";
 import { ensureBuiltInRoles } from "@/lib/roles-seed";
 
 export const runtime = "nodejs";
@@ -37,6 +38,7 @@ export default async function SettingsPage() {
     fiscalSubmissions,
     taxConfig,
     roles,
+    workspace,
   ] = await Promise.all([
     listPublicUsers(),
     listPendingMembers(),
@@ -46,6 +48,7 @@ export default async function SettingsPage() {
     listRecentFiscalSubmissions(20),
     getTaxConfig(),
     listRoles(),
+    getOrCreateWorkspace(),
   ]);
 
   return (
@@ -64,6 +67,7 @@ export default async function SettingsPage() {
         fiscalSubmissions={fiscalSubmissions}
         taxConfig={taxConfig}
         roles={roles}
+        workspace={workspace}
       />
     </>
   );

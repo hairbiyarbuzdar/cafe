@@ -37,17 +37,20 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { BRAND, PRIMARY_NAV } from "@/constants/nav";
+import { PRIMARY_NAV } from "@/constants/nav";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { hasPermission, ROLE_LABEL } from "@/lib/permissions";
+import type { Workspace } from "@/lib/queries/workspace";
 import { useAuth } from "@/store/auth-store";
 import { initials } from "@/lib/utils";
 
-export function AppSidebar() {
+export function AppSidebar({ workspace }: { workspace: Workspace }) {
   const pathname = usePathname();
   const router = useRouter();
   const user = useCurrentUser();
   const signOut = useAuth((s) => s.signOut);
+
+  const address = workspace.addressLine || workspace.city;
 
   async function handleSignOut() {
     await signOut();
@@ -84,12 +87,14 @@ export function AppSidebar() {
                 </span>
 
                 <div className="grid flex-1 text-left leading-tight group-data-[collapsible=icon]:hidden">
-                  <span className="text-[14px] font-semibold tracking-tight">
-                    {BRAND.name}
+                  <span className="truncate text-[14px] font-semibold tracking-tight">
+                    {workspace.name}
                   </span>
-                  <span className="text-[11.5px] text-muted-foreground">
-                    Mission St · San Francisco
-                  </span>
+                  {address ? (
+                    <span className="truncate text-[11.5px] text-muted-foreground">
+                      {address}
+                    </span>
+                  ) : null}
                 </div>
               </Link>
             </SidebarMenuButton>
