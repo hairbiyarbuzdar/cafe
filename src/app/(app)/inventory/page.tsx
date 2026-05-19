@@ -7,6 +7,7 @@ import { InventoryTrend } from "@/features/inventory/inventory-trend";
 import { LowStockAlerts } from "@/features/inventory/low-stock-alerts";
 import { NewInventoryItemButton } from "@/features/inventory/inventory-form-sheet";
 import { SuppliersGrid } from "@/features/inventory/suppliers-grid";
+import { stockTrend7d } from "@/lib/queries/analytics";
 import {
   inventorySummary,
   listInventory,
@@ -20,11 +21,12 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export default async function InventoryPage() {
-  const [summary, items, suppliers, lowStock] = await Promise.all([
+  const [summary, items, suppliers, lowStock, trend] = await Promise.all([
     inventorySummary(),
     listInventory(),
     listSuppliers(),
     listLowStock(6),
+    stockTrend7d(),
   ]);
 
   const knownCategories = Array.from(
@@ -69,7 +71,7 @@ export default async function InventoryPage() {
 
       <section className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          <InventoryTrend />
+          <InventoryTrend data={trend} />
         </div>
         <LowStockAlerts items={lowStock} suppliers={suppliers} />
       </section>

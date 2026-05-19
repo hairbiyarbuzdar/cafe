@@ -7,11 +7,25 @@ import { KpiCard } from "@/components/shared/kpi-card";
 import { CategoryMix } from "@/features/reports/category-mix";
 import { SalesOverview } from "@/features/reports/sales-overview";
 import { TopProductsTable } from "@/features/reports/top-products-table";
-import { TODAY_KPIS } from "@/mock/analytics";
+import {
+  categoryRevenue,
+  revenue14d,
+  todaysKpis,
+  topProducts,
+} from "@/lib/queries/analytics";
 
 export const metadata = { title: "Reports" };
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
-export default function ReportsPage() {
+export default async function ReportsPage() {
+  const [kpis, revenue, categories, top] = await Promise.all([
+    todaysKpis(),
+    revenue14d(),
+    categoryRevenue(),
+    topProducts(10),
+  ]);
+
   return (
     <>
       <PageHeader
@@ -44,23 +58,23 @@ export default function ReportsPage() {
       />
 
       <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {TODAY_KPIS.map((k, i) => (
+        {kpis.map((k, i) => (
           <KpiCard key={k.id} kpi={k} accentColor={`var(--chart-${(i % 5) + 1})`} />
         ))}
       </section>
 
-      <SalesOverview />
+      <SalesOverview data={revenue} />
 
       <section className="grid grid-cols-1 gap-4 lg:grid-cols-5">
         <div className="lg:col-span-3">
-          <CategoryMix />
+          <CategoryMix data={categories} />
         </div>
         <div className="lg:col-span-2">
           <ExportPanel />
         </div>
       </section>
 
-      <TopProductsTable />
+      <TopProductsTable data={top} />
     </>
   );
 }

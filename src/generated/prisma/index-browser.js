@@ -334,6 +334,39 @@ exports.Prisma.FiscalSubmissionScalarFieldEnum = {
   attemptedAt: 'attemptedAt'
 };
 
+exports.Prisma.ShiftScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  date: 'date',
+  start: 'start',
+  end: 'end',
+  status: 'status',
+  notes: 'notes',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.AttendanceScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  date: 'date',
+  state: 'state',
+  minutesLate: 'minutesLate',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.ActivityScalarFieldEnum = {
+  id: 'id',
+  type: 'type',
+  title: 'title',
+  description: 'description',
+  actorName: 'actorName',
+  actorId: 'actorId',
+  orderId: 'orderId',
+  metadata: 'metadata',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -405,6 +438,26 @@ exports.FiscalEnvironment = exports.$Enums.FiscalEnvironment = {
   production: 'production'
 };
 
+exports.ShiftStatus = exports.$Enums.ShiftStatus = {
+  scheduled: 'scheduled',
+  confirmed: 'confirmed',
+  completed: 'completed',
+  missed: 'missed'
+};
+
+exports.AttendanceState = exports.$Enums.AttendanceState = {
+  onTime: 'onTime',
+  late: 'late',
+  absent: 'absent'
+};
+
+exports.ActivityType = exports.$Enums.ActivityType = {
+  order: 'order',
+  stock: 'stock',
+  staff: 'staff',
+  system: 'system'
+};
+
 exports.Prisma.ModelName = {
   User: 'User',
   Session: 'Session',
@@ -423,7 +476,10 @@ exports.Prisma.ModelName = {
   OrderItem: 'OrderItem',
   KitchenTicket: 'KitchenTicket',
   FiscalConfig: 'FiscalConfig',
-  FiscalSubmission: 'FiscalSubmission'
+  FiscalSubmission: 'FiscalSubmission',
+  Shift: 'Shift',
+  Attendance: 'Attendance',
+  Activity: 'Activity'
 };
 
 /**

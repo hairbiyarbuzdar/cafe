@@ -27,16 +27,18 @@ enum Role {
 }
 
 model User {
-  id           String    @id @default(cuid())
+  id           String       @id @default(cuid())
   name         String
-  email        String    @unique
+  email        String       @unique
   passwordHash String
   role         Role
   avatar       String?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
   sessions     Session[]
   orders       Order[]
+  shifts       Shift[]
+  attendance   Attendance[]
 }
 
 model Session {
@@ -404,4 +406,86 @@ model FiscalSubmission {
 
   @@index([orderId])
   @@index([attemptedAt])
+}
+
+// ──────────────────────────────────────────────────────────────
+// Activity audit log (recent events feed)
+// ──────────────────────────────────────────────────────────────
+
+enum ActivityType {
+  order
+  stock
+  staff
+  system
+}
+
+enum ShiftStatus {
+  scheduled
+  confirmed
+  completed
+  missed
+}
+
+/// A scheduled work block for one team member on one calendar day.
+/// `start`/`end` are stored as ISO timestamps (in UTC) so we can do
+/// time-based queries; the UI does the day-of-week + local-time
+/// formatting.
+model Shift {
+  id        String      @id @default(cuid())
+  userId    String
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date      DateTime    @db.Date
+  start     DateTime
+  end       DateTime
+  status    ShiftStatus @default(scheduled)
+  notes     String?
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  @@index([userId])
+  @@index([date])
+}
+
+enum AttendanceState {
+  onTime
+  late
+  absent
+}
+
+/// One row per (user, day) recording how they showed up. The
+/// dashboard rolls these up into the 7-day attendance chart.
+model Attendance {
+  id          String          @id @default(cuid())
+  userId      String
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date        DateTime        @db.Date
+  state       AttendanceState
+  minutesLate Int?
+  createdAt   DateTime        @default(now())
+
+  @@unique([userId, date])
+  @@index([date])
+}
+
+/// Append-only feed of operationally interesting events — order
+/// placed/paid/cancelled, stock received, members invited, etc.
+/// Powers the dashboard's "Recent activity" panel and lets us
+/// reconstruct an at-a-glance timeline without trawling individual
+/// tables.
+model Activity {
+  id          String       @id @default(cuid())
+  type        ActivityType
+  title       String
+  description String?
+  /// Optional human-readable actor (cashier name) captured at write
+  /// time so deleting a user later doesn't blank the audit log.
+  actorName   String?
+  actorId     String?
+  /// Loose backrefs so we can deep-link or join when we need to.
+  orderId     String?
+  metadata    Json?
+  createdAt   DateTime     @default(now())
+
+  @@index([createdAt])
+  @@index([type])
 }

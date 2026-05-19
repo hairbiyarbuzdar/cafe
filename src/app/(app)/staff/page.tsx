@@ -7,6 +7,10 @@ import { AttendanceChart } from "@/features/staff/attendance-chart";
 import { ManageRolesDialog } from "@/features/staff/manage-roles-dialog";
 import { ScheduleGrid } from "@/features/staff/schedule-grid";
 import { StaffCards } from "@/features/staff/staff-cards";
+import {
+  attendance7d,
+  listThisWeekSchedule,
+} from "@/lib/queries/schedule";
 import { listPendingMembers, listPublicUsers } from "@/lib/queries/users";
 
 export const metadata = { title: "Staff" };
@@ -14,9 +18,11 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export default async function StaffPage() {
-  const [members, pending] = await Promise.all([
+  const [members, pending, shifts, attendance] = await Promise.all([
     listPublicUsers(),
     listPendingMembers(),
+    listThisWeekSchedule(),
+    attendance7d(),
   ]);
   const totalSeats = members.length + pending.length;
 
@@ -48,14 +54,18 @@ export default async function StaffPage() {
           value={`${pending.length}`}
           hint="not yet auth-capable"
         />
-        <Stat label="Schedule" value="—" hint="shifts not tracked yet" />
+        <Stat
+          label="Shifts this week"
+          value={`${shifts.length}`}
+          hint={shifts.length === 0 ? "Nothing scheduled" : "across the team"}
+        />
       </section>
 
       <section className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          <ScheduleGrid />
+          <ScheduleGrid members={members} shifts={shifts} />
         </div>
-        <AttendanceChart />
+        <AttendanceChart data={attendance} />
       </section>
 
       <div className="flex items-center justify-between pt-2">

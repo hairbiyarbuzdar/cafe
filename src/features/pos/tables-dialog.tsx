@@ -24,10 +24,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import {
+  createTableAction,
+  removeTableAction,
+  setTableOccupancyAction,
+} from "@/lib/actions/tables";
 import { tableStatus, useTables } from "@/store/tables-store";
 import { useCart } from "@/store/cart-store";
 import { cn } from "@/lib/utils";
 import type { Table, TableStatus } from "@/types";
+import { useRouter } from "next/navigation";
 
 type Props = {
   open: boolean;
@@ -62,15 +68,32 @@ const STATUS_STYLES: Record<
 };
 
 export function TablesDialog({ open, onOpenChange }: Props) {
+  const router = useRouter();
   const tables = useTables((s) => s.tables);
-  const createTable = useTables((s) => s.createTable);
-  const removeTable = useTables((s) => s.removeTable);
-  const setOccupancy = useTables((s) => s.setOccupancy);
   const selectTable = useTables((s) => s.selectTable);
   const selectedTableId = useTables((s) => s.selectedTableId);
   const setCartTableId = useCart((s) => s.setTableId);
 
   const [capacity, setCapacity] = React.useState(4);
+  const [busy, setBusy] = React.useState(false);
+
+  async function setOccupancy(id: string, value: number) {
+    const result = await setTableOccupancyAction(id, value);
+    if (!result.ok) {
+      toast.error("Couldn't update occupancy", { description: result.error });
+      return;
+    }
+    router.refresh();
+  }
+
+  async function removeTable(id: string) {
+    const result = await removeTableAction(id);
+    if (!result.ok) {
+      toast.error("Couldn't remove table", { description: result.error });
+      return;
+    }
+    router.refresh();
+  }
 
   const summary = React.useMemo(() => {
     const empty = tables.filter((t) => tableStatus(t) === "empty").length;
@@ -79,24 +102,33 @@ export function TablesDialog({ open, onOpenChange }: Props) {
     return { empty, partial, full };
   }, [tables]);
 
-  function handleCreate() {
-    const t = createTable(capacity);
-    toast.success(`${t.name} created`, {
-      description: `Seats ${t.capacity} · marked available`,
-    });
-    setCapacity(4);
+  async function handleCreate() {
+    if (busy) return;
+    setBusy(true);
+    try {
+      const result = await createTableAction(capacity);
+      if (!result.ok) {
+        toast.error("Couldn't create table", { description: result.error });
+        return;
+      }
+      toast.success(`Table created · seats ${Math.max(1, Math.floor(capacity))}`);
+      setCapacity(4);
+      router.refresh();
+    } finally {
+      setBusy(false);
+    }
   }
 
-  function handleSelect(t: Table) {
+  async function handleSelect(t: Table) {
     selectTable(t.id);
     setCartTableId(t.id);
-    if (t.occupancy === 0) setOccupancy(t.id, 1);
+    if (t.occupancy === 0) await setOccupancy(t.id, 1);
     toast.success(`Order assigned to ${t.name}`);
     onOpenChange(false);
   }
 
-  function handleClear(t: Table) {
-    setOccupancy(t.id, 0);
+  async function handleClear(t: Table) {
+    await setOccupancy(t.id, 0);
     if (selectedTableId === t.id) {
       selectTable(undefined);
       setCartTableId(undefined);
@@ -162,6 +194,7 @@ export function TablesDialog({ open, onOpenChange }: Props) {
               type="button"
               className="h-10 w-full rounded-md text-[13px] font-medium sm:w-auto"
               onClick={handleCreate}
+              disabled={busy}
             >
               <Plus className="size-4" />
               Add table

@@ -12,10 +12,10 @@ import {
 } from "recharts";
 
 import { SectionCard } from "@/components/shared/section-card";
-import { REVENUE_14D } from "@/mock/analytics";
 import { formatCompact, formatCurrency } from "@/lib/utils";
+import type { DailyPoint } from "@/types";
 
-export function SalesOverview() {
+export function SalesOverview({ data }: { data: DailyPoint[] }) {
   return (
     <SectionCard
       title="Sales overview"
@@ -24,7 +24,7 @@ export function SalesOverview() {
     >
       <div className="h-[320px] w-full">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={REVENUE_14D} margin={{ top: 12, right: 16, left: -8, bottom: 4 }}>
+          <BarChart data={data} margin={{ top: 12, right: 16, left: -8, bottom: 4 }}>
             <defs>
               <linearGradient id="bar-rev" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="var(--chart-1)" stopOpacity={1} />

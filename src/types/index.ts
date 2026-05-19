@@ -250,6 +250,26 @@ export type Kpi = {
   helperText?: string;
 };
 
+export type DailyPoint = {
+  date: string;
+  revenue: number;
+  orders: number;
+  guests: number;
+};
+
+export type HourPoint = { hour: string; orders: number };
+
+export type ChannelSlice = { channel: string; value: number; fill: string };
+
+export type TopProduct = {
+  rank: number;
+  name: string;
+  category: string;
+  units: number;
+  revenue: number;
+  delta: number;
+};
+
 export type ActivityEvent = {
   id: string;
   type: "order" | "stock" | "staff" | "system";

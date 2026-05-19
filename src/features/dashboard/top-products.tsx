@@ -1,10 +1,10 @@
 import { SectionCard } from "@/components/shared/section-card";
 import { Button } from "@/components/ui/button";
 import { TrendIndicator } from "@/components/shared/trend-indicator";
-import { TOP_PRODUCTS } from "@/mock/analytics";
 import { formatCurrency, formatNumber } from "@/lib/utils";
+import type { TopProduct } from "@/types";
 
-export function TopProducts() {
+export function TopProducts({ data }: { data: TopProduct[] }) {
   return (
     <SectionCard
       title="Top products"
@@ -17,7 +17,12 @@ export function TopProducts() {
       contentClassName="p-0"
     >
       <ul className="divide-y">
-        {TOP_PRODUCTS.map((p) => (
+        {data.length === 0 ? (
+          <li className="px-4 py-6 text-center text-[12.5px] text-muted-foreground md:px-5">
+            No paid orders in the past week.
+          </li>
+        ) : null}
+        {data.map((p) => (
           <li
             key={p.rank}
             className="flex items-center gap-3 px-4 py-2.5 transition-colors hover:bg-muted/40 md:px-5"

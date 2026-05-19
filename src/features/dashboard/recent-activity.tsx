@@ -1,5 +1,3 @@
-"use client";
-
 import {
   Activity,
   Coffee,
@@ -10,7 +8,6 @@ import {
 
 import { SectionCard } from "@/components/shared/section-card";
 import { Button } from "@/components/ui/button";
-import { ACTIVITY } from "@/mock/activity";
 import { cn, formatRelativeTime, initials } from "@/lib/utils";
 import type { ActivityEvent } from "@/types";
 
@@ -28,7 +25,7 @@ const TINT: Record<ActivityEvent["type"], string> = {
   system: "bg-secondary text-secondary-foreground",
 };
 
-export function RecentActivity() {
+export function RecentActivity({ events }: { events: ActivityEvent[] }) {
   return (
     <SectionCard
       title="Recent activity"
@@ -40,8 +37,14 @@ export function RecentActivity() {
       }
       contentClassName="p-0"
     >
+      {events.length === 0 ? (
+        <p className="px-4 py-8 text-center text-[12.5px] text-muted-foreground md:px-5">
+          Nothing here yet — events show up as orders, stock, and staff
+          changes happen.
+        </p>
+      ) : null}
       <ul className="divide-y">
-        {ACTIVITY.map((e) => {
+        {events.map((e) => {
           const Icon = ICONS[e.type];
           return (
             <li

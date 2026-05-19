@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { submitInvoiceToBraAction } from "@/lib/actions/fiscal";
+import { logActivity } from "@/lib/activity";
 import { getServerSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import type { OrderChannel, PaymentMethod, ProductModifier } from "@/types";
@@ -137,6 +138,16 @@ export async function placeOrderAction(
     revalidatePath("/inventory");
     revalidatePath("/dashboard");
 
+    const itemCount = priced.lines.reduce((s, p) => s + p.line.quantity, 0);
+    await logActivity({
+      type: "order",
+      title: `Order ${order.number} started`,
+      description: `${itemCount} item${itemCount === 1 ? "" : "s"} · ${input.channel}${
+        input.tableId ? ` · table ${input.tableId}` : ""
+      }`,
+      orderId: order.id,
+    });
+
     return {
       ok: true,
       orderId: order.id,
@@ -252,6 +263,14 @@ export async function addItemsToHeldOrderAction(
     revalidatePath("/kitchen");
     revalidatePath("/inventory");
 
+    const addedQty = priced.lines.reduce((s, p) => s + p.line.quantity, 0);
+    await logActivity({
+      type: "order",
+      title: `Items added to ${order.number}`,
+      description: `+${addedQty} item${addedQty === 1 ? "" : "s"}`,
+      orderId: order.id,
+    });
+
     return {
       ok: true,
       orderId: order.id,
@@ -350,6 +369,14 @@ export async function cancelHeldOrderAction(
     revalidatePath("/orders");
     revalidatePath("/kitchen");
     revalidatePath("/inventory");
+
+    await logActivity({
+      type: "order",
+      title: `Order ${order.number} cancelled`,
+      description: reason?.trim() || "Cancelled before payment · inventory restored",
+      orderId: order.id,
+    });
+
     return { ok: true };
   } catch (err) {
     console.error("cancelHeldOrderAction failed", err);
@@ -446,6 +473,14 @@ export async function payOrderAction(
     revalidatePath("/orders");
     revalidatePath("/kitchen");
     revalidatePath("/dashboard");
+
+    await logActivity({
+      type: "order",
+      title: `Order ${order.number} paid`,
+      description: `${input.payment} · Rs. ${total.toLocaleString()}`,
+      orderId: order.id,
+      metadata: { payment: input.payment, tip: tipAmount, total },
+    });
 
     // BRA auto-submit happens once we've actually collected payment.
     // Fire-and-(non-strictly)-forget — the order is already paid, any

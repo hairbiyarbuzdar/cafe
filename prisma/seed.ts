@@ -14,11 +14,11 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import bcrypt from "bcryptjs";
 
 import { PrismaClient } from "../src/generated/prisma";
-import { CATEGORIES } from "../src/mock/categories";
-import { INVENTORY, SUPPLIERS } from "../src/mock/inventory";
-import { MENU_ITEMS } from "../src/mock/menu";
-import { ORDERS } from "../src/mock/orders";
-import { KITCHEN_STATIONS } from "../src/mock/stations";
+import { CATEGORIES } from "./seed-data/categories";
+import { INVENTORY, SUPPLIERS } from "./seed-data/inventory";
+import { MENU_ITEMS } from "./seed-data/menu";
+import { ORDERS } from "./seed-data/orders";
+import { KITCHEN_STATIONS } from "./seed-data/stations";
 
 // The mock user list lived in `src/mock/users.ts` before the DB
 // migration. We keep the same demo accounts here so the login page
@@ -57,6 +57,8 @@ async function main() {
   await prisma.inventoryItem.deleteMany();
   await prisma.supplier.deleteMany();
   await prisma.table.deleteMany();
+  await prisma.attendance.deleteMany();
+  await prisma.shift.deleteMany();
   await prisma.session.deleteMany();
   await prisma.user.deleteMany();
 
@@ -200,6 +202,17 @@ async function main() {
         discount: o.discount,
         total: o.total,
         payment: o.payment,
+        // Stamp paidAt on completed orders so analytics queries have
+        // a paid timeline to aggregate. In-flight statuses
+        // (pending/preparing/ready) stay unpaid — they're held. Cancelled
+        // is left unpaid too since the held-order cancel path never collects.
+        // Refunded means money came in and went out again; keeping paidAt
+        // lets revenue queries (which already filter out refunded) work
+        // identically either way.
+        paidAt:
+          o.status === "completed" || o.status === "refunded"
+            ? new Date(o.updatedAt)
+            : null,
         notes: o.notes,
         createdAt: new Date(o.createdAt),
         updatedAt: new Date(o.updatedAt),
@@ -242,6 +255,80 @@ async function main() {
     }
   }
 
+  console.log("→ Shifts + attendance");
+  // Build a Monday-anchored week so the schedule grid lines up with
+  // what the UI expects (Mon..Sun columns). Shifts cover the current
+  // calendar week; attendance covers the trailing 7 days ending today.
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const weekStart = new Date(today);
+  weekStart.setDate(today.getDate() - ((today.getDay() + 6) % 7));
+
+  // Two rotating shift templates so the grid has variety.
+  const SHIFT_TEMPLATES: Record<string, { start: [number, number]; end: [number, number] }> = {
+    open: { start: [6, 30], end: [14, 30] },
+    close: { start: [12, 30], end: [20, 30] },
+  };
+
+  // Each non-admin user gets a Mon–Fri schedule. Admins (Elena)
+  // float and don't appear on the floor grid.
+  const SHIFT_PLAN: { userId: string; days: number[]; template: keyof typeof SHIFT_TEMPLATES }[] = [
+    { userId: "usr_maya", days: [0, 1, 2, 3, 4], template: "open" }, // Mon–Fri opens
+    { userId: "usr_aisha", days: [0, 1, 2, 3, 4], template: "close" }, // Mon–Fri closes
+    { userId: "usr_lukas", days: [1, 2, 3, 4, 5], template: "open" }, // Tue–Sat opens
+  ];
+
+  for (const plan of SHIFT_PLAN) {
+    const tpl = SHIFT_TEMPLATES[plan.template]!;
+    for (const offset of plan.days) {
+      const date = new Date(weekStart);
+      date.setDate(weekStart.getDate() + offset);
+      const start = new Date(date);
+      start.setHours(tpl.start[0], tpl.start[1], 0, 0);
+      const end = new Date(date);
+      end.setHours(tpl.end[0], tpl.end[1], 0, 0);
+      // Past days are "completed", today/future stay "scheduled".
+      const status = date < today ? "completed" : "scheduled";
+      await prisma.shift.create({
+        data: { userId: plan.userId, date, start, end, status },
+      });
+    }
+  }
+
+  // Attendance for the trailing 7 days for the same three users.
+  // Mostly onTime, with one late and one absent sprinkled in so the
+  // chart has all three stacks.
+  const ATTENDANCE_USERS = SHIFT_PLAN.map((p) => p.userId);
+  // Per-day overrides: [dayOffset (-6..0), userId, state, minutesLate?]
+  const OVERRIDES: Array<[number, string, "late" | "absent", number?]> = [
+    [-5, "usr_aisha", "late", 12],
+    [-3, "usr_lukas", "absent"],
+    [-2, "usr_maya", "late", 7],
+    [-1, "usr_aisha", "late", 4],
+  ];
+
+  for (let offset = -6; offset <= 0; offset++) {
+    const date = new Date(today);
+    date.setDate(today.getDate() + offset);
+    for (const userId of ATTENDANCE_USERS) {
+      const override = OVERRIDES.find((o) => o[0] === offset && o[1] === userId);
+      if (override) {
+        await prisma.attendance.create({
+          data: {
+            userId,
+            date,
+            state: override[2],
+            minutesLate: override[3] ?? null,
+          },
+        });
+      } else {
+        await prisma.attendance.create({
+          data: { userId, date, state: "onTime" },
+        });
+      }
+    }
+  }
+
   // Summary
   const counts = await Promise.all([
     prisma.user.count(),
@@ -252,6 +339,8 @@ async function main() {
     prisma.menuItem.count(),
     prisma.order.count(),
     prisma.kitchenTicket.count(),
+    prisma.shift.count(),
+    prisma.attendance.count(),
   ]);
   console.log("✓ Seeded:", {
     users: counts[0],
@@ -262,6 +351,8 @@ async function main() {
     menuItems: counts[5],
     orders: counts[6],
     kitchenTickets: counts[7],
+    shifts: counts[8],
+    attendance: counts[9],
   });
 }
 

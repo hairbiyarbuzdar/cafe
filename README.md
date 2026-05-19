@@ -26,7 +26,8 @@ npm run dev
 
 The login page lists the four seeded demo accounts — all share password
 `brewline`. The seed creates 4 users, 6 suppliers, 29 inventory items,
-6 stations, 8 categories, 65 menu items, and 12 historical orders.
+6 stations, 8 categories, 65 menu items, 12 historical orders, 15
+shifts, and 21 attendance rows.
 
 ## Database scripts
 
@@ -151,10 +152,18 @@ to keep the existing value.
 
 ## Deferred to a later phase
 
-The dashboard, reports, and recent-activity surfaces still read from
-`src/mock/{analytics,activity}.ts`. The staff schedule and attendance
-charts also remain mock-backed. These require aggregation work
-(KPI rollups, time-series, shifts) that hasn't been designed yet.
-Menu/stations *mutations* are also still client-only — the create / edit
-sheets write to Zustand and won't survive a refresh. The corresponding
-server actions are the next step.
+The DB migration is now feature-complete — `src/mock/` is gone and every
+surface (dashboard, reports, recent activity, inventory trend, staff
+schedule + attendance, tables, kitchen tickets) reads from Postgres.
+What's still on the to-do list:
+
+- **Schedule editor UI.** `Shift` rows persist and the grid reads from
+  the DB, but there's no in-app create/edit/delete control yet — the
+  seed is the only writer. A "Add shift" dialog wired to a
+  `createShiftAction` is the next step.
+- **Attendance capture.** The `Attendance` table is read by the chart
+  but nothing writes to it during day-to-day use. Punch-in/punch-out
+  hooks (or a daily reconciliation job) need to land before the
+  numbers reflect real adherence.
+- **Credit notes**, **QR on receipt**, **buyer NTN/CNIC on POS**, and
+  the **BRA retry queue** — see the BRA section above.

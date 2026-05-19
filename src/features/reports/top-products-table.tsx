@@ -8,10 +8,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { TrendIndicator } from "@/components/shared/trend-indicator";
-import { TOP_PRODUCTS } from "@/mock/analytics";
 import { formatCurrency, formatNumber } from "@/lib/utils";
+import type { TopProduct } from "@/types";
 
-export function TopProductsTable() {
+export function TopProductsTable({ data }: { data: TopProduct[] }) {
   return (
     <SectionCard
       title="Top performing products"
@@ -42,7 +42,14 @@ export function TopProductsTable() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {TOP_PRODUCTS.map((p) => (
+          {data.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
+                No paid orders in the past week.
+              </TableCell>
+            </TableRow>
+          ) : null}
+          {data.map((p) => (
             <TableRow key={p.rank}>
               <TableCell className="tabular-nums text-muted-foreground">
                 {p.rank}

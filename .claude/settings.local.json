@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(\"C:/Program Files/nodejs/node.exe\" -e \"const http=require\\('http'\\); const c=encodeURIComponent\\(JSON.stringify\\({userId:'usr_elena',role:'admin',issuedAt:Date.now\\(\\)}\\)\\); ['/dashboard','/reports','/inventory'].forEach\\(async p => { await new Promise\\(res => { const req = http.request\\({host:'localhost',port:3000,path:p,headers:{cookie:'brewline_session='+c}}, r => { console.log\\(p.padEnd\\(12\\), r.statusCode\\); res\\(\\); }\\); req.end\\(\\); }\\); }\\);\")",
+      "Bash(\"C:/Program Files/nodejs/node.exe\" -e \"const http=require\\('http'\\); const c=encodeURIComponent\\(JSON.stringify\\({userId:'usr_elena',role:'admin',issuedAt:Date.now\\(\\)}\\)\\); function fetch\\(p\\){return new Promise\\(res=>{const r=http.request\\({host:'localhost',port:3000,path:p,headers:{cookie:'brewline_session='+c}},rr=>{let d='';rr.on\\('data',c=>d+=c\\);rr.on\\('end',\\(\\)=>res\\(d\\)\\);}\\);r.end\\(\\);}\\);} \\(async \\(\\) => { const d = await fetch\\('/dashboard'\\); console.log\\('Revenue today label:', d.includes\\('Revenue today'\\)\\); console.log\\('Orders label:', d.includes\\('Orders'\\)\\); console.log\\('Avg order value:', d.includes\\('Avg order value'\\)\\); console.log\\('Guests label:', d.includes\\('Guests served'\\)\\); console.log\\('Top products header:', d.includes\\('Top products'\\)\\); console.log\\('No paid orders msg:', d.includes\\('No paid orders'\\)\\); console.log\\('Orders by hour chart:', d.includes\\('Orders by hour'\\)\\); }\\)\\(\\);\")",
+      "Bash(\"C:/Program Files/nodejs/node.exe\" -e \"const http=require\\('http'\\); const c=encodeURIComponent\\(JSON.stringify\\({userId:'usr_elena',role:'admin',issuedAt:Date.now\\(\\)}\\)\\); function fetch\\(p\\){return new Promise\\(res=>{const r=http.request\\({host:'localhost',port:3000,path:p,headers:{cookie:'brewline_session='+c}},rr=>{let d='';rr.on\\('data',c=>d+=c\\);rr.on\\('end',\\(\\)=>res\\(d\\)\\);}\\);r.end\\(\\);}\\);} \\(async \\(\\) => { const d = await fetch\\('/dashboard'\\); const m = d.match\\(/Rs\\\\.\\\\s*[0-9,]+/g\\); console.log\\('First 8 currency tokens:', m?.slice\\(0,8\\)\\); console.log\\('Has \\\\\"No paid orders\\\\\" empty state:', d.includes\\('No paid orders in the past week.'\\)\\); }\\)\\(\\);\")",
+      "Bash(\"C:/Program Files/Git/usr/bin/rm.exe\" src/mock/activity.ts)",
+      "Bash(\"C:/Program Files/Git/usr/bin/rm.exe\" src/mock/staff.ts)",
+      "Bash(npx tsx *)",
+      "Bash(curl -s -o nul -w \"%{http_code}\" http://localhost:3000/staff)",
+      "Bash(xargs grep -l -i \"force-dynamic\\\\|dynamic.*export\\\\|runtime.*nodejs\")",
+      "Bash(curl -sv http://localhost:3000/login)",
+      "Bash(curl -s -o nul -w \"%{http_code}\\\\n\" http://localhost:3000/)",
+      "Bash(curl -s -o nul -w \"%{http_code}\\\\n\" http://localhost:3000/dashboard)",
+      "Bash(curl -s -o nul -w \"%{http_code}\\\\n\" http://localhost:3000/login)",
+      "Bash(curl -s -o nul -w \"%{http_code}\\\\n\" http://localhost:3000/unauthorized)",
+      "Bash(curl -s -o /tmp/login_response.html -w \"HTTP %{http_code}\\\\n\" http://localhost:3000/login)",
+      "Read(//tmp/**)",
+      "Bash(tasklist /FI \"PID eq 12696\")"
+    ]
+  }
+}

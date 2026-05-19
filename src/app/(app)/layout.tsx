@@ -10,6 +10,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { listInventory } from "@/lib/queries/inventory";
 import { listMenuCategories, listMenuItems } from "@/lib/queries/menu";
 import { listKitchenStations } from "@/lib/queries/stations";
+import { listTables } from "@/lib/queries/tables";
 import { DataHydrator } from "@/providers/data-hydrator";
 import { SessionProvider } from "@/providers/session-provider";
 
@@ -26,13 +27,15 @@ export default async function AppLayout({
   const user = await getCurrentUser();
   if (!user) redirect("/login");
 
-  const [cookieStore, items, stations, categories, inventory] = await Promise.all([
-    cookies(),
-    listMenuItems(),
-    listKitchenStations(),
-    listMenuCategories(),
-    listInventory(),
-  ]);
+  const [cookieStore, items, stations, categories, inventory, tables] =
+    await Promise.all([
+      cookies(),
+      listMenuItems(),
+      listKitchenStations(),
+      listMenuCategories(),
+      listInventory(),
+      listTables(),
+    ]);
   const defaultOpen = cookieStore.get("sidebar_state")?.value !== "false";
 
   return (
@@ -42,6 +45,7 @@ export default async function AppLayout({
         stations={stations}
         categories={categories}
         inventory={inventory}
+        tables={tables}
       />
       <SidebarProvider defaultOpen={defaultOpen}>
         <AmbientBackground />

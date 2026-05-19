@@ -11,11 +11,11 @@ import {
 } from "recharts";
 
 import { SectionCard } from "@/components/shared/section-card";
-import { CATEGORY_REVENUE } from "@/mock/analytics";
+import type { CategoryShare } from "@/lib/queries/analytics";
 import { formatCompact, formatCurrency } from "@/lib/utils";
 
-export function CategoryMix() {
-  const sorted = [...CATEGORY_REVENUE].sort((a, b) => b.revenue - a.revenue);
+export function CategoryMix({ data }: { data: CategoryShare[] }) {
+  const sorted = [...data].sort((a, b) => b.revenue - a.revenue);
   return (
     <SectionCard
       title="Revenue by category"

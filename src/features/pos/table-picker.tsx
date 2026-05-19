@@ -1,11 +1,13 @@
 "use client";
 
 import * as React from "react";
+import { useRouter } from "next/navigation";
 import { Armchair, MoreHorizontal, Plus } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { TablesDialog } from "@/features/pos/tables-dialog";
+import { setTableOccupancyAction } from "@/lib/actions/tables";
 import { useCart } from "@/store/cart-store";
 import { tableStatus, useTables } from "@/store/tables-store";
 import { cn } from "@/lib/utils";
@@ -19,13 +21,22 @@ import type { Table } from "@/types";
  * via "More". Each chip shows occupancy as `current/max`.
  */
 export function TablePicker() {
+  const router = useRouter();
   const tables = useTables((s) => s.tables);
   const selectTable = useTables((s) => s.selectTable);
-  const setOccupancy = useTables((s) => s.setOccupancy);
   const tableId = useCart((s) => s.tableId);
   const setTableId = useCart((s) => s.setTableId);
 
   const [open, setOpen] = React.useState(false);
+
+  async function setOccupancy(id: string, value: number) {
+    const result = await setTableOccupancyAction(id, value);
+    if (!result.ok) {
+      toast.error("Couldn't update occupancy", { description: result.error });
+      return;
+    }
+    router.refresh();
+  }
 
   const available = tables.filter((t) => tableStatus(t) !== "full");
   const hiddenCount = tables.length - available.length;
@@ -34,7 +45,7 @@ export function TablePicker() {
   // see/manage their active assignment.
   const visible = selected && !available.includes(selected) ? [selected, ...available] : available;
 
-  function pick(table: Table) {
+  async function pick(table: Table) {
     if (tableId === table.id) {
       // toggle off
       setTableId(undefined);
@@ -43,7 +54,7 @@ export function TablePicker() {
     }
     setTableId(table.id);
     selectTable(table.id);
-    if (table.occupancy === 0) setOccupancy(table.id, 1);
+    if (table.occupancy === 0) await setOccupancy(table.id, 1);
     toast.success(`Order assigned to ${table.name}`);
   }
 

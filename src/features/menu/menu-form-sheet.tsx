@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { Plus, Save, Trash2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Loader2, Plus, Save, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -26,9 +27,13 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  createMenuItemAction,
+  deleteMenuItemAction,
+  updateMenuItemAction,
+} from "@/lib/actions/menu";
 import { useCategories } from "@/store/categories-store";
 import { useInventory } from "@/store/inventory-store";
-import { useMenu } from "@/store/menu-store";
 import { useStations } from "@/store/stations-store";
 import type { MenuItem, RecipeIngredient } from "@/types";
 
@@ -89,14 +94,13 @@ function toForm(item: MenuItem): Form {
 }
 
 export function MenuFormSheet({ open, onOpenChange, item }: Props) {
-  const create = useMenu((s) => s.create);
-  const update = useMenu((s) => s.update);
-  const remove = useMenu((s) => s.remove);
+  const router = useRouter();
   const stations = useStations((s) => s.stations);
   const categories = useCategories((s) => s.categories);
   const inventory = useInventory((s) => s.items);
 
   const [form, setForm] = React.useState<Form>(emptyForm);
+  const [submitting, setSubmitting] = React.useState(false);
 
   React.useEffect(() => {
     if (!open) return;
@@ -121,39 +125,60 @@ export function MenuFormSheet({ open, onOpenChange, item }: Props) {
     setForm((f) => ({ ...f, [key]: value }));
   }
 
-  function handleSave() {
-    if (!canSave) return;
+  async function handleSave() {
+    if (!canSave || submitting) return;
+    setSubmitting(true);
     const payload = {
       name: form.name.trim(),
-      description: form.description.trim() || undefined,
+      description: form.description.trim() || null,
       categoryId: form.categoryId,
       stationId: form.stationId,
       price: Number(form.price),
-      sku: form.sku.trim() || undefined,
-      pctCode: form.pctCode.trim() || undefined,
+      sku: form.sku.trim() || null,
+      pctCode: form.pctCode.trim() || null,
       prepTimeMinutes: form.prepTimeMinutes
         ? Math.max(1, Math.floor(Number(form.prepTimeMinutes)))
-        : undefined,
+        : null,
       available: form.available,
       posVisible: form.posVisible,
       popular: form.popular,
-      recipe: form.recipe.length ? form.recipe : undefined,
+      recipe: form.recipe,
     };
-    if (item) {
-      update(item.id, payload);
-      toast.success(`${payload.name} updated`);
-    } else {
-      const created = create(payload);
-      toast.success(`${created.name} added to menu`);
+    try {
+      const result = item
+        ? await updateMenuItemAction(item.id, payload)
+        : await createMenuItemAction(payload);
+      if (!result.ok) {
+        toast.error(item ? "Couldn't save" : "Couldn't add", {
+          description: result.error,
+        });
+        return;
+      }
+      toast.success(
+        item ? `${payload.name} updated` : `${payload.name} added to menu`,
+      );
+      onOpenChange(false);
+      router.refresh();
+    } finally {
+      setSubmitting(false);
     }
-    onOpenChange(false);
   }
 
-  function handleDelete() {
-    if (!item) return;
-    remove(item.id);
-    toast.success(`${item.name} removed from menu`);
-    onOpenChange(false);
+  async function handleDelete() {
+    if (!item || submitting) return;
+    setSubmitting(true);
+    try {
+      const result = await deleteMenuItemAction(item.id);
+      if (!result.ok) {
+        toast.error("Couldn't delete", { description: result.error });
+        return;
+      }
+      toast.success(`${item.name} removed from menu`);
+      onOpenChange(false);
+      router.refresh();
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   function addIngredient() {
@@ -415,6 +440,7 @@ export function MenuFormSheet({ open, onOpenChange, item }: Props) {
                 variant="ghost"
                 size="sm"
                 onClick={handleDelete}
+                disabled={submitting}
                 className="h-10 rounded-md text-[12.5px] text-destructive hover:bg-destructive/10 hover:text-destructive"
               >
                 <Trash2 className="size-4" />
@@ -436,10 +462,14 @@ export function MenuFormSheet({ open, onOpenChange, item }: Props) {
               type="button"
               size="sm"
               className="h-10 rounded-md text-[12.5px]"
-              disabled={!canSave}
+              disabled={!canSave || submitting}
               onClick={handleSave}
             >
-              <Save className="size-4" />
+              {submitting ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <Save className="size-4" />
+              )}
               {isEditing ? "Save changes" : "Add item"}
             </Button>
           </div>

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import bcrypt from "bcryptjs";
 
+import { logActivity } from "@/lib/activity";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import type { Role, SessionUser } from "@/types/auth";
@@ -52,6 +53,13 @@ export async function createPendingMemberAction(
     });
     revalidatePath("/staff");
     revalidatePath("/settings");
+
+    await logActivity({
+      type: "staff",
+      title: `${name} added to staff`,
+      description: `${email} · awaiting invite`,
+    });
+
     return { ok: true, id: created.id };
   } catch (err) {
     console.error("createPendingMemberAction failed", err);
@@ -119,6 +127,12 @@ export async function invitePendingMemberAction(
     revalidatePath("/settings");
     revalidatePath("/staff");
     revalidatePath("/login");
+
+    await logActivity({
+      type: "staff",
+      title: `${user.name} joined the team`,
+      description: `${user.role} · ${user.email}`,
+    });
 
     return { ok: true, user };
   } catch (err) {

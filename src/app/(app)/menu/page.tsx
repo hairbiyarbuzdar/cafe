@@ -45,17 +45,21 @@ import { PageHeader } from "@/components/layouts/page-header";
 import { MenuFormSheet } from "@/features/menu/menu-form-sheet";
 import { StationsManager } from "@/features/menu/stations-manager";
 import { StationBadge } from "@/features/menu/station-badge";
+import {
+  deleteMenuItemsAction,
+  toggleMenuItemAvailabilityAction,
+  toggleMenuItemPosVisibilityAction,
+} from "@/lib/actions/menu";
 import { useCategories } from "@/store/categories-store";
 import { useMenu } from "@/store/menu-store";
 import { useStations } from "@/store/stations-store";
 import { cn, formatCurrency } from "@/lib/utils";
 import type { MenuItem } from "@/types";
+import { useRouter } from "next/navigation";
 
 export default function MenuPage() {
+  const router = useRouter();
   const items = useMenu((s) => s.items);
-  const toggleAvailability = useMenu((s) => s.toggleAvailability);
-  const togglePosVisibility = useMenu((s) => s.togglePosVisibility);
-  const removeMany = useMenu((s) => s.removeMany);
   const stations = useStations((s) => s.stations);
   const categories = useCategories((s) => s.categories);
   const stationById = React.useMemo(
@@ -145,13 +149,38 @@ export default function MenuPage() {
     setSelected(new Set());
   }
 
-  function confirmDelete() {
+  async function confirmDelete() {
     const ids = Array.from(selected);
     if (ids.length === 0) return;
-    removeMany(ids);
-    toast.success(`Deleted ${ids.length} menu item${ids.length === 1 ? "" : "s"}`);
+    const result = await deleteMenuItemsAction(ids);
+    if (!result.ok) {
+      toast.error("Couldn't delete", { description: result.error });
+      return;
+    }
+    toast.success(
+      `Deleted ${result.data.deleted} menu item${result.data.deleted === 1 ? "" : "s"}`,
+    );
     setSelected(new Set());
     setConfirmOpen(false);
+    router.refresh();
+  }
+
+  async function flipAvailable(id: string) {
+    const result = await toggleMenuItemAvailabilityAction(id);
+    if (!result.ok) {
+      toast.error("Couldn't toggle availability", { description: result.error });
+      return;
+    }
+    router.refresh();
+  }
+
+  async function flipPosVisibility(id: string) {
+    const result = await toggleMenuItemPosVisibilityAction(id);
+    if (!result.ok) {
+      toast.error("Couldn't toggle POS visibility", { description: result.error });
+      return;
+    }
+    router.refresh();
   }
 
   function openCreate() {
@@ -406,14 +435,14 @@ export default function MenuPage() {
                       <TableCell className="text-center">
                         <Switch
                           checked={it.available}
-                          onCheckedChange={() => toggleAvailability(it.id)}
+                          onCheckedChange={() => flipAvailable(it.id)}
                           aria-label={`Toggle availability for ${it.name}`}
                         />
                       </TableCell>
                       <TableCell className="text-center">
                         <Switch
                           checked={it.posVisible}
-                          onCheckedChange={() => togglePosVisibility(it.id)}
+                          onCheckedChange={() => flipPosVisibility(it.id)}
                           aria-label={`Toggle POS visibility for ${it.name}`}
                         />
                       </TableCell>

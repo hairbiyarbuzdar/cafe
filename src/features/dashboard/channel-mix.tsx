@@ -3,11 +3,11 @@
 import { Cell, Pie, PieChart, ResponsiveContainer } from "recharts";
 
 import { SectionCard } from "@/components/shared/section-card";
-import { CHANNEL_MIX } from "@/mock/analytics";
 import { formatNumber } from "@/lib/utils";
+import type { ChannelSlice } from "@/types";
 
-export function ChannelMix() {
-  const total = CHANNEL_MIX.reduce((sum, s) => sum + s.value, 0);
+export function ChannelMix({ data }: { data: ChannelSlice[] }) {
+  const total = data.reduce((sum, s) => sum + s.value, 0);
 
   return (
     <SectionCard
@@ -19,7 +19,7 @@ export function ChannelMix() {
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
-                data={CHANNEL_MIX}
+                data={data}
                 dataKey="value"
                 innerRadius={42}
                 outerRadius={64}
@@ -27,7 +27,7 @@ export function ChannelMix() {
                 strokeWidth={2}
                 paddingAngle={2}
               >
-                {CHANNEL_MIX.map((s, i) => (
+                {data.map((s, i) => (
                   <Cell key={i} fill={s.fill} />
                 ))}
               </Pie>
@@ -43,7 +43,7 @@ export function ChannelMix() {
           </div>
         </div>
         <ul className="space-y-2.5 text-[12.5px]">
-          {CHANNEL_MIX.map((s) => {
+          {data.map((s) => {
             const pct = s.value / total;
             return (
               <li key={s.channel} className="flex items-center gap-2.5">

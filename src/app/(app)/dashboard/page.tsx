@@ -10,11 +10,29 @@ import { QuickActions } from "@/features/dashboard/quick-actions";
 import { RecentActivity } from "@/features/dashboard/recent-activity";
 import { RevenueChart } from "@/features/dashboard/revenue-chart";
 import { TopProducts } from "@/features/dashboard/top-products";
-import { TODAY_KPIS } from "@/mock/analytics";
+import { listRecentActivity } from "@/lib/queries/activity";
+import {
+  channelMix,
+  hourlyOrdersToday,
+  revenue14d,
+  todaysKpis,
+  topProducts,
+} from "@/lib/queries/analytics";
 
 export const metadata = { title: "Dashboard" };
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+  const [kpis, revenue, channels, hourly, top, activity] = await Promise.all([
+    todaysKpis(),
+    revenue14d(),
+    channelMix(),
+    hourlyOrdersToday(),
+    topProducts(7),
+    listRecentActivity(12),
+  ]);
+
   return (
     <>
       <PageHeader
@@ -53,7 +71,7 @@ export default function DashboardPage() {
       />
 
       <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {TODAY_KPIS.map((kpi, i) => (
+        {kpis.map((kpi, i) => (
           <KpiCard
             key={kpi.id}
             kpi={kpi}
@@ -64,24 +82,24 @@ export default function DashboardPage() {
 
       <section className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          <RevenueChart />
+          <RevenueChart data={revenue} />
         </div>
-        <ChannelMix />
+        <ChannelMix data={channels} />
       </section>
 
       <section className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          <HourlyOrders />
+          <HourlyOrders data={hourly} />
         </div>
         <QuickActions />
       </section>
 
       <section className="grid grid-cols-1 gap-4 lg:grid-cols-5">
         <div className="lg:col-span-3">
-          <RecentActivity />
+          <RecentActivity events={activity} />
         </div>
         <div className="lg:col-span-2">
-          <TopProducts />
+          <TopProducts data={top} />
         </div>
       </section>
     </>

@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useRouter } from "next/navigation";
 import {
   CheckCircle2,
   ChevronLeft,
@@ -17,6 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { ChannelBadge } from "@/features/orders/status-badge";
+import { setKitchenTicketStatusAction } from "@/lib/actions/kitchen";
 import { useKitchenTickets } from "@/store/kitchen-tickets-store";
 import { NEXT_STATUS, PREV_STATUS } from "@/lib/kitchen";
 import { cn, formatRelativeTime } from "@/lib/utils";
@@ -62,7 +64,9 @@ const LANES: Exclude<TicketStatus, "served" | "cancelled">[] = [
 ];
 
 export function StationBoard({ station, tickets }: Props) {
-  const setStatus = useKitchenTickets((s) => s.setStatus);
+  const router = useRouter();
+  const setLocal = useKitchenTickets((s) => s.setLocal);
+  const clearLocal = useKitchenTickets((s) => s.clearLocal);
 
   const cancelled = tickets.filter((t) => t.status === "cancelled");
   const lanes = LANES.map((lane) => ({
@@ -70,10 +74,21 @@ export function StationBoard({ station, tickets }: Props) {
     items: tickets.filter((t) => t.status === lane),
   }));
 
+  async function setStatus(ticket: KitchenTicket, next: TicketStatus) {
+    setLocal(ticket.id, next); // optimistic
+    const result = await setKitchenTicketStatusAction(ticket.id, next);
+    if (!result.ok) {
+      clearLocal(ticket.id);
+      toast.error("Couldn't update ticket", { description: result.error });
+      return;
+    }
+    router.refresh();
+  }
+
   function advance(ticket: KitchenTicket) {
     const next = NEXT_STATUS[ticket.status];
     if (!next) return;
-    setStatus(ticket.id, next);
+    void setStatus(ticket, next);
     toast.success(`${ticket.orderNumber} → ${LANE_LABEL(next)}`, {
       description: `${station.name} ticket updated`,
     });
@@ -82,11 +97,11 @@ export function StationBoard({ station, tickets }: Props) {
   function regress(ticket: KitchenTicket) {
     const prev = PREV_STATUS[ticket.status];
     if (!prev) return;
-    setStatus(ticket.id, prev);
+    void setStatus(ticket, prev);
   }
 
   function dismiss(ticket: KitchenTicket) {
-    setStatus(ticket.id, "served");
+    void setStatus(ticket, "served");
     toast.success(`${ticket.orderNumber} dismissed`, {
       description: `Stop work on ${station.name}`,
     });

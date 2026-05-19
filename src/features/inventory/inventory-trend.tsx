@@ -11,9 +11,9 @@ import {
 } from "recharts";
 
 import { SectionCard } from "@/components/shared/section-card";
-import { STOCK_TREND_7D } from "@/mock/inventory";
+import type { StockTrendPoint } from "@/lib/queries/analytics";
 
-export function InventoryTrend() {
+export function InventoryTrend({ data }: { data: StockTrendPoint[] }) {
   return (
     <SectionCard
       title="Stock movement"
@@ -23,7 +23,7 @@ export function InventoryTrend() {
       <div className="h-[160px] w-full">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart
-            data={STOCK_TREND_7D}
+            data={data}
             margin={{ top: 12, right: 12, bottom: 4, left: -8 }}
           >
             <CartesianGrid vertical={false} stroke="var(--border)" strokeDasharray="2 4" />

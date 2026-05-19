@@ -13,19 +13,21 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { SectionCard } from "@/components/shared/section-card";
-import { REVENUE_14D } from "@/mock/analytics";
 import { formatCompact, formatCurrency } from "@/lib/utils";
+import type { DailyPoint } from "@/types";
 
-const RANGES = ["7d", "14d", "30d", "90d"] as const;
+const RANGES = ["7d", "14d"] as const;
 type Range = (typeof RANGES)[number];
 
-export function RevenueChart() {
+export function RevenueChart({ data: source }: { data: DailyPoint[] }) {
   const [range, setRange] = React.useState<Range>("14d");
 
+  // The server feeds 14 days. "7d" just slices the tail — wider ranges
+  // (30d, 90d) need their own query, deferred until we have the data.
   const data = React.useMemo(() => {
-    const len = range === "7d" ? 7 : range === "14d" ? 14 : range === "30d" ? 14 : 14;
-    return REVENUE_14D.slice(-len);
-  }, [range]);
+    const len = range === "7d" ? 7 : 14;
+    return source.slice(-len);
+  }, [range, source]);
 
   return (
     <SectionCard

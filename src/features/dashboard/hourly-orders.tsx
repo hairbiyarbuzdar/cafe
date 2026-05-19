@@ -11,9 +11,9 @@ import {
 } from "recharts";
 
 import { SectionCard } from "@/components/shared/section-card";
-import { HOURLY_ORDERS } from "@/mock/analytics";
+import type { HourPoint } from "@/types";
 
-export function HourlyOrders() {
+export function HourlyOrders({ data }: { data: HourPoint[] }) {
   return (
     <SectionCard
       title="Orders by hour"
@@ -22,7 +22,7 @@ export function HourlyOrders() {
     >
       <div className="h-[220px] w-full">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={HOURLY_ORDERS} margin={{ top: 12, right: 8, left: -16, bottom: 4 }}>
+          <BarChart data={data} margin={{ top: 12, right: 8, left: -16, bottom: 4 }}>
             <CartesianGrid
               vertical={false}
               stroke="var(--border)"

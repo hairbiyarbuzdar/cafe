@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { logActivity } from "@/lib/activity";
 import { prisma } from "@/lib/prisma";
 
 type InventoryUnit = "kg" | "g" | "L" | "ml" | "pcs" | "box";
@@ -88,6 +89,15 @@ export async function receiveStockAction(
     });
 
     revalidatePath("/inventory");
+
+    await logActivity({
+      type: "stock",
+      title: `Restock received — ${item.name}`,
+      description: `+${input.quantity} ${item.unit}${
+        input.note?.trim() ? ` · ${input.note.trim()}` : ""
+      }`,
+    });
+
     return {
       ok: true,
       itemId: updated.id,
@@ -174,6 +184,13 @@ export async function createInventoryItemAction(
     }
 
     revalidatePath("/inventory");
+
+    await logActivity({
+      type: "stock",
+      title: `New inventory item — ${name}`,
+      description: `SKU ${sku} · ${input.stock} ${input.unit} on hand`,
+    });
+
     return { ok: true, id: created.id };
   } catch (err) {
     console.error("createInventoryItemAction failed", err);

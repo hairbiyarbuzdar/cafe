@@ -6,11 +6,13 @@ import { useCategories } from "@/store/categories-store";
 import { useInventory } from "@/store/inventory-store";
 import { useMenu } from "@/store/menu-store";
 import { useStations } from "@/store/stations-store";
+import { useTables } from "@/store/tables-store";
 import type {
   Category,
   InventoryItem,
   KitchenStation,
   MenuItem,
+  Table,
 } from "@/types";
 
 /**
@@ -27,11 +29,13 @@ export function DataHydrator({
   stations,
   categories,
   inventory,
+  tables,
 }: {
   items: MenuItem[];
   stations: KitchenStation[];
   categories: Category[];
   inventory: InventoryItem[];
+  tables: Table[];
 }) {
   React.useEffect(() => {
     useMenu.getState().hydrate(items);
@@ -45,5 +49,8 @@ export function DataHydrator({
   React.useEffect(() => {
     useInventory.getState().hydrate(inventory);
   }, [inventory]);
+  React.useEffect(() => {
+    useTables.getState().hydrate(tables);
+  }, [tables]);
   return null;
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useRouter } from "next/navigation";
 import { ChefHat, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -16,6 +17,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
+import {
+  createStationAction,
+  deleteStationAction,
+  toggleStationActiveAction,
+  updateStationAction,
+} from "@/lib/actions/stations";
 import { useMenu } from "@/store/menu-store";
 import { useStations } from "@/store/stations-store";
 import { cn } from "@/lib/utils";
@@ -38,38 +45,70 @@ type Props = {
 };
 
 export function StationsManager({ open, onOpenChange }: Props) {
+  const router = useRouter();
   const stations = useStations((s) => s.stations);
-  const createStation = useStations((s) => s.create);
-  const updateStation = useStations((s) => s.update);
-  const removeStation = useStations((s) => s.remove);
-  const toggleActive = useStations((s) => s.toggleActive);
   const menuItems = useMenu((s) => s.items);
 
   const [name, setName] = React.useState("");
   const [printer, setPrinter] = React.useState("");
   const [color, setColor] = React.useState(COLORS[0]);
+  const [submitting, setSubmitting] = React.useState(false);
 
-  function add() {
+  async function add() {
     const trimmed = name.trim();
-    if (!trimmed) return;
-    if (stations.some((s) => s.name.toLowerCase() === trimmed.toLowerCase())) {
-      toast.error("A station with that name already exists");
-      return;
+    if (!trimmed || submitting) return;
+    setSubmitting(true);
+    try {
+      const result = await createStationAction({
+        name: trimmed,
+        printer: printer.trim() || null,
+        color,
+        active: true,
+      });
+      if (!result.ok) {
+        toast.error("Couldn't add station", { description: result.error });
+        return;
+      }
+      toast.success(`${trimmed} station added`);
+      setName("");
+      setPrinter("");
+      router.refresh();
+    } finally {
+      setSubmitting(false);
     }
-    createStation({ name: trimmed, printer: printer.trim() || undefined, color, active: true });
-    toast.success(`${trimmed} station added`);
-    setName("");
-    setPrinter("");
   }
 
-  function tryRemove(id: string, label: string) {
-    const linked = menuItems.filter((m) => m.stationId === id).length;
-    if (linked > 0) {
-      toast.error(`Reassign ${linked} item${linked === 1 ? "" : "s"} before deleting ${label}`);
+  async function tryRemove(id: string, label: string) {
+    const result = await deleteStationAction(id);
+    if (!result.ok) {
+      toast.error(`Couldn't delete ${label}`, { description: result.error });
       return;
     }
-    removeStation(id);
     toast.success(`${label} removed`);
+    router.refresh();
+  }
+
+  async function renameStation(id: string, current: { printer: string | null; color: string; active: boolean }, nextName: string) {
+    const result = await updateStationAction(id, {
+      name: nextName,
+      printer: current.printer,
+      color: current.color,
+      active: current.active,
+    });
+    if (!result.ok) {
+      toast.error("Couldn't rename station", { description: result.error });
+      return;
+    }
+    router.refresh();
+  }
+
+  async function flipActive(id: string) {
+    const result = await toggleStationActiveAction(id);
+    if (!result.ok) {
+      toast.error("Couldn't toggle station", { description: result.error });
+      return;
+    }
+    router.refresh();
   }
 
   return (
@@ -111,7 +150,12 @@ export function StationsManager({ open, onOpenChange }: Props) {
             />
           </div>
           <div className="flex items-end">
-            <Button type="button" className="h-10 w-full rounded-md text-[13px] sm:w-auto" onClick={add}>
+            <Button
+              type="button"
+              className="h-10 w-full rounded-md text-[13px] sm:w-auto"
+              onClick={add}
+              disabled={submitting}
+            >
               <Plus className="size-4" />
               Add station
             </Button>
@@ -152,10 +196,15 @@ export function StationsManager({ open, onOpenChange }: Props) {
                     {s.name[0]?.toUpperCase() ?? "?"}
                   </span>
                   <div className="min-w-0 flex-1">
-                    <Input
-                      value={s.name}
-                      onChange={(e) => updateStation(s.id, { name: e.target.value })}
-                      className="h-8 border-transparent bg-transparent px-1 text-[13.5px] font-medium hover:border-border focus:border-border"
+                    <StationNameInput
+                      defaultName={s.name}
+                      onCommit={(next) =>
+                        renameStation(
+                          s.id,
+                          { printer: s.printer ?? null, color: s.color, active: s.active },
+                          next,
+                        )
+                      }
                     />
                     <p className="px-1 text-[11.5px] text-muted-foreground">
                       {linked} item{linked === 1 ? "" : "s"} routed · printer{" "}
@@ -167,7 +216,7 @@ export function StationsManager({ open, onOpenChange }: Props) {
                   <label className="flex items-center gap-1.5 text-[11.5px] text-muted-foreground">
                     <Switch
                       checked={s.active}
-                      onCheckedChange={() => toggleActive(s.id)}
+                      onCheckedChange={() => flipActive(s.id)}
                     />
                     {s.active ? "Active" : "Off"}
                   </label>
@@ -187,5 +236,32 @@ export function StationsManager({ open, onOpenChange }: Props) {
         </ScrollArea>
       </DialogContent>
     </Dialog>
+  );
+}
+
+/**
+ * Local-edit station-name input that only fires the rename server
+ * action on blur — keeps the dialog responsive while typing instead
+ * of round-tripping on every keystroke.
+ */
+function StationNameInput({
+  defaultName,
+  onCommit,
+}: {
+  defaultName: string;
+  onCommit: (next: string) => void;
+}) {
+  const [value, setValue] = React.useState(defaultName);
+  React.useEffect(() => setValue(defaultName), [defaultName]);
+  return (
+    <Input
+      value={value}
+      onChange={(e) => setValue(e.target.value)}
+      onBlur={() => {
+        const next = value.trim();
+        if (next && next !== defaultName) onCommit(next);
+      }}
+      className="h-8 border-transparent bg-transparent px-1 text-[13.5px] font-medium hover:border-border focus:border-border"
+    />
   );
 }

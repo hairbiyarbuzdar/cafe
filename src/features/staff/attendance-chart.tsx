@@ -12,9 +12,9 @@ import {
 } from "recharts";
 
 import { SectionCard } from "@/components/shared/section-card";
-import { ATTENDANCE_7D } from "@/mock/staff";
+import type { AttendanceBucket } from "@/lib/queries/schedule";
 
-export function AttendanceChart() {
+export function AttendanceChart({ data }: { data: AttendanceBucket[] }) {
   return (
     <SectionCard
       title="Attendance"
@@ -23,7 +23,7 @@ export function AttendanceChart() {
     >
       <div className="h-[220px] w-full">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={ATTENDANCE_7D} margin={{ top: 12, right: 16, left: -16, bottom: 4 }}>
+          <BarChart data={data} margin={{ top: 12, right: 16, left: -16, bottom: 4 }}>
             <CartesianGrid vertical={false} stroke="var(--border)" strokeDasharray="2 4" />
             <XAxis
               dataKey="day"
