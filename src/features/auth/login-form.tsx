@@ -12,9 +12,9 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { BRAND } from "@/constants/nav";
 import { demoSignInAction, signInAction } from "@/lib/actions/auth";
-import { ROLE_HOME, ROLE_LABEL } from "@/lib/permissions";
+import { ROLE_LABEL, homeFor } from "@/lib/permissions";
 import { useAuth } from "@/store/auth-store";
-import type { Role, SessionUser } from "@/types/auth";
+import type { SessionUser } from "@/types/auth";
 import { cn, initials } from "@/lib/utils";
 
 export function LoginForm({ demoUsers }: { demoUsers: SessionUser[] }) {
@@ -29,11 +29,11 @@ export function LoginForm({ demoUsers }: { demoUsers: SessionUser[] }) {
   const [showPassword, setShowPassword] = React.useState(false);
   const [submitting, setSubmitting] = React.useState(false);
 
-  function navigateAfterSignIn(role: Role) {
+  function navigateAfterSignIn(user: SessionUser) {
     const destination =
       next && !next.startsWith("/login") && !next.startsWith("/onboarding")
         ? next
-        : ROLE_HOME[role];
+        : homeFor(user);
     router.replace(destination);
     router.refresh();
   }
@@ -51,7 +51,7 @@ export function LoginForm({ demoUsers }: { demoUsers: SessionUser[] }) {
       }
       setUser(result.user);
       toast.success(`Welcome back, ${result.user.name.split(" ")[0]}`);
-      navigateAfterSignIn(result.user.role);
+      navigateAfterSignIn(result.user);
     } finally {
       setSubmitting(false);
     }
@@ -64,10 +64,13 @@ export function LoginForm({ demoUsers }: { demoUsers: SessionUser[] }) {
       return;
     }
     setUser(result.user);
-    toast.success(`Signed in as ${ROLE_LABEL[result.user.role]}`, {
-      description: result.user.name,
-    });
-    navigateAfterSignIn(result.user.role);
+    toast.success(
+      `Signed in as ${result.user.roleName ?? ROLE_LABEL[result.user.role] ?? result.user.role}`,
+      {
+        description: result.user.name,
+      },
+    );
+    navigateAfterSignIn(result.user);
   }
 
   return (
@@ -185,7 +188,7 @@ export function LoginForm({ demoUsers }: { demoUsers: SessionUser[] }) {
                   <div className="min-w-0 flex-1">
                     <p className="text-[13px] font-medium">{u.name}</p>
                     <p className="text-[11.5px] text-muted-foreground">
-                      {ROLE_LABEL[u.role]} · {u.email}
+                      {u.roleName ?? ROLE_LABEL[u.role] ?? u.role} · {u.email}
                     </p>
                   </div>
                   <ArrowRight className="size-3.5 text-muted-foreground transition-transform group-hover:translate-x-0.5" />

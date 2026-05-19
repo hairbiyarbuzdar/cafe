@@ -3,6 +3,14 @@
 import { revalidatePath } from "next/cache";
 
 import { prisma } from "@/lib/prisma";
+import type { PaymentMethod } from "@/types";
+
+const PAYMENT_KINDS: readonly PaymentMethod[] = [
+  "cash",
+  "card",
+  "wallet",
+  "online",
+];
 
 export type ActionResult<T = void> =
   | (T extends void ? { ok: true } : { ok: true; data: T })
@@ -12,7 +20,11 @@ export type ActionResult<T = void> =
 // Channel CRUD
 // ──────────────────────────────────────────────────────────────
 
-export type CreateChannelInput = { name: string; openingBalance: number };
+export type CreateChannelInput = {
+  name: string;
+  kind: PaymentMethod;
+  openingBalance: number;
+};
 
 export async function createPaymentChannelAction(
   input: CreateChannelInput,
@@ -20,6 +32,9 @@ export async function createPaymentChannelAction(
   const name = input.name?.trim();
   if (!name || name.length < 2) {
     return { ok: false, error: "Name is required" };
+  }
+  if (!PAYMENT_KINDS.includes(input.kind)) {
+    return { ok: false, error: "Pick a payment kind" };
   }
   if (!Number.isFinite(input.openingBalance) || input.openingBalance < 0) {
     return { ok: false, error: "Opening balance must be 0 or greater" };
@@ -37,18 +52,47 @@ export async function createPaymentChannelAction(
     const created = await prisma.paymentChannel.create({
       data: {
         name,
+        kind: input.kind,
         openingBalance: input.openingBalance,
         currentBalance: input.openingBalance,
       },
       select: { id: true },
     });
     revalidatePath("/settings");
+    revalidatePath("/pos");
     return { ok: true, data: { id: created.id } };
   } catch (err) {
     console.error("createPaymentChannelAction failed", err);
     return {
       ok: false,
       error: err instanceof Error ? err.message : "Failed to add method",
+    };
+  }
+}
+
+/**
+ * Update the `kind` (cash/card/wallet/online) of a channel. The
+ * channel's id and name stay the same; only the icon + fiscal
+ * mapping shifts.
+ */
+export async function updatePaymentChannelKindAction(
+  id: string,
+  kind: PaymentMethod,
+): Promise<ActionResult> {
+  if (!id) return { ok: false, error: "No method specified" };
+  if (!PAYMENT_KINDS.includes(kind)) {
+    return { ok: false, error: "Invalid kind" };
+  }
+  try {
+    await prisma.paymentChannel.update({ where: { id }, data: { kind } });
+    revalidatePath("/settings");
+    revalidatePath("/pos");
+    return { ok: true };
+  } catch (err) {
+    console.error("updatePaymentChannelKindAction failed", err);
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "Failed to update kind",
     };
   }
 }

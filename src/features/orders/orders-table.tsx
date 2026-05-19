@@ -28,6 +28,7 @@ import {
   emptyAdvancedFilters,
   type AdvancedFilters,
 } from "@/features/orders/orders-advanced-filter";
+import type { PaymentChannel } from "@/lib/queries/payment-channels";
 import { cn, formatCurrency, formatRelativeTime } from "@/lib/utils";
 import { isOrderHeld, type Order, type OrderStatus } from "@/types";
 
@@ -46,7 +47,13 @@ const TABS: { value: TableTab; label: string }[] = [
 
 const PAGE_SIZE = 8;
 
-export function OrdersTable({ orders }: { orders: Order[] }) {
+export function OrdersTable({
+  orders,
+  paymentChannels = [],
+}: {
+  orders: Order[];
+  paymentChannels?: PaymentChannel[];
+}) {
   const [tab, setTab] = React.useState<TableTab>("all");
   const [channel, setChannel] = React.useState<string>("all");
   const [search, setSearch] = React.useState("");
@@ -295,6 +302,7 @@ export function OrdersTable({ orders }: { orders: Order[] }) {
       </div>
       <OrderDetailDrawer
         order={selected}
+        paymentChannels={paymentChannels}
         onClose={() => setSelected(null)}
       />
     </>

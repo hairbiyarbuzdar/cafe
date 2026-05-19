@@ -120,13 +120,27 @@ exports.Prisma.TransactionIsolationLevel = makeStrictEnum({
   Serializable: 'Serializable'
 });
 
+exports.Prisma.RoleScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  description: 'description',
+  permissions: 'permissions',
+  isSystem: 'isSystem',
+  defaultRoute: 'defaultRoute',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.UserScalarFieldEnum = {
   id: 'id',
   name: 'name',
   email: 'email',
+  phone: 'phone',
   passwordHash: 'passwordHash',
   role: 'role',
   avatar: 'avatar',
+  defaultRoute: 'defaultRoute',
+  monthlySalary: 'monthlySalary',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -142,12 +156,14 @@ exports.Prisma.PendingMemberScalarFieldEnum = {
   id: 'id',
   name: 'name',
   email: 'email',
+  phone: 'phone',
   createdAt: 'createdAt'
 };
 
 exports.Prisma.PaymentChannelScalarFieldEnum = {
   id: 'id',
   name: 'name',
+  kind: 'kind',
   openingBalance: 'openingBalance',
   currentBalance: 'currentBalance',
   archived: 'archived',
@@ -302,6 +318,13 @@ exports.Prisma.KitchenTicketScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.TaxConfigScalarFieldEnum = {
+  id: 'id',
+  rate: 'rate',
+  label: 'label',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.FiscalConfigScalarFieldEnum = {
   id: 'id',
   enabled: 'enabled',
@@ -372,12 +395,12 @@ exports.Prisma.SortOrder = {
   desc: 'desc'
 };
 
-exports.Prisma.NullableJsonNullValueInput = {
-  DbNull: Prisma.DbNull,
+exports.Prisma.JsonNullValueInput = {
   JsonNull: Prisma.JsonNull
 };
 
-exports.Prisma.JsonNullValueInput = {
+exports.Prisma.NullableJsonNullValueInput = {
+  DbNull: Prisma.DbNull,
   JsonNull: Prisma.JsonNull
 };
 
@@ -386,21 +409,21 @@ exports.Prisma.QueryMode = {
   insensitive: 'insensitive'
 };
 
-exports.Prisma.NullsOrder = {
-  first: 'first',
-  last: 'last'
-};
-
 exports.Prisma.JsonNullValueFilter = {
   DbNull: Prisma.DbNull,
   JsonNull: Prisma.JsonNull,
   AnyNull: Prisma.AnyNull
 };
-exports.Role = exports.$Enums.Role = {
-  admin: 'admin',
-  manager: 'manager',
-  cashier: 'cashier',
-  kitchen: 'kitchen'
+
+exports.Prisma.NullsOrder = {
+  first: 'first',
+  last: 'last'
+};
+exports.PaymentMethod = exports.$Enums.PaymentMethod = {
+  card: 'card',
+  cash: 'cash',
+  wallet: 'wallet',
+  online: 'online'
 };
 
 exports.OrderStatus = exports.$Enums.OrderStatus = {
@@ -410,13 +433,6 @@ exports.OrderStatus = exports.$Enums.OrderStatus = {
   completed: 'completed',
   cancelled: 'cancelled',
   refunded: 'refunded'
-};
-
-exports.PaymentMethod = exports.$Enums.PaymentMethod = {
-  card: 'card',
-  cash: 'cash',
-  wallet: 'wallet',
-  online: 'online'
 };
 
 exports.TicketStatus = exports.$Enums.TicketStatus = {
@@ -459,6 +475,7 @@ exports.ActivityType = exports.$Enums.ActivityType = {
 };
 
 exports.Prisma.ModelName = {
+  Role: 'Role',
   User: 'User',
   Session: 'Session',
   PendingMember: 'PendingMember',
@@ -475,6 +492,7 @@ exports.Prisma.ModelName = {
   Order: 'Order',
   OrderItem: 'OrderItem',
   KitchenTicket: 'KitchenTicket',
+  TaxConfig: 'TaxConfig',
   FiscalConfig: 'FiscalConfig',
   FiscalSubmission: 'FiscalSubmission',
   Shift: 'Shift',

@@ -40,6 +40,7 @@ import { CancelHeldOrderDialog } from "@/features/orders/cancel-held-dialog";
 import { ChannelBadge, OrderStatusBadge } from "@/features/orders/status-badge";
 import { TakePaymentDialog } from "@/features/orders/take-payment-dialog";
 import { submitInvoiceToBraAction } from "@/lib/actions/fiscal";
+import type { PaymentChannel } from "@/lib/queries/payment-channels";
 import { useCart } from "@/store/cart-store";
 import { cn, formatCurrency, formatRelativeTime, initials } from "@/lib/utils";
 import { isOrderHeld, type Order, type OrderStatus, type PaymentMethod } from "@/types";
@@ -60,10 +61,15 @@ const STAGES: { status: OrderStatus; label: string }[] = [
 
 type Props = {
   order: Order | null;
+  paymentChannels?: PaymentChannel[];
   onClose: () => void;
 };
 
-export function OrderDetailDrawer({ order, onClose }: Props) {
+export function OrderDetailDrawer({
+  order,
+  paymentChannels = [],
+  onClose,
+}: Props) {
   const open = Boolean(order);
   const PaymentIcon = order?.payment ? PAYMENT_ICON[order.payment] : CreditCard;
   const held = order ? isOrderHeld(order) : false;
@@ -255,6 +261,7 @@ export function OrderDetailDrawer({ order, onClose }: Props) {
             <OrderDrawerFooter
               order={order}
               held={held}
+              paymentChannels={paymentChannels}
               onClose={onClose}
             />
           </>
@@ -284,10 +291,12 @@ function Section({
 function OrderDrawerFooter({
   order,
   held,
+  paymentChannels,
   onClose,
 }: {
   order: Order;
   held: boolean;
+  paymentChannels: PaymentChannel[];
   onClose: () => void;
 }) {
   const router = useRouter();
@@ -336,6 +345,7 @@ function OrderDrawerFooter({
 
         <TakePaymentDialog
           order={order}
+          channels={paymentChannels}
           open={payOpen}
           onOpenChange={setPayOpen}
         />

@@ -28,12 +28,16 @@ export function proxy(req: NextRequest) {
 
   if (pathname === "/") {
     const url = req.nextUrl.clone();
-    url.pathname = ROLE_HOME[session.role];
+    url.pathname =
+      session.defaultRoute || ROLE_HOME[session.role] || "/pos";
     return NextResponse.redirect(url);
   }
 
   const permission = routePermission(pathname);
-  if (permission && !hasPermission(session.role, permission)) {
+  if (
+    permission &&
+    !hasPermission({ permissions: session.permissions }, permission)
+  ) {
     const url = req.nextUrl.clone();
     url.pathname = "/unauthorized";
     url.searchParams.set("from", pathname);

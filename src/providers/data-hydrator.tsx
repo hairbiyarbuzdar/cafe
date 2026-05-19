@@ -2,11 +2,13 @@
 
 import * as React from "react";
 
+import { useCart } from "@/store/cart-store";
 import { useCategories } from "@/store/categories-store";
 import { useInventory } from "@/store/inventory-store";
 import { useMenu } from "@/store/menu-store";
 import { useStations } from "@/store/stations-store";
 import { useTables } from "@/store/tables-store";
+import type { TaxConfig } from "@/lib/queries/tax";
 import type {
   Category,
   InventoryItem,
@@ -30,12 +32,14 @@ export function DataHydrator({
   categories,
   inventory,
   tables,
+  tax,
 }: {
   items: MenuItem[];
   stations: KitchenStation[];
   categories: Category[];
   inventory: InventoryItem[];
   tables: Table[];
+  tax: TaxConfig;
 }) {
   React.useEffect(() => {
     useMenu.getState().hydrate(items);
@@ -52,5 +56,8 @@ export function DataHydrator({
   React.useEffect(() => {
     useTables.getState().hydrate(tables);
   }, [tables]);
+  React.useEffect(() => {
+    useCart.getState().setTaxConfig(tax.rate, tax.label);
+  }, [tax.rate, tax.label]);
   return null;
 }

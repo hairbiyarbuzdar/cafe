@@ -1,81 +1,80 @@
-import type { Permission, Role, SessionUser } from "@/types/auth";
+import type { Permission, SessionUser } from "@/types/auth";
 
-type RoleOrUser = Role | Pick<SessionUser, "role"> | null | undefined;
+/**
+ * Permission checks.
+ *
+ * Roles are now DB-backed (see `src/lib/roles-seed.ts`) so we can no
+ * longer answer "does role X have permission Y?" without a database
+ * round-trip. Instead, the user's permission set is denormalized onto
+ * `SessionUser.permissions` (and into the session cookie) and we
+ * check against that array everywhere — server components, server
+ * actions, the proxy, and client components.
+ */
 
-function toRole(input: RoleOrUser): Role | null {
-  if (!input) return null;
-  return typeof input === "string" ? input : input.role;
+type Subject =
+  | Pick<SessionUser, "permissions">
+  | { permissions?: Permission[] }
+  | null
+  | undefined;
+
+export function hasPermission(
+  subject: Subject,
+  permission: Permission,
+): boolean {
+  const perms = subject?.permissions;
+  if (!perms || perms.length === 0) return false;
+  return perms.includes(permission);
 }
 
-const ALL_PERMISSIONS: Permission[] = [
-  "pos.access",
-  "orders.view",
-  "orders.refund",
-  "orders.cancel",
-  "inventory.view",
-  "inventory.edit",
-  "menu.view",
-  "menu.edit",
-  "reports.view",
-  "staff.view",
-  "staff.edit",
-  "settings.view",
-  "settings.edit",
-  "kitchen.view",
-  "dashboard.view",
-];
+export function hasAnyPermission(
+  subject: Subject,
+  permissions: Permission[],
+): boolean {
+  const perms = subject?.permissions;
+  if (!perms || perms.length === 0) return false;
+  return permissions.some((p) => perms.includes(p));
+}
 
-export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
-  admin: ALL_PERMISSIONS,
-  manager: [
-    "dashboard.view",
-    "pos.access",
-    "orders.view",
-    "orders.refund",
-    "orders.cancel",
-    "inventory.view",
-    "inventory.edit",
-    "menu.view",
-    "menu.edit",
-    "reports.view",
-    "staff.view",
-  ],
-  cashier: ["pos.access", "orders.view"],
-  kitchen: ["kitchen.view", "orders.view", "inventory.view"],
+/**
+ * Default landing routes per built-in role. Custom roles set their
+ * own `defaultRoute` in the DB and a user's personal `defaultRoute`
+ * always wins via `homeFor()`.
+ */
+export const ROLE_HOME: Record<string, string> = {
+  admin: "/pos",
+  manager: "/pos",
+  cashier: "/pos",
+  kitchen: "/kitchen",
 };
 
-export const ROLE_LABEL: Record<Role, string> = {
+/**
+ * Resolves the landing route for a given user: their personal
+ * `defaultRoute` first, then the role-level default they're a member
+ * of, then `/pos` as the universal fallback.
+ */
+export function homeFor(
+  user: Pick<SessionUser, "role" | "defaultRoute">,
+): string {
+  const personal = user.defaultRoute?.trim();
+  if (personal) return personal;
+  return ROLE_HOME[user.role] ?? "/pos";
+}
+
+/**
+ * Default display label for the four built-in roles. Custom roles
+ * source their label from `Role.name` in the DB — surface that via
+ * `SessionUser.roleName` whenever possible. This map is a fallback
+ * for legacy code paths that still pass a raw role slug around.
+ */
+export const ROLE_LABEL: Record<string, string> = {
   admin: "Administrator",
   manager: "Manager",
   cashier: "Cashier",
   kitchen: "Kitchen staff",
 };
 
-/** Where each role lands by default after signing in. */
-export const ROLE_HOME: Record<Role, string> = {
-  admin: "/dashboard",
-  manager: "/dashboard",
-  cashier: "/pos",
-  kitchen: "/kitchen",
-};
-
-export function hasPermission(
-  subject: RoleOrUser,
-  permission: Permission,
-): boolean {
-  const role = toRole(subject);
-  if (!role) return false;
-  return ROLE_PERMISSIONS[role].includes(permission);
-}
-
-export function hasAnyPermission(
-  subject: RoleOrUser,
-  permissions: Permission[],
-): boolean {
-  const role = toRole(subject);
-  if (!role) return false;
-  const granted = ROLE_PERMISSIONS[role];
-  return permissions.some((p) => granted.includes(p));
+export function roleLabel(slug: string, fallback?: string): string {
+  return ROLE_LABEL[slug] ?? fallback ?? slug;
 }
 
 /**

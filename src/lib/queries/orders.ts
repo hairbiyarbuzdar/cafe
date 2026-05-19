@@ -65,6 +65,15 @@ export async function listOrders(): Promise<Order[]> {
  * Used by the POS "Add to held order" picker — kept slim and ordered
  * newest-first so cashiers grab the right one fast.
  */
+export type HeldOrderLine = {
+  id: string;
+  name: string;
+  quantity: number;
+  unitPrice: number;
+  modifiers: string[];
+  note?: string;
+};
+
 export type HeldOrderSummary = {
   id: string;
   number: string;
@@ -74,6 +83,9 @@ export type HeldOrderSummary = {
   total: number;
   itemCount: number;
   createdAt: string;
+  /** Line items belonging to the order. Pre-loaded so the POS held
+   * orders picker can expand a row inline without a follow-up fetch. */
+  items: HeldOrderLine[];
 };
 
 export async function listHeldOrders(): Promise<HeldOrderSummary[]> {
@@ -92,6 +104,16 @@ export async function listHeldOrders(): Promise<HeldOrderSummary[]> {
       createdAt: true,
       table: { select: { name: true } },
       _count: { select: { items: true } },
+      items: {
+        select: {
+          id: true,
+          name: true,
+          quantity: true,
+          unitPrice: true,
+          modifiers: true,
+          note: true,
+        },
+      },
     },
   });
   return rows.map((o) => ({
@@ -103,7 +125,65 @@ export async function listHeldOrders(): Promise<HeldOrderSummary[]> {
     total: toNumber(o.total),
     itemCount: o._count.items,
     createdAt: o.createdAt.toISOString(),
+    items: o.items.map((i) => ({
+      id: i.id,
+      name: i.name,
+      quantity: i.quantity,
+      unitPrice: toNumber(i.unitPrice),
+      modifiers: Array.isArray(i.modifiers) ? (i.modifiers as string[]) : [],
+      note: i.note ?? undefined,
+    })),
   }));
+}
+
+/** Single-order fetch used by the POS "Pay" flow. Returns null when
+ * the order has already been paid/cancelled/refunded since the picker
+ * was loaded — the caller surfaces that as a friendly toast. */
+export async function getOrderById(id: string): Promise<Order | null> {
+  const o = await prisma.order.findUnique({
+    where: { id },
+    include: {
+      items: true,
+      staff: { select: { name: true } },
+      table: { select: { name: true } },
+    },
+  });
+  if (!o) return null;
+  return {
+    id: o.id,
+    number: o.number,
+    status: o.status as OrderStatus,
+    channel: o.channel as OrderChannel,
+    customer: o.customerName
+      ? { name: o.customerName, phone: o.customerPhone ?? undefined }
+      : undefined,
+    table: o.table?.name,
+    items: o.items.map((i) => ({
+      id: i.id,
+      productId: i.menuItemId,
+      name: i.name,
+      quantity: i.quantity,
+      unitPrice: toNumber(i.unitPrice),
+      modifiers: Array.isArray(i.modifiers) ? (i.modifiers as string[]) : [],
+      note: i.note ?? undefined,
+    })),
+    subtotal: toNumber(o.subtotal),
+    tax: toNumber(o.tax),
+    tip: o.tip != null ? toNumber(o.tip) : undefined,
+    discount: o.discount != null ? toNumber(o.discount) : undefined,
+    total: toNumber(o.total),
+    payment: o.payment ? (o.payment as PaymentMethod) : undefined,
+    paidAt: o.paidAt ? o.paidAt.toISOString() : undefined,
+    staff: o.staff?.name ?? ANON_STAFF,
+    notes: o.notes ?? undefined,
+    createdAt: o.createdAt.toISOString(),
+    updatedAt: o.updatedAt.toISOString(),
+    fiscalInvoiceNumber: o.fiscalInvoiceNumber ?? undefined,
+    fiscalSubmittedAt: o.fiscalSubmittedAt
+      ? o.fiscalSubmittedAt.toISOString()
+      : undefined,
+    fiscalLastError: o.fiscalLastError ?? undefined,
+  };
 }
 
 export type OrdersSummary = {

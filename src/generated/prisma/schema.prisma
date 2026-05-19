@@ -19,26 +19,56 @@ datasource db {
 // Identity & access
 // ──────────────────────────────────────────────────────────────
 
-enum Role {
-  admin
-  manager
-  cashier
-  kitchen
+/// Workspace role. Replaces what used to be a hardcoded enum so
+/// custom roles can be created from Settings → Roles. The four
+/// built-ins (admin / manager / cashier / kitchen) are seeded at
+/// boot with `isSystem: true` so they can't be deleted.
+model Role {
+  /// Stable slug ("admin", "manager", "headChef", …). Used as the
+  /// foreign key on `User.role` so existing string comparisons keep
+  /// working unchanged.
+  id           String   @id
+  /// Display name shown in role badges and dropdowns.
+  name         String
+  description  String?
+  /// JSON array of permission strings (see `Permission` in
+  /// `src/types/auth.ts`). DB-driven so custom roles can mix and
+  /// match without a code change.
+  permissions  Json
+  /// Built-in roles are guarded against deletion + slug edits so the
+  /// onboarding flow can rely on them existing.
+  isSystem     Boolean  @default(false)
+  /// Optional role-level landing route. Falls back to /pos when null.
+  defaultRoute String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  users        User[]
 }
 
 model User {
-  id           String       @id @default(cuid())
-  name         String
-  email        String       @unique
-  passwordHash String
-  role         Role
-  avatar       String?
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
-  sessions     Session[]
-  orders       Order[]
-  shifts       Shift[]
-  attendance   Attendance[]
+  id            String       @id @default(cuid())
+  name          String
+  email         String       @unique
+  phone         String?
+  passwordHash  String
+  /// Role slug. Foreign key into `Role.id`; user creation flows must
+  /// ensure the slug exists (handled by `ensureBuiltInRoles()`).
+  role          String
+  roleRef       Role         @relation(fields: [role], references: [id])
+  avatar        String?
+  /// Optional per-user landing route. When unset we fall back to the
+  /// role's `defaultRoute`, then to /pos.
+  defaultRoute  String?
+  /// Gross monthly salary in workspace currency (Rs). Null = unset.
+  monthlySalary Decimal?     @db.Decimal(10, 2)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  sessions      Session[]
+  orders        Order[]
+  shifts        Shift[]
+  attendance    Attendance[]
+
+  @@index([role])
 }
 
 model Session {
@@ -59,6 +89,7 @@ model PendingMember {
   id        String   @id @default(cuid())
   name      String
   email     String   @unique
+  phone     String?
   createdAt DateTime @default(now())
 }
 
@@ -78,6 +109,10 @@ model PendingMember {
 model PaymentChannel {
   id             String            @id @default(cuid())
   name           String            @unique
+  /// Maps the channel to one of the `PaymentMethod` enum values used
+  /// on `Order.payment`. Drives the icon shown in the POS take-payment
+  /// dialog and the kind reported to BRA fiscalization.
+  kind           PaymentMethod     @default(cash)
   openingBalance Decimal           @db.Decimal(14, 2)
   currentBalance Decimal           @db.Decimal(14, 2)
   archived       Boolean           @default(false)
@@ -356,6 +391,16 @@ enum FiscalEnvironment {
 ///
 /// `bearerToken` and `accessCode` are sensitive; never expose either
 /// in client-bound payloads (the query helper strips them).
+/// Workspace-wide tax configuration. Singleton — the cart picks it up
+/// on hydrate. `rate` is decimal (0.085 = 8.5%), `label` lets you say
+/// "GST" / "Sales tax" / "VAT" instead of the default "Tax".
+model TaxConfig {
+  id        String   @id @default("default")
+  rate      Float    @default(0.085)
+  label     String   @default("Tax")
+  updatedAt DateTime @updatedAt
+}
+
 model FiscalConfig {
   id             String            @id @default("default")
   enabled        Boolean           @default(false)

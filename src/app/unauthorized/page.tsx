@@ -4,7 +4,7 @@ import { Lock, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AmbientBackground } from "@/components/shared/ambient-background";
 import { getCurrentUser } from "@/lib/auth";
-import { ROLE_HOME, ROLE_LABEL } from "@/lib/permissions";
+import { ROLE_LABEL, homeFor } from "@/lib/permissions";
 
 export const metadata = { title: "Access denied" };
 
@@ -15,7 +15,7 @@ type PageProps = {
 export default async function UnauthorizedPage({ searchParams }: PageProps) {
   const { from } = await searchParams;
   const user = await getCurrentUser();
-  const home = user ? ROLE_HOME[user.role] : "/login";
+  const home = user ? homeFor(user) : "/login";
 
   return (
     <div className="relative flex min-h-dvh items-center justify-center bg-background px-4">

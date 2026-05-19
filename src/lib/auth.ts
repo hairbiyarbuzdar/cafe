@@ -4,7 +4,12 @@ import { cookies } from "next/headers";
 
 import { prisma } from "@/lib/prisma";
 import { SESSION_COOKIE, parseSession } from "@/lib/session";
-import type { Session, SessionCookie, SessionUser } from "@/types/auth";
+import type {
+  Permission,
+  Session,
+  SessionCookie,
+  SessionUser,
+} from "@/types/auth";
 
 /**
  * Server-side current user. The cookie carries `{userId, role}`; we
@@ -32,7 +37,34 @@ async function readSessionCookie(): Promise<SessionCookie | null> {
 async function loadSessionUser(userId: string): Promise<SessionUser | null> {
   const row = await prisma.user.findUnique({
     where: { id: userId },
-    select: { id: true, name: true, email: true, role: true, avatar: true },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      phone: true,
+      role: true,
+      avatar: true,
+      defaultRoute: true,
+      monthlySalary: true,
+      roleRef: {
+        select: { name: true, permissions: true, defaultRoute: true },
+      },
+    },
   });
-  return row ?? null;
+  if (!row) return null;
+  const permissions = Array.isArray(row.roleRef?.permissions)
+    ? (row.roleRef.permissions as Permission[])
+    : [];
+  return {
+    id: row.id,
+    name: row.name,
+    email: row.email,
+    phone: row.phone,
+    role: row.role,
+    roleName: row.roleRef?.name,
+    permissions,
+    avatar: row.avatar,
+    defaultRoute: row.defaultRoute ?? row.roleRef?.defaultRoute ?? null,
+    monthlySalary: row.monthlySalary ? Number(row.monthlySalary) : null,
+  };
 }

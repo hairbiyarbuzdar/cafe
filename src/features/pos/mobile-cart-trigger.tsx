@@ -5,6 +5,8 @@ import { ReceiptText } from "lucide-react";
 
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { CartPanel } from "@/features/pos/cart-panel";
+import type { HeldOrderSummary } from "@/lib/queries/orders";
+import type { PaymentChannel } from "@/lib/queries/payment-channels";
 import { cartSubtotal, useCart } from "@/store/cart-store";
 import { formatCurrency } from "@/lib/utils";
 
@@ -13,7 +15,13 @@ import { formatCurrency } from "@/lib/utils";
  * opens the full CartPanel inside a bottom sheet. Hidden on md+
  * where the cart sits beside the products in a split layout.
  */
-export function MobileCartTrigger() {
+export function MobileCartTrigger({
+  heldOrders = [],
+  paymentChannels = [],
+}: {
+  heldOrders?: HeldOrderSummary[];
+  paymentChannels?: PaymentChannel[];
+}) {
   const items = useCart((s) => s.items);
   const taxRate = useCart((s) => s.taxRate);
   const discountPct = useCart((s) => s.discountPct);
@@ -57,7 +65,11 @@ export function MobileCartTrigger() {
           className="flex h-[90dvh] w-full flex-col gap-0 rounded-t-2xl border-t-2 p-0"
         >
           <SheetTitle className="sr-only">Current order</SheetTitle>
-          <CartPanel onChargeStart={() => setOpen(false)} />
+          <CartPanel
+            heldOrders={heldOrders}
+            paymentChannels={paymentChannels}
+            onChargeStart={() => setOpen(false)}
+          />
         </SheetContent>
       </Sheet>
     </>

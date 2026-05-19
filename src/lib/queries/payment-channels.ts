@@ -1,10 +1,12 @@
 import "server-only";
 
 import { prisma } from "@/lib/prisma";
+import type { PaymentMethod } from "@/types";
 
 export type PaymentChannel = {
   id: string;
   name: string;
+  kind: PaymentMethod;
   openingBalance: number;
   currentBalance: number;
   archived: boolean;
@@ -35,6 +37,7 @@ export async function listPaymentChannels({
   return rows.map((r) => ({
     id: r.id,
     name: r.name,
+    kind: r.kind as PaymentMethod,
     openingBalance: toNumber(r.openingBalance),
     currentBalance: toNumber(r.currentBalance),
     archived: r.archived,

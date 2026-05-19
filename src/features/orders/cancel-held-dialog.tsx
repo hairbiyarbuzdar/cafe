@@ -17,14 +17,13 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { cancelHeldOrderAction } from "@/lib/actions/orders";
-import type { Order } from "@/types";
 
 export function CancelHeldOrderDialog({
   order,
   open,
   onOpenChange,
 }: {
-  order: Order;
+  order: { id: string; number: string };
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {

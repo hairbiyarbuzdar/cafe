@@ -25,23 +25,24 @@ import {
 } from "@/components/ui/select";
 import { useCurrentUser } from "@/hooks/use-current-user";
 import { updateUserRoleAction } from "@/lib/actions/users";
-import { ROLE_LABEL } from "@/lib/permissions";
 import { initials } from "@/lib/utils";
-import type { Role, SessionUser } from "@/types/auth";
+import type { SessionUser } from "@/types/auth";
 
-const ROLES: Role[] = ["admin", "manager", "cashier", "kitchen"];
+type RoleOption = { id: string; name: string };
 
 export function ManageRolesDialog({
   users,
+  roles,
   trigger,
 }: {
   users: SessionUser[];
+  roles: RoleOption[];
   trigger?: React.ReactNode;
 }) {
   const router = useRouter();
   const me = useCurrentUser();
   const [open, setOpen] = React.useState(false);
-  const [drafts, setDrafts] = React.useState<Record<string, Role>>({});
+  const [drafts, setDrafts] = React.useState<Record<string, string>>({});
   const [submitting, setSubmitting] = React.useState(false);
 
   React.useEffect(() => {
@@ -127,19 +128,19 @@ export function ManageRolesDialog({
                   <Select
                     value={draft}
                     onValueChange={(v) =>
-                      setDrafts((d) => ({ ...d, [u.id]: v as Role }))
+                      setDrafts((d) => ({ ...d, [u.id]: v }))
                     }
                   >
                     <SelectTrigger
                       size="sm"
-                      className="h-9 w-[140px] rounded-md text-[12.5px]"
+                      className="h-9 w-[160px] rounded-md text-[12.5px]"
                     >
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {ROLES.map((r) => (
-                        <SelectItem key={r} value={r}>
-                          {ROLE_LABEL[r]}
+                      {roles.map((r) => (
+                        <SelectItem key={r.id} value={r.id}>
+                          {r.name}
                         </SelectItem>
                       ))}
                     </SelectContent>

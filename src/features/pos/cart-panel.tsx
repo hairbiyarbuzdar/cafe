@@ -23,7 +23,10 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { CheckoutDialog } from "@/features/pos/checkout-dialog";
+import { PayHeldOrdersPicker } from "@/features/pos/pay-held-orders-picker";
 import { TablePicker } from "@/features/pos/table-picker";
+import type { HeldOrderSummary } from "@/lib/queries/orders";
+import type { PaymentChannel } from "@/lib/queries/payment-channels";
 import { cartSubtotal, useCart } from "@/store/cart-store";
 import { useTables } from "@/store/tables-store";
 import { cn, formatCurrency } from "@/lib/utils";
@@ -33,15 +36,26 @@ type CartPanelProps = {
   /** Fired when the user opens the place-order dialog
    *  (useful for closing a wrapping bottom sheet on mobile). */
   onChargeStart?: () => void;
+  /** Held orders — drives the Pay picker rendered alongside the
+   * place-order button. */
+  heldOrders?: HeldOrderSummary[];
+  /** Configured payment channels — passed to the embedded
+   * TakePaymentDialog so cashiers pick from real workspace methods. */
+  paymentChannels?: PaymentChannel[];
 };
 
-export function CartPanel({ onChargeStart }: CartPanelProps = {}) {
+export function CartPanel({
+  onChargeStart,
+  heldOrders = [],
+  paymentChannels = [],
+}: CartPanelProps = {}) {
   const items = useCart((s) => s.items);
   const channel = useCart((s) => s.channel);
   const note = useCart((s) => s.note);
   const discountPct = useCart((s) => s.discountPct);
   const tableId = useCart((s) => s.tableId);
   const taxRate = useCart((s) => s.taxRate);
+  const taxLabel = useCart((s) => s.taxLabel);
   const attachedOrderId = useCart((s) => s.attachedOrderId);
   const attachedOrderNumber = useCart((s) => s.attachedOrderNumber);
   const setNote = useCart((s) => s.setNote);
@@ -241,7 +255,7 @@ export function CartPanel({ onChargeStart }: CartPanelProps = {}) {
             <Row label={`Discount (${discountPct}%)`} value={`−${formatCurrency(discount)}`} muted />
           ) : null}
           {!isAttach ? (
-            <Row label={`Tax (${(taxRate * 100).toFixed(2)}%)`} value={formatCurrency(tax)} muted />
+            <Row label={`${taxLabel} (${(taxRate * 100).toFixed(2)}%)`} value={formatCurrency(tax)} muted />
           ) : null}
           <Separator className="my-1.5" />
           <Row
@@ -258,19 +272,26 @@ export function CartPanel({ onChargeStart }: CartPanelProps = {}) {
             : "Sends to the kitchen on hold. Payment is collected at pickup / served."}
         </p>
 
-        <Button
-          className="h-12 w-full rounded-md text-[14px] font-semibold shadow-soft"
-          disabled={items.length === 0}
-          onClick={() => {
-            setCheckoutOpen(true);
-            onChargeStart?.();
-          }}
-        >
-          <ReceiptText className="size-4" />
-          {isAttach
-            ? `Add to ${attachedOrderNumber}`
-            : `Place order · ${formatCurrency(total)}`}
-        </Button>
+        <div className="flex items-stretch gap-2">
+          <Button
+            className="h-12 flex-1 rounded-md text-[14px] font-semibold shadow-soft"
+            disabled={items.length === 0}
+            onClick={() => {
+              setCheckoutOpen(true);
+              onChargeStart?.();
+            }}
+          >
+            <ReceiptText className="size-4" />
+            {isAttach
+              ? `Add to ${attachedOrderNumber}`
+              : `Place order · ${formatCurrency(total)}`}
+          </Button>
+          <PayHeldOrdersPicker
+            orders={heldOrders}
+            channels={paymentChannels}
+            className="h-12"
+          />
+        </div>
       </div>
 
       <CheckoutDialog

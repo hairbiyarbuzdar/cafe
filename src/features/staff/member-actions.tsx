@@ -30,6 +30,8 @@ export type MemberRef = {
   type: "user" | "pending";
   name: string;
   email: string;
+  phone?: string | null;
+  monthlySalary?: number | null;
 };
 
 /**
@@ -96,19 +98,40 @@ function EditMemberDialog({
   const router = useRouter();
   const [name, setName] = React.useState(member.name);
   const [email, setEmail] = React.useState(member.email);
+  const [phone, setPhone] = React.useState(member.phone ?? "");
+  const [salary, setSalary] = React.useState(
+    member.monthlySalary != null ? String(member.monthlySalary) : "",
+  );
   const [submitting, setSubmitting] = React.useState(false);
 
   React.useEffect(() => {
     if (open) {
       setName(member.name);
       setEmail(member.email);
+      setPhone(member.phone ?? "");
+      setSalary(member.monthlySalary != null ? String(member.monthlySalary) : "");
     }
   }, [open, member]);
+
+  const phoneTrimmed = phone.trim();
+  const phoneOk =
+    phoneTrimmed === "" || /^[0-9+\-\s()]{7,20}$/.test(phoneTrimmed);
+  const salaryNum = salary.trim() === "" ? null : Number(salary);
+  const salaryOk =
+    salaryNum === null || (Number.isFinite(salaryNum) && salaryNum >= 0);
+
+  const dirty =
+    name.trim() !== member.name ||
+    email.trim() !== member.email ||
+    (phoneTrimmed || null) !== (member.phone ?? null) ||
+    (member.type === "user" && salaryNum !== (member.monthlySalary ?? null));
 
   const canSave =
     name.trim().length > 1 &&
     /^\S+@\S+\.\S+$/.test(email.trim()) &&
-    (name.trim() !== member.name || email.trim() !== member.email);
+    phoneOk &&
+    salaryOk &&
+    dirty;
 
   async function handleSave() {
     if (!canSave || submitting) return;
@@ -119,6 +142,8 @@ function EditMemberDialog({
         type: member.type,
         name: name.trim(),
         email: email.trim(),
+        phone: phoneTrimmed || null,
+        monthlySalary: member.type === "user" ? salaryNum : undefined,
       });
       if (!result.ok) {
         toast.error("Couldn't save", { description: result.error });
@@ -169,6 +194,48 @@ function EditMemberDialog({
               className="h-10"
             />
           </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="em-phone" className="text-[12px] font-medium">
+              Contact number
+            </Label>
+            <Input
+              id="em-phone"
+              type="tel"
+              inputMode="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="03xx-xxxxxxx"
+              className="h-10"
+              aria-invalid={!phoneOk}
+            />
+            {!phoneOk ? (
+              <p className="text-[11.5px] text-destructive">
+                Use 7–20 characters: digits, spaces, +, -, ().
+              </p>
+            ) : null}
+          </div>
+          {member.type === "user" ? (
+            <div className="space-y-1.5">
+              <Label htmlFor="em-salary" className="text-[12px] font-medium">
+                Monthly salary (Rs)
+              </Label>
+              <Input
+                id="em-salary"
+                type="number"
+                inputMode="decimal"
+                min={0}
+                step="0.01"
+                value={salary}
+                onChange={(e) => setSalary(e.target.value)}
+                placeholder="e.g. 45000"
+                className="h-10 tabular-nums"
+                aria-invalid={!salaryOk}
+              />
+              <p className="text-[11.5px] text-muted-foreground">
+                Leave blank if not set yet. Drives payroll totals.
+              </p>
+            </div>
+          ) : null}
         </div>
 
         <DialogFooter className="grid grid-cols-2 gap-2 border-t bg-surface-1 px-5 py-3">

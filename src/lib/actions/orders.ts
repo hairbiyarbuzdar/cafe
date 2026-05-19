@@ -6,7 +6,34 @@ import { submitInvoiceToBraAction } from "@/lib/actions/fiscal";
 import { logActivity } from "@/lib/activity";
 import { getServerSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import type { OrderChannel, PaymentMethod, ProductModifier } from "@/types";
+import { getOrderById } from "@/lib/queries/orders";
+import type { Order, OrderChannel, PaymentMethod, ProductModifier } from "@/types";
+
+export type LoadOrderResult =
+  | { ok: true; order: Order }
+  | { ok: false; error: string };
+
+/**
+ * Lightweight fetcher used by the POS Pay picker — the cashier picks
+ * a held order from the summary list, and the client hydrates the
+ * full Order so `TakePaymentDialog` can render line totals + take
+ * payment without bouncing through /orders.
+ */
+export async function loadOrderForPaymentAction(
+  orderId: string,
+): Promise<LoadOrderResult> {
+  const order = await getOrderById(orderId);
+  if (!order) return { ok: false, error: "Order not found" };
+  if (order.paidAt) return { ok: false, error: "Order is already paid" };
+  if (
+    order.status === "cancelled" ||
+    order.status === "refunded" ||
+    order.status === "completed"
+  ) {
+    return { ok: false, error: `Order is ${order.status} — cannot collect` };
+  }
+  return { ok: true, order };
+}
 
 /**
  * Lifecycle (see also README "POS workflow"):

@@ -17,7 +17,22 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { createPaymentChannelAction } from "@/lib/actions/payment-channels";
+import type { PaymentMethod } from "@/types";
+
+const KIND_OPTIONS: { value: PaymentMethod; label: string }[] = [
+  { value: "cash", label: "Cash" },
+  { value: "card", label: "Card" },
+  { value: "wallet", label: "Wallet (EasyPaisa, JazzCash…)" },
+  { value: "online", label: "Online / Bank transfer" },
+];
 
 export function AddPaymentMethodDialog({
   trigger,
@@ -27,12 +42,14 @@ export function AddPaymentMethodDialog({
   const router = useRouter();
   const [open, setOpen] = React.useState(false);
   const [name, setName] = React.useState("");
+  const [kind, setKind] = React.useState<PaymentMethod>("cash");
   const [opening, setOpening] = React.useState("0");
   const [submitting, setSubmitting] = React.useState(false);
 
   React.useEffect(() => {
     if (open) {
       setName("");
+      setKind("cash");
       setOpening("0");
     }
   }, [open]);
@@ -47,6 +64,7 @@ export function AddPaymentMethodDialog({
     try {
       const result = await createPaymentChannelAction({
         name: name.trim(),
+        kind,
         openingBalance: openingNum,
       });
       if (!result.ok) {
@@ -83,6 +101,32 @@ export function AddPaymentMethodDialog({
             className="h-10"
             autoFocus
           />
+
+          <div className="space-y-1.5 pt-1">
+            <FieldLabel htmlFor="pm-kind" required>
+              Kind
+            </FieldLabel>
+            <Select
+              value={kind}
+              onValueChange={(v) => setKind(v as PaymentMethod)}
+            >
+              <SelectTrigger id="pm-kind" className="h-10">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {KIND_OPTIONS.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>
+                    {o.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-[11.5px] text-muted-foreground">
+              Drives the icon on the POS payment screen and the kind
+              reported to BRA. Cash drawers, mobile wallets, and bank
+              transfers can all coexist.
+            </p>
+          </div>
 
           <div className="space-y-1.5 pt-1">
             <FieldLabel htmlFor="pm-open">Opening balance (Rs)</FieldLabel>

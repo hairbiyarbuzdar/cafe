@@ -18,7 +18,9 @@
       "Read(//tmp/**)",
       "Bash(tasklist /FI \"PID eq 12696\")",
       "Bash(curl -s -o nul -w \"/login: %{http_code} -> %{redirect_url}\\\\n\" -L --max-redirs 0 http://localhost:3000/login)",
-      "Bash(curl -s -o nul -w \"/onboarding: %{http_code}\\\\n\" http://localhost:3000/onboarding)"
+      "Bash(curl -s -o nul -w \"/onboarding: %{http_code}\\\\n\" http://localhost:3000/onboarding)",
+      "Bash(npx prisma *)",
+      "Bash(curl -s http://localhost:3000/login)"
     ]
   }
 }

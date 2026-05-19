@@ -19,7 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createPendingMemberAction } from "@/lib/actions/users";
 
-type Form = { name: string; email: string };
+type Form = { name: string; email: string; phone: string };
 
 /**
  * Adds a teammate without granting them access. The Settings → Team
@@ -29,16 +29,20 @@ type Form = { name: string; email: string };
 export function AddMemberDialog({ trigger }: { trigger?: React.ReactNode }) {
   const router = useRouter();
   const [open, setOpen] = React.useState(false);
-  const [form, setForm] = React.useState<Form>({ name: "", email: "" });
+  const [form, setForm] = React.useState<Form>({ name: "", email: "", phone: "" });
   const [submitting, setSubmitting] = React.useState(false);
 
   React.useEffect(() => {
-    if (open) setForm({ name: "", email: "" });
+    if (open) setForm({ name: "", email: "", phone: "" });
   }, [open]);
 
+  const phoneTrimmed = form.phone.trim();
+  const phoneOk =
+    phoneTrimmed === "" || /^[0-9+\-\s()]{7,20}$/.test(phoneTrimmed);
   const canSave =
     form.name.trim().length > 1 &&
-    /^\S+@\S+\.\S+$/.test(form.email.trim());
+    /^\S+@\S+\.\S+$/.test(form.email.trim()) &&
+    phoneOk;
 
   function patch<K extends keyof Form>(key: K, value: Form[K]) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -51,6 +55,7 @@ export function AddMemberDialog({ trigger }: { trigger?: React.ReactNode }) {
       const result = await createPendingMemberAction({
         name: form.name.trim(),
         email: form.email.trim(),
+        phone: form.phone.trim() || null,
       });
       if (!result.ok) {
         toast.error("Couldn't add member", { description: result.error });
@@ -110,6 +115,24 @@ export function AddMemberDialog({ trigger }: { trigger?: React.ReactNode }) {
               autoComplete="off"
               className="h-10"
             />
+          </Field>
+          <Field label="Contact number" htmlFor="m-phone">
+            <Input
+              id="m-phone"
+              type="tel"
+              inputMode="tel"
+              value={form.phone}
+              onChange={(e) => patch("phone", e.target.value)}
+              placeholder="03xx-xxxxxxx"
+              autoComplete="off"
+              className="h-10"
+              aria-invalid={!phoneOk}
+            />
+            {!phoneOk ? (
+              <p className="text-[11.5px] text-destructive">
+                Use 7–20 characters: digits, spaces, +, -, ().
+              </p>
+            ) : null}
           </Field>
         </div>
 

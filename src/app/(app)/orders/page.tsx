@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/layouts/page-header";
 import { OrdersTable } from "@/features/orders/orders-table";
 import { listOrders, ordersSummary } from "@/lib/queries/orders";
+import { listPaymentChannels } from "@/lib/queries/payment-channels";
 import { formatCurrency } from "@/lib/utils";
 import Link from "next/link";
 
@@ -12,7 +13,11 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export default async function OrdersPage() {
-  const [summary, orders] = await Promise.all([ordersSummary(), listOrders()]);
+  const [summary, orders, paymentChannels] = await Promise.all([
+    ordersSummary(),
+    listOrders(),
+    listPaymentChannels(),
+  ]);
 
   return (
     <>
@@ -46,7 +51,7 @@ export default async function OrdersPage() {
         />
       </section>
 
-      <OrdersTable orders={orders} />
+      <OrdersTable orders={orders} paymentChannels={paymentChannels} />
     </>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   CreditCard,
@@ -25,37 +26,51 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { payOrderAction } from "@/lib/actions/orders";
+import type { PaymentChannel } from "@/lib/queries/payment-channels";
 import { cn, formatCurrency } from "@/lib/utils";
 import type { Order, PaymentMethod } from "@/types";
 
-const METHODS: { value: PaymentMethod; label: string; icon: typeof Wallet }[] = [
-  { value: "card", label: "Card", icon: CreditCard },
-  { value: "cash", label: "Cash", icon: Wallet },
-  { value: "wallet", label: "Wallet", icon: Smartphone },
-  { value: "online", label: "Online", icon: Wifi },
-];
+const KIND_ICON: Record<PaymentMethod, typeof Wallet> = {
+  card: CreditCard,
+  cash: Wallet,
+  wallet: Smartphone,
+  online: Wifi,
+};
 
 export function TakePaymentDialog({
   order,
+  channels = [],
   open,
   onOpenChange,
 }: {
   order: Order;
+  /** Active payment methods configured in Settings → Payment methods.
+   * If empty, the dialog shows a friendly empty state pointing the
+   * operator at settings instead of guessing a default. */
+  channels?: PaymentChannel[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
   const router = useRouter();
-  const [method, setMethod] = React.useState<PaymentMethod>("card");
+  const activeChannels = React.useMemo(
+    () => channels.filter((c) => !c.archived),
+    [channels],
+  );
+
+  const [channelId, setChannelId] = React.useState<string>(
+    activeChannels[0]?.id ?? "",
+  );
   const [tipStr, setTipStr] = React.useState("");
   const [submitting, setSubmitting] = React.useState(false);
 
   React.useEffect(() => {
     if (open) {
-      setMethod("card");
+      setChannelId(activeChannels[0]?.id ?? "");
       setTipStr("");
     }
-  }, [open]);
+  }, [open, activeChannels]);
 
+  const selectedChannel = activeChannels.find((c) => c.id === channelId);
   const tipNum = tipStr ? Number(tipStr) : 0;
   const tipValid = Number.isFinite(tipNum) && tipNum >= 0;
   const baseTotal =
@@ -63,12 +78,12 @@ export function TakePaymentDialog({
   const grandTotal = baseTotal + (tipValid ? tipNum : 0);
 
   async function takePayment() {
-    if (!tipValid || submitting) return;
+    if (!tipValid || submitting || !selectedChannel) return;
     setSubmitting(true);
     try {
       const result = await payOrderAction({
         orderId: order.id,
-        payment: method,
+        payment: selectedChannel.kind,
         tip: tipNum > 0 ? tipNum : undefined,
       });
       if (!result.ok) {
@@ -76,7 +91,7 @@ export function TakePaymentDialog({
         return;
       }
       toast.success(`${formatCurrency(result.total)} captured`, {
-        description: `Receipt ${result.receiptNumber}${
+        description: `Receipt ${result.receiptNumber} · ${selectedChannel.name}${
           result.fiscalInvoiceNumber
             ? ` · BRA ${result.fiscalInvoiceNumber}`
             : ""
@@ -107,29 +122,54 @@ export function TakePaymentDialog({
             <Label className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
               Payment method
             </Label>
-            <div className="grid grid-cols-4 gap-1.5">
-              {METHODS.map((m) => {
-                const Icon = m.icon;
-                const active = method === m.value;
-                return (
-                  <button
-                    type="button"
-                    key={m.value}
-                    onClick={() => setMethod(m.value)}
-                    aria-pressed={active}
-                    className={cn(
-                      "flex flex-col items-center gap-1 rounded-md border bg-card py-2 text-[11.5px] font-medium transition",
-                      active
-                        ? "border-primary/50 bg-primary/10 text-primary"
-                        : "text-muted-foreground hover:bg-muted",
-                    )}
-                  >
-                    <Icon className="size-3.5" />
-                    {m.label}
-                  </button>
-                );
-              })}
-            </div>
+            {activeChannels.length === 0 ? (
+              <div className="rounded-md border border-dashed bg-muted/30 px-3 py-4 text-center text-[12px] text-muted-foreground">
+                No payment methods configured.{" "}
+                <Link
+                  href="/settings"
+                  className="font-medium text-foreground underline-offset-2 hover:underline"
+                  onClick={() => onOpenChange(false)}
+                >
+                  Add one in Settings
+                </Link>{" "}
+                to take payments.
+              </div>
+            ) : (
+              <div
+                className={cn(
+                  "grid gap-1.5",
+                  activeChannels.length <= 2
+                    ? "grid-cols-2"
+                    : activeChannels.length === 3
+                      ? "grid-cols-3"
+                      : "grid-cols-2 sm:grid-cols-4",
+                )}
+              >
+                {activeChannels.map((c) => {
+                  const Icon = KIND_ICON[c.kind];
+                  const active = channelId === c.id;
+                  return (
+                    <button
+                      type="button"
+                      key={c.id}
+                      onClick={() => setChannelId(c.id)}
+                      aria-pressed={active}
+                      className={cn(
+                        "flex flex-col items-center gap-1 rounded-md border bg-card px-1.5 py-2 text-[11.5px] font-medium transition",
+                        active
+                          ? "border-primary/50 bg-primary/10 text-primary"
+                          : "text-muted-foreground hover:bg-muted",
+                      )}
+                    >
+                      <Icon className="size-3.5" />
+                      <span className="line-clamp-1 px-0.5 text-center">
+                        {c.name}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           <div className="space-y-1.5">
@@ -183,7 +223,7 @@ export function TakePaymentDialog({
             size="sm"
             className="h-9 rounded-md text-[12.5px]"
             onClick={takePayment}
-            disabled={!tipValid || submitting}
+            disabled={!tipValid || submitting || !selectedChannel}
           >
             {submitting ? (
               <>

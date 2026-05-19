@@ -161,7 +161,9 @@ export function AppSidebar() {
                       {user?.name ?? "Sign in"}
                     </span>
                     <span className="truncate text-[11.5px] text-muted-foreground">
-                      {user ? ROLE_LABEL[user.role] : "No session"}
+                      {user
+                        ? (user.roleName ?? ROLE_LABEL[user.role] ?? user.role)
+                        : "No session"}
                     </span>
                   </div>
                   <ChevronsUpDown className="ms-auto size-4 text-muted-foreground" />
@@ -179,7 +181,9 @@ export function AppSidebar() {
                       {user?.name ?? "Guest"}
                     </span>
                     <span className="text-[11.5px] text-muted-foreground">
-                      {user ? `${ROLE_LABEL[user.role]} · ${user.email}` : ""}
+                      {user
+                        ? `${user.roleName ?? ROLE_LABEL[user.role] ?? user.role} · ${user.email}`
+                        : ""}
                     </span>
                   </div>
                 </DropdownMenuLabel>

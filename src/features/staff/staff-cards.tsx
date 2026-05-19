@@ -1,13 +1,13 @@
 "use client";
 
-import { Calendar, Clock, Hourglass, Mail } from "lucide-react";
+import { Calendar, Clock, Hourglass, Mail, Phone, Wallet } from "lucide-react";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { RoleBadge } from "@/features/staff/role-badge";
 import { MemberActionsMenu, type MemberRef } from "@/features/staff/member-actions";
 import type { PendingMember } from "@/lib/queries/users";
-import { initials } from "@/lib/utils";
+import { formatCurrency, initials } from "@/lib/utils";
 import type { SessionUser } from "@/types/auth";
 
 /**
@@ -50,6 +50,8 @@ function MemberCard({ member }: { member: SessionUser }) {
     type: "user",
     name: member.name,
     email: member.email,
+    phone: member.phone ?? null,
+    monthlySalary: member.monthlySalary ?? null,
   };
   return (
     <article className="group rounded-lg border bg-card p-4 shadow-elevated transition-colors hover:border-primary/30">
@@ -75,12 +77,28 @@ function MemberCard({ member }: { member: SessionUser }) {
           <Mail className="size-3" />
           <span className="truncate text-foreground/85">{member.email}</span>
         </div>
+        {member.phone ? (
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Phone className="size-3" />
+            <span className="truncate text-foreground/85 tabular-nums">
+              {member.phone}
+            </span>
+          </div>
+        ) : null}
       </dl>
 
       <div className="mt-3 grid grid-cols-3 gap-2 border-t pt-3 text-center">
         <Metric label="Shifts" value="—" icon={Calendar} />
         <Metric label="Hours" value="—" icon={Clock} />
-        <Metric label="Rate" value="—" />
+        <Metric
+          label="Salary"
+          value={
+            member.monthlySalary != null
+              ? formatCurrency(member.monthlySalary)
+              : "—"
+          }
+          icon={Wallet}
+        />
       </div>
     </article>
   );
@@ -92,6 +110,7 @@ function PendingCard({ member }: { member: PendingMember }) {
     type: "pending",
     name: member.name,
     email: member.email,
+    phone: member.phone ?? null,
   };
   return (
     <article className="group rounded-lg border border-dashed bg-card/40 p-4 transition-colors hover:border-primary/30">
@@ -121,6 +140,14 @@ function PendingCard({ member }: { member: PendingMember }) {
           <Mail className="size-3" />
           <span className="truncate text-foreground/85">{member.email}</span>
         </div>
+        {member.phone ? (
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Phone className="size-3" />
+            <span className="truncate text-foreground/85 tabular-nums">
+              {member.phone}
+            </span>
+          </div>
+        ) : null}
       </dl>
 
       <p className="mt-3 border-t pt-3 text-[11.5px] text-muted-foreground">

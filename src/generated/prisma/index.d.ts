@@ -14,6 +14,14 @@ export type PrismaPromise<T> = $Public.PrismaPromise<T>
 
 
 /**
+ * Model Role
+ * Workspace role. Replaces what used to be a hardcoded enum so
+ * custom roles can be created from Settings → Roles. The four
+ * built-ins (admin / manager / cashier / kitchen) are seeded at
+ * boot with `isSystem: true` so they can't be deleted.
+ */
+export type Role = $Result.DefaultSelection<Prisma.$RolePayload>
+/**
  * Model User
  * 
  */
@@ -108,13 +116,21 @@ export type OrderItem = $Result.DefaultSelection<Prisma.$OrderItemPayload>
  */
 export type KitchenTicket = $Result.DefaultSelection<Prisma.$KitchenTicketPayload>
 /**
- * Model FiscalConfig
+ * Model TaxConfig
  * Workspace-wide configuration for invoice fiscalization with the
  * Balochistan Revenue Authority (BRA). A single row is enough — we
  * use a fixed primary key ("default") and upsert it on save.
  * 
  * `bearerToken` and `accessCode` are sensitive; never expose either
  * in client-bound payloads (the query helper strips them).
+ * Workspace-wide tax configuration. Singleton — the cart picks it up
+ * on hydrate. `rate` is decimal (0.085 = 8.5%), `label` lets you say
+ * "GST" / "Sales tax" / "VAT" instead of the default "Tax".
+ */
+export type TaxConfig = $Result.DefaultSelection<Prisma.$TaxConfigPayload>
+/**
+ * Model FiscalConfig
+ * 
  */
 export type FiscalConfig = $Result.DefaultSelection<Prisma.$FiscalConfigPayload>
 /**
@@ -152,17 +168,7 @@ export type Activity = $Result.DefaultSelection<Prisma.$ActivityPayload>
  * Enums
  */
 export namespace $Enums {
-  export const Role: {
-  admin: 'admin',
-  manager: 'manager',
-  cashier: 'cashier',
-  kitchen: 'kitchen'
-};
-
-export type Role = (typeof Role)[keyof typeof Role]
-
-
-export const OrderStatus: {
+  export const OrderStatus: {
   pending: 'pending',
   preparing: 'preparing',
   ready: 'ready',
@@ -242,10 +248,6 @@ export type AttendanceState = (typeof AttendanceState)[keyof typeof AttendanceSt
 
 }
 
-export type Role = $Enums.Role
-
-export const Role: typeof $Enums.Role
-
 export type OrderStatus = $Enums.OrderStatus
 
 export const OrderStatus: typeof $Enums.OrderStatus
@@ -287,8 +289,8 @@ export const AttendanceState: typeof $Enums.AttendanceState
  * const prisma = new PrismaClient({
  *   adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL })
  * })
- * // Fetch zero or more Users
- * const users = await prisma.user.findMany()
+ * // Fetch zero or more Roles
+ * const roles = await prisma.role.findMany()
  * ```
  *
  *
@@ -310,8 +312,8 @@ export class PrismaClient<
    * const prisma = new PrismaClient({
    *   adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL })
    * })
-   * // Fetch zero or more Users
-   * const users = await prisma.user.findMany()
+   * // Fetch zero or more Roles
+   * const roles = await prisma.role.findMany()
    * ```
    *
    *
@@ -400,6 +402,16 @@ export class PrismaClient<
   }>>
 
       /**
+   * `prisma.role`: Exposes CRUD operations for the **Role** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more Roles
+    * const roles = await prisma.role.findMany()
+    * ```
+    */
+  get role(): Prisma.RoleDelegate<ExtArgs, ClientOptions>;
+
+  /**
    * `prisma.user`: Exposes CRUD operations for the **User** model.
     * Example usage:
     * ```ts
@@ -558,6 +570,16 @@ export class PrismaClient<
     * ```
     */
   get kitchenTicket(): Prisma.KitchenTicketDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.taxConfig`: Exposes CRUD operations for the **TaxConfig** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more TaxConfigs
+    * const taxConfigs = await prisma.taxConfig.findMany()
+    * ```
+    */
+  get taxConfig(): Prisma.TaxConfigDelegate<ExtArgs, ClientOptions>;
 
   /**
    * `prisma.fiscalConfig`: Exposes CRUD operations for the **FiscalConfig** model.
@@ -1042,6 +1064,7 @@ export namespace Prisma {
 
 
   export const ModelName: {
+    Role: 'Role',
     User: 'User',
     Session: 'Session',
     PendingMember: 'PendingMember',
@@ -1058,6 +1081,7 @@ export namespace Prisma {
     Order: 'Order',
     OrderItem: 'OrderItem',
     KitchenTicket: 'KitchenTicket',
+    TaxConfig: 'TaxConfig',
     FiscalConfig: 'FiscalConfig',
     FiscalSubmission: 'FiscalSubmission',
     Shift: 'Shift',
@@ -1078,10 +1102,84 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "user" | "session" | "pendingMember" | "paymentChannel" | "paymentTransfer" | "kitchenStation" | "menuCategory" | "menuItem" | "supplier" | "inventoryItem" | "recipeIngredient" | "inventoryMovement" | "table" | "order" | "orderItem" | "kitchenTicket" | "fiscalConfig" | "fiscalSubmission" | "shift" | "attendance" | "activity"
+      modelProps: "role" | "user" | "session" | "pendingMember" | "paymentChannel" | "paymentTransfer" | "kitchenStation" | "menuCategory" | "menuItem" | "supplier" | "inventoryItem" | "recipeIngredient" | "inventoryMovement" | "table" | "order" | "orderItem" | "kitchenTicket" | "taxConfig" | "fiscalConfig" | "fiscalSubmission" | "shift" | "attendance" | "activity"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
+      Role: {
+        payload: Prisma.$RolePayload<ExtArgs>
+        fields: Prisma.RoleFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.RoleFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RolePayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.RoleFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RolePayload>
+          }
+          findFirst: {
+            args: Prisma.RoleFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RolePayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.RoleFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RolePayload>
+          }
+          findMany: {
+            args: Prisma.RoleFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RolePayload>[]
+          }
+          create: {
+            args: Prisma.RoleCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RolePayload>
+          }
+          createMany: {
+            args: Prisma.RoleCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.RoleCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RolePayload>[]
+          }
+          delete: {
+            args: Prisma.RoleDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RolePayload>
+          }
+          update: {
+            args: Prisma.RoleUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RolePayload>
+          }
+          deleteMany: {
+            args: Prisma.RoleDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.RoleUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.RoleUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RolePayload>[]
+          }
+          upsert: {
+            args: Prisma.RoleUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RolePayload>
+          }
+          aggregate: {
+            args: Prisma.RoleAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateRole>
+          }
+          groupBy: {
+            args: Prisma.RoleGroupByArgs<ExtArgs>
+            result: $Utils.Optional<RoleGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.RoleCountArgs<ExtArgs>
+            result: $Utils.Optional<RoleCountAggregateOutputType> | number
+          }
+        }
+      }
       User: {
         payload: Prisma.$UserPayload<ExtArgs>
         fields: Prisma.UserFieldRefs
@@ -2266,6 +2364,80 @@ export namespace Prisma {
           }
         }
       }
+      TaxConfig: {
+        payload: Prisma.$TaxConfigPayload<ExtArgs>
+        fields: Prisma.TaxConfigFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.TaxConfigFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$TaxConfigPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.TaxConfigFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$TaxConfigPayload>
+          }
+          findFirst: {
+            args: Prisma.TaxConfigFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$TaxConfigPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.TaxConfigFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$TaxConfigPayload>
+          }
+          findMany: {
+            args: Prisma.TaxConfigFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$TaxConfigPayload>[]
+          }
+          create: {
+            args: Prisma.TaxConfigCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$TaxConfigPayload>
+          }
+          createMany: {
+            args: Prisma.TaxConfigCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.TaxConfigCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$TaxConfigPayload>[]
+          }
+          delete: {
+            args: Prisma.TaxConfigDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$TaxConfigPayload>
+          }
+          update: {
+            args: Prisma.TaxConfigUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$TaxConfigPayload>
+          }
+          deleteMany: {
+            args: Prisma.TaxConfigDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.TaxConfigUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.TaxConfigUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$TaxConfigPayload>[]
+          }
+          upsert: {
+            args: Prisma.TaxConfigUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$TaxConfigPayload>
+          }
+          aggregate: {
+            args: Prisma.TaxConfigAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateTaxConfig>
+          }
+          groupBy: {
+            args: Prisma.TaxConfigGroupByArgs<ExtArgs>
+            result: $Utils.Optional<TaxConfigGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.TaxConfigCountArgs<ExtArgs>
+            result: $Utils.Optional<TaxConfigCountAggregateOutputType> | number
+          }
+        }
+      }
       FiscalConfig: {
         payload: Prisma.$FiscalConfigPayload<ExtArgs>
         fields: Prisma.FiscalConfigFieldRefs
@@ -2744,6 +2916,7 @@ export namespace Prisma {
     comments?: runtime.SqlCommenterPlugin[]
   }
   export type GlobalOmitConfig = {
+    role?: RoleOmit
     user?: UserOmit
     session?: SessionOmit
     pendingMember?: PendingMemberOmit
@@ -2760,6 +2933,7 @@ export namespace Prisma {
     order?: OrderOmit
     orderItem?: OrderItemOmit
     kitchenTicket?: KitchenTicketOmit
+    taxConfig?: TaxConfigOmit
     fiscalConfig?: FiscalConfigOmit
     fiscalSubmission?: FiscalSubmissionOmit
     shift?: ShiftOmit
@@ -2838,6 +3012,37 @@ export namespace Prisma {
   /**
    * Count Types
    */
+
+
+  /**
+   * Count Type RoleCountOutputType
+   */
+
+  export type RoleCountOutputType = {
+    users: number
+  }
+
+  export type RoleCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    users?: boolean | RoleCountOutputTypeCountUsersArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * RoleCountOutputType without action
+   */
+  export type RoleCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RoleCountOutputType
+     */
+    select?: RoleCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * RoleCountOutputType without action
+   */
+  export type RoleCountOutputTypeCountUsersArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: UserWhereInput
+  }
 
 
   /**
@@ -3205,22 +3410,1165 @@ export namespace Prisma {
    */
 
   /**
+   * Model Role
+   */
+
+  export type AggregateRole = {
+    _count: RoleCountAggregateOutputType | null
+    _min: RoleMinAggregateOutputType | null
+    _max: RoleMaxAggregateOutputType | null
+  }
+
+  export type RoleMinAggregateOutputType = {
+    id: string | null
+    name: string | null
+    description: string | null
+    isSystem: boolean | null
+    defaultRoute: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type RoleMaxAggregateOutputType = {
+    id: string | null
+    name: string | null
+    description: string | null
+    isSystem: boolean | null
+    defaultRoute: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type RoleCountAggregateOutputType = {
+    id: number
+    name: number
+    description: number
+    permissions: number
+    isSystem: number
+    defaultRoute: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type RoleMinAggregateInputType = {
+    id?: true
+    name?: true
+    description?: true
+    isSystem?: true
+    defaultRoute?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type RoleMaxAggregateInputType = {
+    id?: true
+    name?: true
+    description?: true
+    isSystem?: true
+    defaultRoute?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type RoleCountAggregateInputType = {
+    id?: true
+    name?: true
+    description?: true
+    permissions?: true
+    isSystem?: true
+    defaultRoute?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type RoleAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which Role to aggregate.
+     */
+    where?: RoleWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of Roles to fetch.
+     */
+    orderBy?: RoleOrderByWithRelationInput | RoleOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: RoleWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` Roles from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` Roles.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned Roles
+    **/
+    _count?: true | RoleCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: RoleMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: RoleMaxAggregateInputType
+  }
+
+  export type GetRoleAggregateType<T extends RoleAggregateArgs> = {
+        [P in keyof T & keyof AggregateRole]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateRole[P]>
+      : GetScalarType<T[P], AggregateRole[P]>
+  }
+
+
+
+
+  export type RoleGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: RoleWhereInput
+    orderBy?: RoleOrderByWithAggregationInput | RoleOrderByWithAggregationInput[]
+    by: RoleScalarFieldEnum[] | RoleScalarFieldEnum
+    having?: RoleScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: RoleCountAggregateInputType | true
+    _min?: RoleMinAggregateInputType
+    _max?: RoleMaxAggregateInputType
+  }
+
+  export type RoleGroupByOutputType = {
+    id: string
+    name: string
+    description: string | null
+    permissions: JsonValue
+    isSystem: boolean
+    defaultRoute: string | null
+    createdAt: Date
+    updatedAt: Date
+    _count: RoleCountAggregateOutputType | null
+    _min: RoleMinAggregateOutputType | null
+    _max: RoleMaxAggregateOutputType | null
+  }
+
+  type GetRoleGroupByPayload<T extends RoleGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<RoleGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof RoleGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], RoleGroupByOutputType[P]>
+            : GetScalarType<T[P], RoleGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type RoleSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    name?: boolean
+    description?: boolean
+    permissions?: boolean
+    isSystem?: boolean
+    defaultRoute?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    users?: boolean | Role$usersArgs<ExtArgs>
+    _count?: boolean | RoleCountOutputTypeDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["role"]>
+
+  export type RoleSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    name?: boolean
+    description?: boolean
+    permissions?: boolean
+    isSystem?: boolean
+    defaultRoute?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["role"]>
+
+  export type RoleSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    name?: boolean
+    description?: boolean
+    permissions?: boolean
+    isSystem?: boolean
+    defaultRoute?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["role"]>
+
+  export type RoleSelectScalar = {
+    id?: boolean
+    name?: boolean
+    description?: boolean
+    permissions?: boolean
+    isSystem?: boolean
+    defaultRoute?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type RoleOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "description" | "permissions" | "isSystem" | "defaultRoute" | "createdAt" | "updatedAt", ExtArgs["result"]["role"]>
+  export type RoleInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    users?: boolean | Role$usersArgs<ExtArgs>
+    _count?: boolean | RoleCountOutputTypeDefaultArgs<ExtArgs>
+  }
+  export type RoleIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
+  export type RoleIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
+
+  export type $RolePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "Role"
+    objects: {
+      users: Prisma.$UserPayload<ExtArgs>[]
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      /**
+       * Stable slug ("admin", "manager", "headChef", …). Used as the
+       * foreign key on `User.role` so existing string comparisons keep
+       * working unchanged.
+       */
+      id: string
+      /**
+       * Display name shown in role badges and dropdowns.
+       */
+      name: string
+      description: string | null
+      /**
+       * JSON array of permission strings (see `Permission` in
+       * `src/types/auth.ts`). DB-driven so custom roles can mix and
+       * match without a code change.
+       */
+      permissions: Prisma.JsonValue
+      /**
+       * Built-in roles are guarded against deletion + slug edits so the
+       * onboarding flow can rely on them existing.
+       */
+      isSystem: boolean
+      /**
+       * Optional role-level landing route. Falls back to /pos when null.
+       */
+      defaultRoute: string | null
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["role"]>
+    composites: {}
+  }
+
+  type RoleGetPayload<S extends boolean | null | undefined | RoleDefaultArgs> = $Result.GetResult<Prisma.$RolePayload, S>
+
+  type RoleCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<RoleFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: RoleCountAggregateInputType | true
+    }
+
+  export interface RoleDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['Role'], meta: { name: 'Role' } }
+    /**
+     * Find zero or one Role that matches the filter.
+     * @param {RoleFindUniqueArgs} args - Arguments to find a Role
+     * @example
+     * // Get one Role
+     * const role = await prisma.role.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends RoleFindUniqueArgs>(args: SelectSubset<T, RoleFindUniqueArgs<ExtArgs>>): Prisma__RoleClient<$Result.GetResult<Prisma.$RolePayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one Role that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {RoleFindUniqueOrThrowArgs} args - Arguments to find a Role
+     * @example
+     * // Get one Role
+     * const role = await prisma.role.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends RoleFindUniqueOrThrowArgs>(args: SelectSubset<T, RoleFindUniqueOrThrowArgs<ExtArgs>>): Prisma__RoleClient<$Result.GetResult<Prisma.$RolePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first Role that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {RoleFindFirstArgs} args - Arguments to find a Role
+     * @example
+     * // Get one Role
+     * const role = await prisma.role.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends RoleFindFirstArgs>(args?: SelectSubset<T, RoleFindFirstArgs<ExtArgs>>): Prisma__RoleClient<$Result.GetResult<Prisma.$RolePayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first Role that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {RoleFindFirstOrThrowArgs} args - Arguments to find a Role
+     * @example
+     * // Get one Role
+     * const role = await prisma.role.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends RoleFindFirstOrThrowArgs>(args?: SelectSubset<T, RoleFindFirstOrThrowArgs<ExtArgs>>): Prisma__RoleClient<$Result.GetResult<Prisma.$RolePayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more Roles that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {RoleFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all Roles
+     * const roles = await prisma.role.findMany()
+     * 
+     * // Get first 10 Roles
+     * const roles = await prisma.role.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const roleWithIdOnly = await prisma.role.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends RoleFindManyArgs>(args?: SelectSubset<T, RoleFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$RolePayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a Role.
+     * @param {RoleCreateArgs} args - Arguments to create a Role.
+     * @example
+     * // Create one Role
+     * const Role = await prisma.role.create({
+     *   data: {
+     *     // ... data to create a Role
+     *   }
+     * })
+     * 
+     */
+    create<T extends RoleCreateArgs>(args: SelectSubset<T, RoleCreateArgs<ExtArgs>>): Prisma__RoleClient<$Result.GetResult<Prisma.$RolePayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many Roles.
+     * @param {RoleCreateManyArgs} args - Arguments to create many Roles.
+     * @example
+     * // Create many Roles
+     * const role = await prisma.role.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends RoleCreateManyArgs>(args?: SelectSubset<T, RoleCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many Roles and returns the data saved in the database.
+     * @param {RoleCreateManyAndReturnArgs} args - Arguments to create many Roles.
+     * @example
+     * // Create many Roles
+     * const role = await prisma.role.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many Roles and only return the `id`
+     * const roleWithIdOnly = await prisma.role.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends RoleCreateManyAndReturnArgs>(args?: SelectSubset<T, RoleCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$RolePayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a Role.
+     * @param {RoleDeleteArgs} args - Arguments to delete one Role.
+     * @example
+     * // Delete one Role
+     * const Role = await prisma.role.delete({
+     *   where: {
+     *     // ... filter to delete one Role
+     *   }
+     * })
+     * 
+     */
+    delete<T extends RoleDeleteArgs>(args: SelectSubset<T, RoleDeleteArgs<ExtArgs>>): Prisma__RoleClient<$Result.GetResult<Prisma.$RolePayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one Role.
+     * @param {RoleUpdateArgs} args - Arguments to update one Role.
+     * @example
+     * // Update one Role
+     * const role = await prisma.role.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends RoleUpdateArgs>(args: SelectSubset<T, RoleUpdateArgs<ExtArgs>>): Prisma__RoleClient<$Result.GetResult<Prisma.$RolePayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more Roles.
+     * @param {RoleDeleteManyArgs} args - Arguments to filter Roles to delete.
+     * @example
+     * // Delete a few Roles
+     * const { count } = await prisma.role.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends RoleDeleteManyArgs>(args?: SelectSubset<T, RoleDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Roles.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {RoleUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many Roles
+     * const role = await prisma.role.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends RoleUpdateManyArgs>(args: SelectSubset<T, RoleUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Roles and returns the data updated in the database.
+     * @param {RoleUpdateManyAndReturnArgs} args - Arguments to update many Roles.
+     * @example
+     * // Update many Roles
+     * const role = await prisma.role.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more Roles and only return the `id`
+     * const roleWithIdOnly = await prisma.role.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends RoleUpdateManyAndReturnArgs>(args: SelectSubset<T, RoleUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$RolePayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one Role.
+     * @param {RoleUpsertArgs} args - Arguments to update or create a Role.
+     * @example
+     * // Update or create a Role
+     * const role = await prisma.role.upsert({
+     *   create: {
+     *     // ... data to create a Role
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the Role we want to update
+     *   }
+     * })
+     */
+    upsert<T extends RoleUpsertArgs>(args: SelectSubset<T, RoleUpsertArgs<ExtArgs>>): Prisma__RoleClient<$Result.GetResult<Prisma.$RolePayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of Roles.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {RoleCountArgs} args - Arguments to filter Roles to count.
+     * @example
+     * // Count the number of Roles
+     * const count = await prisma.role.count({
+     *   where: {
+     *     // ... the filter for the Roles we want to count
+     *   }
+     * })
+    **/
+    count<T extends RoleCountArgs>(
+      args?: Subset<T, RoleCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], RoleCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a Role.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {RoleAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends RoleAggregateArgs>(args: Subset<T, RoleAggregateArgs>): Prisma.PrismaPromise<GetRoleAggregateType<T>>
+
+    /**
+     * Group by Role.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {RoleGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends RoleGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: RoleGroupByArgs['orderBy'] }
+        : { orderBy?: RoleGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, RoleGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetRoleGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the Role model
+   */
+  readonly fields: RoleFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for Role.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__RoleClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    users<T extends Role$usersArgs<ExtArgs> = {}>(args?: Subset<T, Role$usersArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the Role model
+   */
+  interface RoleFieldRefs {
+    readonly id: FieldRef<"Role", 'String'>
+    readonly name: FieldRef<"Role", 'String'>
+    readonly description: FieldRef<"Role", 'String'>
+    readonly permissions: FieldRef<"Role", 'Json'>
+    readonly isSystem: FieldRef<"Role", 'Boolean'>
+    readonly defaultRoute: FieldRef<"Role", 'String'>
+    readonly createdAt: FieldRef<"Role", 'DateTime'>
+    readonly updatedAt: FieldRef<"Role", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * Role findUnique
+   */
+  export type RoleFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Role
+     */
+    select?: RoleSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Role
+     */
+    omit?: RoleOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RoleInclude<ExtArgs> | null
+    /**
+     * Filter, which Role to fetch.
+     */
+    where: RoleWhereUniqueInput
+  }
+
+  /**
+   * Role findUniqueOrThrow
+   */
+  export type RoleFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Role
+     */
+    select?: RoleSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Role
+     */
+    omit?: RoleOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RoleInclude<ExtArgs> | null
+    /**
+     * Filter, which Role to fetch.
+     */
+    where: RoleWhereUniqueInput
+  }
+
+  /**
+   * Role findFirst
+   */
+  export type RoleFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Role
+     */
+    select?: RoleSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Role
+     */
+    omit?: RoleOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RoleInclude<ExtArgs> | null
+    /**
+     * Filter, which Role to fetch.
+     */
+    where?: RoleWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of Roles to fetch.
+     */
+    orderBy?: RoleOrderByWithRelationInput | RoleOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for Roles.
+     */
+    cursor?: RoleWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` Roles from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` Roles.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of Roles.
+     */
+    distinct?: RoleScalarFieldEnum | RoleScalarFieldEnum[]
+  }
+
+  /**
+   * Role findFirstOrThrow
+   */
+  export type RoleFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Role
+     */
+    select?: RoleSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Role
+     */
+    omit?: RoleOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RoleInclude<ExtArgs> | null
+    /**
+     * Filter, which Role to fetch.
+     */
+    where?: RoleWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of Roles to fetch.
+     */
+    orderBy?: RoleOrderByWithRelationInput | RoleOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for Roles.
+     */
+    cursor?: RoleWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` Roles from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` Roles.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of Roles.
+     */
+    distinct?: RoleScalarFieldEnum | RoleScalarFieldEnum[]
+  }
+
+  /**
+   * Role findMany
+   */
+  export type RoleFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Role
+     */
+    select?: RoleSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Role
+     */
+    omit?: RoleOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RoleInclude<ExtArgs> | null
+    /**
+     * Filter, which Roles to fetch.
+     */
+    where?: RoleWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of Roles to fetch.
+     */
+    orderBy?: RoleOrderByWithRelationInput | RoleOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing Roles.
+     */
+    cursor?: RoleWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` Roles from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` Roles.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of Roles.
+     */
+    distinct?: RoleScalarFieldEnum | RoleScalarFieldEnum[]
+  }
+
+  /**
+   * Role create
+   */
+  export type RoleCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Role
+     */
+    select?: RoleSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Role
+     */
+    omit?: RoleOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RoleInclude<ExtArgs> | null
+    /**
+     * The data needed to create a Role.
+     */
+    data: XOR<RoleCreateInput, RoleUncheckedCreateInput>
+  }
+
+  /**
+   * Role createMany
+   */
+  export type RoleCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many Roles.
+     */
+    data: RoleCreateManyInput | RoleCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * Role createManyAndReturn
+   */
+  export type RoleCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Role
+     */
+    select?: RoleSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the Role
+     */
+    omit?: RoleOmit<ExtArgs> | null
+    /**
+     * The data used to create many Roles.
+     */
+    data: RoleCreateManyInput | RoleCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * Role update
+   */
+  export type RoleUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Role
+     */
+    select?: RoleSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Role
+     */
+    omit?: RoleOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RoleInclude<ExtArgs> | null
+    /**
+     * The data needed to update a Role.
+     */
+    data: XOR<RoleUpdateInput, RoleUncheckedUpdateInput>
+    /**
+     * Choose, which Role to update.
+     */
+    where: RoleWhereUniqueInput
+  }
+
+  /**
+   * Role updateMany
+   */
+  export type RoleUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update Roles.
+     */
+    data: XOR<RoleUpdateManyMutationInput, RoleUncheckedUpdateManyInput>
+    /**
+     * Filter which Roles to update
+     */
+    where?: RoleWhereInput
+    /**
+     * Limit how many Roles to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * Role updateManyAndReturn
+   */
+  export type RoleUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Role
+     */
+    select?: RoleSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the Role
+     */
+    omit?: RoleOmit<ExtArgs> | null
+    /**
+     * The data used to update Roles.
+     */
+    data: XOR<RoleUpdateManyMutationInput, RoleUncheckedUpdateManyInput>
+    /**
+     * Filter which Roles to update
+     */
+    where?: RoleWhereInput
+    /**
+     * Limit how many Roles to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * Role upsert
+   */
+  export type RoleUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Role
+     */
+    select?: RoleSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Role
+     */
+    omit?: RoleOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RoleInclude<ExtArgs> | null
+    /**
+     * The filter to search for the Role to update in case it exists.
+     */
+    where: RoleWhereUniqueInput
+    /**
+     * In case the Role found by the `where` argument doesn't exist, create a new Role with this data.
+     */
+    create: XOR<RoleCreateInput, RoleUncheckedCreateInput>
+    /**
+     * In case the Role was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<RoleUpdateInput, RoleUncheckedUpdateInput>
+  }
+
+  /**
+   * Role delete
+   */
+  export type RoleDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Role
+     */
+    select?: RoleSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Role
+     */
+    omit?: RoleOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RoleInclude<ExtArgs> | null
+    /**
+     * Filter which Role to delete.
+     */
+    where: RoleWhereUniqueInput
+  }
+
+  /**
+   * Role deleteMany
+   */
+  export type RoleDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which Roles to delete
+     */
+    where?: RoleWhereInput
+    /**
+     * Limit how many Roles to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * Role.users
+   */
+  export type Role$usersArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the User
+     */
+    select?: UserSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the User
+     */
+    omit?: UserOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: UserInclude<ExtArgs> | null
+    where?: UserWhereInput
+    orderBy?: UserOrderByWithRelationInput | UserOrderByWithRelationInput[]
+    cursor?: UserWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: UserScalarFieldEnum | UserScalarFieldEnum[]
+  }
+
+  /**
+   * Role without action
+   */
+  export type RoleDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Role
+     */
+    select?: RoleSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Role
+     */
+    omit?: RoleOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RoleInclude<ExtArgs> | null
+  }
+
+
+  /**
    * Model User
    */
 
   export type AggregateUser = {
     _count: UserCountAggregateOutputType | null
+    _avg: UserAvgAggregateOutputType | null
+    _sum: UserSumAggregateOutputType | null
     _min: UserMinAggregateOutputType | null
     _max: UserMaxAggregateOutputType | null
+  }
+
+  export type UserAvgAggregateOutputType = {
+    monthlySalary: Decimal | null
+  }
+
+  export type UserSumAggregateOutputType = {
+    monthlySalary: Decimal | null
   }
 
   export type UserMinAggregateOutputType = {
     id: string | null
     name: string | null
     email: string | null
+    phone: string | null
     passwordHash: string | null
-    role: $Enums.Role | null
+    role: string | null
     avatar: string | null
+    defaultRoute: string | null
+    monthlySalary: Decimal | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -3229,9 +4577,12 @@ export namespace Prisma {
     id: string | null
     name: string | null
     email: string | null
+    phone: string | null
     passwordHash: string | null
-    role: $Enums.Role | null
+    role: string | null
     avatar: string | null
+    defaultRoute: string | null
+    monthlySalary: Decimal | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -3240,22 +4591,36 @@ export namespace Prisma {
     id: number
     name: number
     email: number
+    phone: number
     passwordHash: number
     role: number
     avatar: number
+    defaultRoute: number
+    monthlySalary: number
     createdAt: number
     updatedAt: number
     _all: number
   }
 
 
+  export type UserAvgAggregateInputType = {
+    monthlySalary?: true
+  }
+
+  export type UserSumAggregateInputType = {
+    monthlySalary?: true
+  }
+
   export type UserMinAggregateInputType = {
     id?: true
     name?: true
     email?: true
+    phone?: true
     passwordHash?: true
     role?: true
     avatar?: true
+    defaultRoute?: true
+    monthlySalary?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -3264,9 +4629,12 @@ export namespace Prisma {
     id?: true
     name?: true
     email?: true
+    phone?: true
     passwordHash?: true
     role?: true
     avatar?: true
+    defaultRoute?: true
+    monthlySalary?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -3275,9 +4643,12 @@ export namespace Prisma {
     id?: true
     name?: true
     email?: true
+    phone?: true
     passwordHash?: true
     role?: true
     avatar?: true
+    defaultRoute?: true
+    monthlySalary?: true
     createdAt?: true
     updatedAt?: true
     _all?: true
@@ -3321,6 +4692,18 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
      * 
+     * Select which fields to average
+    **/
+    _avg?: UserAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: UserSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
      * Select which fields to find the minimum value
     **/
     _min?: UserMinAggregateInputType
@@ -3351,6 +4734,8 @@ export namespace Prisma {
     take?: number
     skip?: number
     _count?: UserCountAggregateInputType | true
+    _avg?: UserAvgAggregateInputType
+    _sum?: UserSumAggregateInputType
     _min?: UserMinAggregateInputType
     _max?: UserMaxAggregateInputType
   }
@@ -3359,12 +4744,17 @@ export namespace Prisma {
     id: string
     name: string
     email: string
+    phone: string | null
     passwordHash: string
-    role: $Enums.Role
+    role: string
     avatar: string | null
+    defaultRoute: string | null
+    monthlySalary: Decimal | null
     createdAt: Date
     updatedAt: Date
     _count: UserCountAggregateOutputType | null
+    _avg: UserAvgAggregateOutputType | null
+    _sum: UserSumAggregateOutputType | null
     _min: UserMinAggregateOutputType | null
     _max: UserMaxAggregateOutputType | null
   }
@@ -3387,11 +4777,15 @@ export namespace Prisma {
     id?: boolean
     name?: boolean
     email?: boolean
+    phone?: boolean
     passwordHash?: boolean
     role?: boolean
     avatar?: boolean
+    defaultRoute?: boolean
+    monthlySalary?: boolean
     createdAt?: boolean
     updatedAt?: boolean
+    roleRef?: boolean | RoleDefaultArgs<ExtArgs>
     sessions?: boolean | User$sessionsArgs<ExtArgs>
     orders?: boolean | User$ordersArgs<ExtArgs>
     shifts?: boolean | User$shiftsArgs<ExtArgs>
@@ -3403,49 +4797,66 @@ export namespace Prisma {
     id?: boolean
     name?: boolean
     email?: boolean
+    phone?: boolean
     passwordHash?: boolean
     role?: boolean
     avatar?: boolean
+    defaultRoute?: boolean
+    monthlySalary?: boolean
     createdAt?: boolean
     updatedAt?: boolean
+    roleRef?: boolean | RoleDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["user"]>
 
   export type UserSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     name?: boolean
     email?: boolean
+    phone?: boolean
     passwordHash?: boolean
     role?: boolean
     avatar?: boolean
+    defaultRoute?: boolean
+    monthlySalary?: boolean
     createdAt?: boolean
     updatedAt?: boolean
+    roleRef?: boolean | RoleDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["user"]>
 
   export type UserSelectScalar = {
     id?: boolean
     name?: boolean
     email?: boolean
+    phone?: boolean
     passwordHash?: boolean
     role?: boolean
     avatar?: boolean
+    defaultRoute?: boolean
+    monthlySalary?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
 
-  export type UserOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "email" | "passwordHash" | "role" | "avatar" | "createdAt" | "updatedAt", ExtArgs["result"]["user"]>
+  export type UserOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "email" | "phone" | "passwordHash" | "role" | "avatar" | "defaultRoute" | "monthlySalary" | "createdAt" | "updatedAt", ExtArgs["result"]["user"]>
   export type UserInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    roleRef?: boolean | RoleDefaultArgs<ExtArgs>
     sessions?: boolean | User$sessionsArgs<ExtArgs>
     orders?: boolean | User$ordersArgs<ExtArgs>
     shifts?: boolean | User$shiftsArgs<ExtArgs>
     attendance?: boolean | User$attendanceArgs<ExtArgs>
     _count?: boolean | UserCountOutputTypeDefaultArgs<ExtArgs>
   }
-  export type UserIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
-  export type UserIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
+  export type UserIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    roleRef?: boolean | RoleDefaultArgs<ExtArgs>
+  }
+  export type UserIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    roleRef?: boolean | RoleDefaultArgs<ExtArgs>
+  }
 
   export type $UserPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "User"
     objects: {
+      roleRef: Prisma.$RolePayload<ExtArgs>
       sessions: Prisma.$SessionPayload<ExtArgs>[]
       orders: Prisma.$OrderPayload<ExtArgs>[]
       shifts: Prisma.$ShiftPayload<ExtArgs>[]
@@ -3455,9 +4866,23 @@ export namespace Prisma {
       id: string
       name: string
       email: string
+      phone: string | null
       passwordHash: string
-      role: $Enums.Role
+      /**
+       * Role slug. Foreign key into `Role.id`; user creation flows must
+       * ensure the slug exists (handled by `ensureBuiltInRoles()`).
+       */
+      role: string
       avatar: string | null
+      /**
+       * Optional per-user landing route. When unset we fall back to the
+       * role's `defaultRoute`, then to /pos.
+       */
+      defaultRoute: string | null
+      /**
+       * Gross monthly salary in workspace currency (Rs). Null = unset.
+       */
+      monthlySalary: Prisma.Decimal | null
       createdAt: Date
       updatedAt: Date
     }, ExtArgs["result"]["user"]>
@@ -3854,6 +5279,7 @@ export namespace Prisma {
    */
   export interface Prisma__UserClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
+    roleRef<T extends RoleDefaultArgs<ExtArgs> = {}>(args?: Subset<T, RoleDefaultArgs<ExtArgs>>): Prisma__RoleClient<$Result.GetResult<Prisma.$RolePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
     sessions<T extends User$sessionsArgs<ExtArgs> = {}>(args?: Subset<T, User$sessionsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$SessionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     orders<T extends User$ordersArgs<ExtArgs> = {}>(args?: Subset<T, User$ordersArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$OrderPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     shifts<T extends User$shiftsArgs<ExtArgs> = {}>(args?: Subset<T, User$shiftsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ShiftPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
@@ -3890,9 +5316,12 @@ export namespace Prisma {
     readonly id: FieldRef<"User", 'String'>
     readonly name: FieldRef<"User", 'String'>
     readonly email: FieldRef<"User", 'String'>
+    readonly phone: FieldRef<"User", 'String'>
     readonly passwordHash: FieldRef<"User", 'String'>
-    readonly role: FieldRef<"User", 'Role'>
+    readonly role: FieldRef<"User", 'String'>
     readonly avatar: FieldRef<"User", 'String'>
+    readonly defaultRoute: FieldRef<"User", 'String'>
+    readonly monthlySalary: FieldRef<"User", 'Decimal'>
     readonly createdAt: FieldRef<"User", 'DateTime'>
     readonly updatedAt: FieldRef<"User", 'DateTime'>
   }
@@ -4149,6 +5578,10 @@ export namespace Prisma {
      */
     data: UserCreateManyInput | UserCreateManyInput[]
     skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: UserIncludeCreateManyAndReturn<ExtArgs> | null
   }
 
   /**
@@ -4219,6 +5652,10 @@ export namespace Prisma {
      * Limit how many Users to update.
      */
     limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: UserIncludeUpdateManyAndReturn<ExtArgs> | null
   }
 
   /**
@@ -5466,6 +6903,7 @@ export namespace Prisma {
     id: string | null
     name: string | null
     email: string | null
+    phone: string | null
     createdAt: Date | null
   }
 
@@ -5473,6 +6911,7 @@ export namespace Prisma {
     id: string | null
     name: string | null
     email: string | null
+    phone: string | null
     createdAt: Date | null
   }
 
@@ -5480,6 +6919,7 @@ export namespace Prisma {
     id: number
     name: number
     email: number
+    phone: number
     createdAt: number
     _all: number
   }
@@ -5489,6 +6929,7 @@ export namespace Prisma {
     id?: true
     name?: true
     email?: true
+    phone?: true
     createdAt?: true
   }
 
@@ -5496,6 +6937,7 @@ export namespace Prisma {
     id?: true
     name?: true
     email?: true
+    phone?: true
     createdAt?: true
   }
 
@@ -5503,6 +6945,7 @@ export namespace Prisma {
     id?: true
     name?: true
     email?: true
+    phone?: true
     createdAt?: true
     _all?: true
   }
@@ -5583,6 +7026,7 @@ export namespace Prisma {
     id: string
     name: string
     email: string
+    phone: string | null
     createdAt: Date
     _count: PendingMemberCountAggregateOutputType | null
     _min: PendingMemberMinAggregateOutputType | null
@@ -5607,6 +7051,7 @@ export namespace Prisma {
     id?: boolean
     name?: boolean
     email?: boolean
+    phone?: boolean
     createdAt?: boolean
   }, ExtArgs["result"]["pendingMember"]>
 
@@ -5614,6 +7059,7 @@ export namespace Prisma {
     id?: boolean
     name?: boolean
     email?: boolean
+    phone?: boolean
     createdAt?: boolean
   }, ExtArgs["result"]["pendingMember"]>
 
@@ -5621,6 +7067,7 @@ export namespace Prisma {
     id?: boolean
     name?: boolean
     email?: boolean
+    phone?: boolean
     createdAt?: boolean
   }, ExtArgs["result"]["pendingMember"]>
 
@@ -5628,10 +7075,11 @@ export namespace Prisma {
     id?: boolean
     name?: boolean
     email?: boolean
+    phone?: boolean
     createdAt?: boolean
   }
 
-  export type PendingMemberOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "email" | "createdAt", ExtArgs["result"]["pendingMember"]>
+  export type PendingMemberOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "email" | "phone" | "createdAt", ExtArgs["result"]["pendingMember"]>
 
   export type $PendingMemberPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "PendingMember"
@@ -5640,6 +7088,7 @@ export namespace Prisma {
       id: string
       name: string
       email: string
+      phone: string | null
       createdAt: Date
     }, ExtArgs["result"]["pendingMember"]>
     composites: {}
@@ -6067,6 +7516,7 @@ export namespace Prisma {
     readonly id: FieldRef<"PendingMember", 'String'>
     readonly name: FieldRef<"PendingMember", 'String'>
     readonly email: FieldRef<"PendingMember", 'String'>
+    readonly phone: FieldRef<"PendingMember", 'String'>
     readonly createdAt: FieldRef<"PendingMember", 'DateTime'>
   }
     
@@ -6464,6 +7914,7 @@ export namespace Prisma {
   export type PaymentChannelMinAggregateOutputType = {
     id: string | null
     name: string | null
+    kind: $Enums.PaymentMethod | null
     openingBalance: Decimal | null
     currentBalance: Decimal | null
     archived: boolean | null
@@ -6475,6 +7926,7 @@ export namespace Prisma {
   export type PaymentChannelMaxAggregateOutputType = {
     id: string | null
     name: string | null
+    kind: $Enums.PaymentMethod | null
     openingBalance: Decimal | null
     currentBalance: Decimal | null
     archived: boolean | null
@@ -6486,6 +7938,7 @@ export namespace Prisma {
   export type PaymentChannelCountAggregateOutputType = {
     id: number
     name: number
+    kind: number
     openingBalance: number
     currentBalance: number
     archived: number
@@ -6509,6 +7962,7 @@ export namespace Prisma {
   export type PaymentChannelMinAggregateInputType = {
     id?: true
     name?: true
+    kind?: true
     openingBalance?: true
     currentBalance?: true
     archived?: true
@@ -6520,6 +7974,7 @@ export namespace Prisma {
   export type PaymentChannelMaxAggregateInputType = {
     id?: true
     name?: true
+    kind?: true
     openingBalance?: true
     currentBalance?: true
     archived?: true
@@ -6531,6 +7986,7 @@ export namespace Prisma {
   export type PaymentChannelCountAggregateInputType = {
     id?: true
     name?: true
+    kind?: true
     openingBalance?: true
     currentBalance?: true
     archived?: true
@@ -6629,6 +8085,7 @@ export namespace Prisma {
   export type PaymentChannelGroupByOutputType = {
     id: string
     name: string
+    kind: $Enums.PaymentMethod
     openingBalance: Decimal
     currentBalance: Decimal
     archived: boolean
@@ -6659,6 +8116,7 @@ export namespace Prisma {
   export type PaymentChannelSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     name?: boolean
+    kind?: boolean
     openingBalance?: boolean
     currentBalance?: boolean
     archived?: boolean
@@ -6673,6 +8131,7 @@ export namespace Prisma {
   export type PaymentChannelSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     name?: boolean
+    kind?: boolean
     openingBalance?: boolean
     currentBalance?: boolean
     archived?: boolean
@@ -6684,6 +8143,7 @@ export namespace Prisma {
   export type PaymentChannelSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     name?: boolean
+    kind?: boolean
     openingBalance?: boolean
     currentBalance?: boolean
     archived?: boolean
@@ -6695,6 +8155,7 @@ export namespace Prisma {
   export type PaymentChannelSelectScalar = {
     id?: boolean
     name?: boolean
+    kind?: boolean
     openingBalance?: boolean
     currentBalance?: boolean
     archived?: boolean
@@ -6703,7 +8164,7 @@ export namespace Prisma {
     updatedAt?: boolean
   }
 
-  export type PaymentChannelOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "openingBalance" | "currentBalance" | "archived" | "archivedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["paymentChannel"]>
+  export type PaymentChannelOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "kind" | "openingBalance" | "currentBalance" | "archived" | "archivedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["paymentChannel"]>
   export type PaymentChannelInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     outgoing?: boolean | PaymentChannel$outgoingArgs<ExtArgs>
     incoming?: boolean | PaymentChannel$incomingArgs<ExtArgs>
@@ -6721,6 +8182,12 @@ export namespace Prisma {
     scalars: $Extensions.GetPayloadResult<{
       id: string
       name: string
+      /**
+       * Maps the channel to one of the `PaymentMethod` enum values used
+       * on `Order.payment`. Drives the icon shown in the POS take-payment
+       * dialog and the kind reported to BRA fiscalization.
+       */
+      kind: $Enums.PaymentMethod
       openingBalance: Prisma.Decimal
       currentBalance: Prisma.Decimal
       archived: boolean
@@ -7154,6 +8621,7 @@ export namespace Prisma {
   interface PaymentChannelFieldRefs {
     readonly id: FieldRef<"PaymentChannel", 'String'>
     readonly name: FieldRef<"PaymentChannel", 'String'>
+    readonly kind: FieldRef<"PaymentChannel", 'PaymentMethod'>
     readonly openingBalance: FieldRef<"PaymentChannel", 'Decimal'>
     readonly currentBalance: FieldRef<"PaymentChannel", 'Decimal'>
     readonly archived: FieldRef<"PaymentChannel", 'Boolean'>
@@ -21768,6 +23236,1027 @@ export namespace Prisma {
 
 
   /**
+   * Model TaxConfig
+   */
+
+  export type AggregateTaxConfig = {
+    _count: TaxConfigCountAggregateOutputType | null
+    _avg: TaxConfigAvgAggregateOutputType | null
+    _sum: TaxConfigSumAggregateOutputType | null
+    _min: TaxConfigMinAggregateOutputType | null
+    _max: TaxConfigMaxAggregateOutputType | null
+  }
+
+  export type TaxConfigAvgAggregateOutputType = {
+    rate: number | null
+  }
+
+  export type TaxConfigSumAggregateOutputType = {
+    rate: number | null
+  }
+
+  export type TaxConfigMinAggregateOutputType = {
+    id: string | null
+    rate: number | null
+    label: string | null
+    updatedAt: Date | null
+  }
+
+  export type TaxConfigMaxAggregateOutputType = {
+    id: string | null
+    rate: number | null
+    label: string | null
+    updatedAt: Date | null
+  }
+
+  export type TaxConfigCountAggregateOutputType = {
+    id: number
+    rate: number
+    label: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type TaxConfigAvgAggregateInputType = {
+    rate?: true
+  }
+
+  export type TaxConfigSumAggregateInputType = {
+    rate?: true
+  }
+
+  export type TaxConfigMinAggregateInputType = {
+    id?: true
+    rate?: true
+    label?: true
+    updatedAt?: true
+  }
+
+  export type TaxConfigMaxAggregateInputType = {
+    id?: true
+    rate?: true
+    label?: true
+    updatedAt?: true
+  }
+
+  export type TaxConfigCountAggregateInputType = {
+    id?: true
+    rate?: true
+    label?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type TaxConfigAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which TaxConfig to aggregate.
+     */
+    where?: TaxConfigWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of TaxConfigs to fetch.
+     */
+    orderBy?: TaxConfigOrderByWithRelationInput | TaxConfigOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: TaxConfigWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` TaxConfigs from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` TaxConfigs.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned TaxConfigs
+    **/
+    _count?: true | TaxConfigCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: TaxConfigAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: TaxConfigSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: TaxConfigMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: TaxConfigMaxAggregateInputType
+  }
+
+  export type GetTaxConfigAggregateType<T extends TaxConfigAggregateArgs> = {
+        [P in keyof T & keyof AggregateTaxConfig]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateTaxConfig[P]>
+      : GetScalarType<T[P], AggregateTaxConfig[P]>
+  }
+
+
+
+
+  export type TaxConfigGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: TaxConfigWhereInput
+    orderBy?: TaxConfigOrderByWithAggregationInput | TaxConfigOrderByWithAggregationInput[]
+    by: TaxConfigScalarFieldEnum[] | TaxConfigScalarFieldEnum
+    having?: TaxConfigScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: TaxConfigCountAggregateInputType | true
+    _avg?: TaxConfigAvgAggregateInputType
+    _sum?: TaxConfigSumAggregateInputType
+    _min?: TaxConfigMinAggregateInputType
+    _max?: TaxConfigMaxAggregateInputType
+  }
+
+  export type TaxConfigGroupByOutputType = {
+    id: string
+    rate: number
+    label: string
+    updatedAt: Date
+    _count: TaxConfigCountAggregateOutputType | null
+    _avg: TaxConfigAvgAggregateOutputType | null
+    _sum: TaxConfigSumAggregateOutputType | null
+    _min: TaxConfigMinAggregateOutputType | null
+    _max: TaxConfigMaxAggregateOutputType | null
+  }
+
+  type GetTaxConfigGroupByPayload<T extends TaxConfigGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<TaxConfigGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof TaxConfigGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], TaxConfigGroupByOutputType[P]>
+            : GetScalarType<T[P], TaxConfigGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type TaxConfigSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    rate?: boolean
+    label?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["taxConfig"]>
+
+  export type TaxConfigSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    rate?: boolean
+    label?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["taxConfig"]>
+
+  export type TaxConfigSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    rate?: boolean
+    label?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["taxConfig"]>
+
+  export type TaxConfigSelectScalar = {
+    id?: boolean
+    rate?: boolean
+    label?: boolean
+    updatedAt?: boolean
+  }
+
+  export type TaxConfigOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "rate" | "label" | "updatedAt", ExtArgs["result"]["taxConfig"]>
+
+  export type $TaxConfigPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "TaxConfig"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      rate: number
+      label: string
+      updatedAt: Date
+    }, ExtArgs["result"]["taxConfig"]>
+    composites: {}
+  }
+
+  type TaxConfigGetPayload<S extends boolean | null | undefined | TaxConfigDefaultArgs> = $Result.GetResult<Prisma.$TaxConfigPayload, S>
+
+  type TaxConfigCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<TaxConfigFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: TaxConfigCountAggregateInputType | true
+    }
+
+  export interface TaxConfigDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['TaxConfig'], meta: { name: 'TaxConfig' } }
+    /**
+     * Find zero or one TaxConfig that matches the filter.
+     * @param {TaxConfigFindUniqueArgs} args - Arguments to find a TaxConfig
+     * @example
+     * // Get one TaxConfig
+     * const taxConfig = await prisma.taxConfig.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends TaxConfigFindUniqueArgs>(args: SelectSubset<T, TaxConfigFindUniqueArgs<ExtArgs>>): Prisma__TaxConfigClient<$Result.GetResult<Prisma.$TaxConfigPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one TaxConfig that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {TaxConfigFindUniqueOrThrowArgs} args - Arguments to find a TaxConfig
+     * @example
+     * // Get one TaxConfig
+     * const taxConfig = await prisma.taxConfig.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends TaxConfigFindUniqueOrThrowArgs>(args: SelectSubset<T, TaxConfigFindUniqueOrThrowArgs<ExtArgs>>): Prisma__TaxConfigClient<$Result.GetResult<Prisma.$TaxConfigPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first TaxConfig that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {TaxConfigFindFirstArgs} args - Arguments to find a TaxConfig
+     * @example
+     * // Get one TaxConfig
+     * const taxConfig = await prisma.taxConfig.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends TaxConfigFindFirstArgs>(args?: SelectSubset<T, TaxConfigFindFirstArgs<ExtArgs>>): Prisma__TaxConfigClient<$Result.GetResult<Prisma.$TaxConfigPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first TaxConfig that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {TaxConfigFindFirstOrThrowArgs} args - Arguments to find a TaxConfig
+     * @example
+     * // Get one TaxConfig
+     * const taxConfig = await prisma.taxConfig.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends TaxConfigFindFirstOrThrowArgs>(args?: SelectSubset<T, TaxConfigFindFirstOrThrowArgs<ExtArgs>>): Prisma__TaxConfigClient<$Result.GetResult<Prisma.$TaxConfigPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more TaxConfigs that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {TaxConfigFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all TaxConfigs
+     * const taxConfigs = await prisma.taxConfig.findMany()
+     * 
+     * // Get first 10 TaxConfigs
+     * const taxConfigs = await prisma.taxConfig.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const taxConfigWithIdOnly = await prisma.taxConfig.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends TaxConfigFindManyArgs>(args?: SelectSubset<T, TaxConfigFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$TaxConfigPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a TaxConfig.
+     * @param {TaxConfigCreateArgs} args - Arguments to create a TaxConfig.
+     * @example
+     * // Create one TaxConfig
+     * const TaxConfig = await prisma.taxConfig.create({
+     *   data: {
+     *     // ... data to create a TaxConfig
+     *   }
+     * })
+     * 
+     */
+    create<T extends TaxConfigCreateArgs>(args: SelectSubset<T, TaxConfigCreateArgs<ExtArgs>>): Prisma__TaxConfigClient<$Result.GetResult<Prisma.$TaxConfigPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many TaxConfigs.
+     * @param {TaxConfigCreateManyArgs} args - Arguments to create many TaxConfigs.
+     * @example
+     * // Create many TaxConfigs
+     * const taxConfig = await prisma.taxConfig.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends TaxConfigCreateManyArgs>(args?: SelectSubset<T, TaxConfigCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many TaxConfigs and returns the data saved in the database.
+     * @param {TaxConfigCreateManyAndReturnArgs} args - Arguments to create many TaxConfigs.
+     * @example
+     * // Create many TaxConfigs
+     * const taxConfig = await prisma.taxConfig.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many TaxConfigs and only return the `id`
+     * const taxConfigWithIdOnly = await prisma.taxConfig.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends TaxConfigCreateManyAndReturnArgs>(args?: SelectSubset<T, TaxConfigCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$TaxConfigPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a TaxConfig.
+     * @param {TaxConfigDeleteArgs} args - Arguments to delete one TaxConfig.
+     * @example
+     * // Delete one TaxConfig
+     * const TaxConfig = await prisma.taxConfig.delete({
+     *   where: {
+     *     // ... filter to delete one TaxConfig
+     *   }
+     * })
+     * 
+     */
+    delete<T extends TaxConfigDeleteArgs>(args: SelectSubset<T, TaxConfigDeleteArgs<ExtArgs>>): Prisma__TaxConfigClient<$Result.GetResult<Prisma.$TaxConfigPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one TaxConfig.
+     * @param {TaxConfigUpdateArgs} args - Arguments to update one TaxConfig.
+     * @example
+     * // Update one TaxConfig
+     * const taxConfig = await prisma.taxConfig.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends TaxConfigUpdateArgs>(args: SelectSubset<T, TaxConfigUpdateArgs<ExtArgs>>): Prisma__TaxConfigClient<$Result.GetResult<Prisma.$TaxConfigPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more TaxConfigs.
+     * @param {TaxConfigDeleteManyArgs} args - Arguments to filter TaxConfigs to delete.
+     * @example
+     * // Delete a few TaxConfigs
+     * const { count } = await prisma.taxConfig.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends TaxConfigDeleteManyArgs>(args?: SelectSubset<T, TaxConfigDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more TaxConfigs.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {TaxConfigUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many TaxConfigs
+     * const taxConfig = await prisma.taxConfig.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends TaxConfigUpdateManyArgs>(args: SelectSubset<T, TaxConfigUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more TaxConfigs and returns the data updated in the database.
+     * @param {TaxConfigUpdateManyAndReturnArgs} args - Arguments to update many TaxConfigs.
+     * @example
+     * // Update many TaxConfigs
+     * const taxConfig = await prisma.taxConfig.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more TaxConfigs and only return the `id`
+     * const taxConfigWithIdOnly = await prisma.taxConfig.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends TaxConfigUpdateManyAndReturnArgs>(args: SelectSubset<T, TaxConfigUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$TaxConfigPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one TaxConfig.
+     * @param {TaxConfigUpsertArgs} args - Arguments to update or create a TaxConfig.
+     * @example
+     * // Update or create a TaxConfig
+     * const taxConfig = await prisma.taxConfig.upsert({
+     *   create: {
+     *     // ... data to create a TaxConfig
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the TaxConfig we want to update
+     *   }
+     * })
+     */
+    upsert<T extends TaxConfigUpsertArgs>(args: SelectSubset<T, TaxConfigUpsertArgs<ExtArgs>>): Prisma__TaxConfigClient<$Result.GetResult<Prisma.$TaxConfigPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of TaxConfigs.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {TaxConfigCountArgs} args - Arguments to filter TaxConfigs to count.
+     * @example
+     * // Count the number of TaxConfigs
+     * const count = await prisma.taxConfig.count({
+     *   where: {
+     *     // ... the filter for the TaxConfigs we want to count
+     *   }
+     * })
+    **/
+    count<T extends TaxConfigCountArgs>(
+      args?: Subset<T, TaxConfigCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], TaxConfigCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a TaxConfig.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {TaxConfigAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends TaxConfigAggregateArgs>(args: Subset<T, TaxConfigAggregateArgs>): Prisma.PrismaPromise<GetTaxConfigAggregateType<T>>
+
+    /**
+     * Group by TaxConfig.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {TaxConfigGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends TaxConfigGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: TaxConfigGroupByArgs['orderBy'] }
+        : { orderBy?: TaxConfigGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, TaxConfigGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetTaxConfigGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the TaxConfig model
+   */
+  readonly fields: TaxConfigFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for TaxConfig.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__TaxConfigClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the TaxConfig model
+   */
+  interface TaxConfigFieldRefs {
+    readonly id: FieldRef<"TaxConfig", 'String'>
+    readonly rate: FieldRef<"TaxConfig", 'Float'>
+    readonly label: FieldRef<"TaxConfig", 'String'>
+    readonly updatedAt: FieldRef<"TaxConfig", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * TaxConfig findUnique
+   */
+  export type TaxConfigFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TaxConfig
+     */
+    select?: TaxConfigSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the TaxConfig
+     */
+    omit?: TaxConfigOmit<ExtArgs> | null
+    /**
+     * Filter, which TaxConfig to fetch.
+     */
+    where: TaxConfigWhereUniqueInput
+  }
+
+  /**
+   * TaxConfig findUniqueOrThrow
+   */
+  export type TaxConfigFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TaxConfig
+     */
+    select?: TaxConfigSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the TaxConfig
+     */
+    omit?: TaxConfigOmit<ExtArgs> | null
+    /**
+     * Filter, which TaxConfig to fetch.
+     */
+    where: TaxConfigWhereUniqueInput
+  }
+
+  /**
+   * TaxConfig findFirst
+   */
+  export type TaxConfigFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TaxConfig
+     */
+    select?: TaxConfigSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the TaxConfig
+     */
+    omit?: TaxConfigOmit<ExtArgs> | null
+    /**
+     * Filter, which TaxConfig to fetch.
+     */
+    where?: TaxConfigWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of TaxConfigs to fetch.
+     */
+    orderBy?: TaxConfigOrderByWithRelationInput | TaxConfigOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for TaxConfigs.
+     */
+    cursor?: TaxConfigWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` TaxConfigs from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` TaxConfigs.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of TaxConfigs.
+     */
+    distinct?: TaxConfigScalarFieldEnum | TaxConfigScalarFieldEnum[]
+  }
+
+  /**
+   * TaxConfig findFirstOrThrow
+   */
+  export type TaxConfigFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TaxConfig
+     */
+    select?: TaxConfigSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the TaxConfig
+     */
+    omit?: TaxConfigOmit<ExtArgs> | null
+    /**
+     * Filter, which TaxConfig to fetch.
+     */
+    where?: TaxConfigWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of TaxConfigs to fetch.
+     */
+    orderBy?: TaxConfigOrderByWithRelationInput | TaxConfigOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for TaxConfigs.
+     */
+    cursor?: TaxConfigWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` TaxConfigs from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` TaxConfigs.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of TaxConfigs.
+     */
+    distinct?: TaxConfigScalarFieldEnum | TaxConfigScalarFieldEnum[]
+  }
+
+  /**
+   * TaxConfig findMany
+   */
+  export type TaxConfigFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TaxConfig
+     */
+    select?: TaxConfigSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the TaxConfig
+     */
+    omit?: TaxConfigOmit<ExtArgs> | null
+    /**
+     * Filter, which TaxConfigs to fetch.
+     */
+    where?: TaxConfigWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of TaxConfigs to fetch.
+     */
+    orderBy?: TaxConfigOrderByWithRelationInput | TaxConfigOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing TaxConfigs.
+     */
+    cursor?: TaxConfigWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` TaxConfigs from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` TaxConfigs.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of TaxConfigs.
+     */
+    distinct?: TaxConfigScalarFieldEnum | TaxConfigScalarFieldEnum[]
+  }
+
+  /**
+   * TaxConfig create
+   */
+  export type TaxConfigCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TaxConfig
+     */
+    select?: TaxConfigSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the TaxConfig
+     */
+    omit?: TaxConfigOmit<ExtArgs> | null
+    /**
+     * The data needed to create a TaxConfig.
+     */
+    data: XOR<TaxConfigCreateInput, TaxConfigUncheckedCreateInput>
+  }
+
+  /**
+   * TaxConfig createMany
+   */
+  export type TaxConfigCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many TaxConfigs.
+     */
+    data: TaxConfigCreateManyInput | TaxConfigCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * TaxConfig createManyAndReturn
+   */
+  export type TaxConfigCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TaxConfig
+     */
+    select?: TaxConfigSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the TaxConfig
+     */
+    omit?: TaxConfigOmit<ExtArgs> | null
+    /**
+     * The data used to create many TaxConfigs.
+     */
+    data: TaxConfigCreateManyInput | TaxConfigCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * TaxConfig update
+   */
+  export type TaxConfigUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TaxConfig
+     */
+    select?: TaxConfigSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the TaxConfig
+     */
+    omit?: TaxConfigOmit<ExtArgs> | null
+    /**
+     * The data needed to update a TaxConfig.
+     */
+    data: XOR<TaxConfigUpdateInput, TaxConfigUncheckedUpdateInput>
+    /**
+     * Choose, which TaxConfig to update.
+     */
+    where: TaxConfigWhereUniqueInput
+  }
+
+  /**
+   * TaxConfig updateMany
+   */
+  export type TaxConfigUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update TaxConfigs.
+     */
+    data: XOR<TaxConfigUpdateManyMutationInput, TaxConfigUncheckedUpdateManyInput>
+    /**
+     * Filter which TaxConfigs to update
+     */
+    where?: TaxConfigWhereInput
+    /**
+     * Limit how many TaxConfigs to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * TaxConfig updateManyAndReturn
+   */
+  export type TaxConfigUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TaxConfig
+     */
+    select?: TaxConfigSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the TaxConfig
+     */
+    omit?: TaxConfigOmit<ExtArgs> | null
+    /**
+     * The data used to update TaxConfigs.
+     */
+    data: XOR<TaxConfigUpdateManyMutationInput, TaxConfigUncheckedUpdateManyInput>
+    /**
+     * Filter which TaxConfigs to update
+     */
+    where?: TaxConfigWhereInput
+    /**
+     * Limit how many TaxConfigs to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * TaxConfig upsert
+   */
+  export type TaxConfigUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TaxConfig
+     */
+    select?: TaxConfigSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the TaxConfig
+     */
+    omit?: TaxConfigOmit<ExtArgs> | null
+    /**
+     * The filter to search for the TaxConfig to update in case it exists.
+     */
+    where: TaxConfigWhereUniqueInput
+    /**
+     * In case the TaxConfig found by the `where` argument doesn't exist, create a new TaxConfig with this data.
+     */
+    create: XOR<TaxConfigCreateInput, TaxConfigUncheckedCreateInput>
+    /**
+     * In case the TaxConfig was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<TaxConfigUpdateInput, TaxConfigUncheckedUpdateInput>
+  }
+
+  /**
+   * TaxConfig delete
+   */
+  export type TaxConfigDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TaxConfig
+     */
+    select?: TaxConfigSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the TaxConfig
+     */
+    omit?: TaxConfigOmit<ExtArgs> | null
+    /**
+     * Filter which TaxConfig to delete.
+     */
+    where: TaxConfigWhereUniqueInput
+  }
+
+  /**
+   * TaxConfig deleteMany
+   */
+  export type TaxConfigDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which TaxConfigs to delete
+     */
+    where?: TaxConfigWhereInput
+    /**
+     * Limit how many TaxConfigs to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * TaxConfig without action
+   */
+  export type TaxConfigDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TaxConfig
+     */
+    select?: TaxConfigSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the TaxConfig
+     */
+    omit?: TaxConfigOmit<ExtArgs> | null
+  }
+
+
+  /**
    * Model FiscalConfig
    */
 
@@ -27359,13 +29848,30 @@ export namespace Prisma {
   export type TransactionIsolationLevel = (typeof TransactionIsolationLevel)[keyof typeof TransactionIsolationLevel]
 
 
+  export const RoleScalarFieldEnum: {
+    id: 'id',
+    name: 'name',
+    description: 'description',
+    permissions: 'permissions',
+    isSystem: 'isSystem',
+    defaultRoute: 'defaultRoute',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type RoleScalarFieldEnum = (typeof RoleScalarFieldEnum)[keyof typeof RoleScalarFieldEnum]
+
+
   export const UserScalarFieldEnum: {
     id: 'id',
     name: 'name',
     email: 'email',
+    phone: 'phone',
     passwordHash: 'passwordHash',
     role: 'role',
     avatar: 'avatar',
+    defaultRoute: 'defaultRoute',
+    monthlySalary: 'monthlySalary',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
   };
@@ -27387,6 +29893,7 @@ export namespace Prisma {
     id: 'id',
     name: 'name',
     email: 'email',
+    phone: 'phone',
     createdAt: 'createdAt'
   };
 
@@ -27396,6 +29903,7 @@ export namespace Prisma {
   export const PaymentChannelScalarFieldEnum: {
     id: 'id',
     name: 'name',
+    kind: 'kind',
     openingBalance: 'openingBalance',
     currentBalance: 'currentBalance',
     archived: 'archived',
@@ -27589,6 +30097,16 @@ export namespace Prisma {
   export type KitchenTicketScalarFieldEnum = (typeof KitchenTicketScalarFieldEnum)[keyof typeof KitchenTicketScalarFieldEnum]
 
 
+  export const TaxConfigScalarFieldEnum: {
+    id: 'id',
+    rate: 'rate',
+    label: 'label',
+    updatedAt: 'updatedAt'
+  };
+
+  export type TaxConfigScalarFieldEnum = (typeof TaxConfigScalarFieldEnum)[keyof typeof TaxConfigScalarFieldEnum]
+
+
   export const FiscalConfigScalarFieldEnum: {
     id: 'id',
     enabled: 'enabled',
@@ -27677,19 +30195,19 @@ export namespace Prisma {
   export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder]
 
 
+  export const JsonNullValueInput: {
+    JsonNull: typeof JsonNull
+  };
+
+  export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
+
+
   export const NullableJsonNullValueInput: {
     DbNull: typeof DbNull,
     JsonNull: typeof JsonNull
   };
 
   export type NullableJsonNullValueInput = (typeof NullableJsonNullValueInput)[keyof typeof NullableJsonNullValueInput]
-
-
-  export const JsonNullValueInput: {
-    JsonNull: typeof JsonNull
-  };
-
-  export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
 
 
   export const QueryMode: {
@@ -27700,14 +30218,6 @@ export namespace Prisma {
   export type QueryMode = (typeof QueryMode)[keyof typeof QueryMode]
 
 
-  export const NullsOrder: {
-    first: 'first',
-    last: 'last'
-  };
-
-  export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
-
-
   export const JsonNullValueFilter: {
     DbNull: typeof DbNull,
     JsonNull: typeof JsonNull,
@@ -27715,6 +30225,14 @@ export namespace Prisma {
   };
 
   export type JsonNullValueFilter = (typeof JsonNullValueFilter)[keyof typeof JsonNullValueFilter]
+
+
+  export const NullsOrder: {
+    first: 'first',
+    last: 'last'
+  };
+
+  export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
 
 
   /**
@@ -27737,16 +30255,23 @@ export namespace Prisma {
 
 
   /**
-   * Reference to a field of type 'Role'
+   * Reference to a field of type 'Json'
    */
-  export type EnumRoleFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Role'>
+  export type JsonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Json'>
     
 
 
   /**
-   * Reference to a field of type 'Role[]'
+   * Reference to a field of type 'QueryMode'
    */
-  export type ListEnumRoleFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Role[]'>
+  export type EnumQueryModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'QueryMode'>
+    
+
+
+  /**
+   * Reference to a field of type 'Boolean'
+   */
+  export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Boolean'>
     
 
 
@@ -27779,9 +30304,16 @@ export namespace Prisma {
 
 
   /**
-   * Reference to a field of type 'Boolean'
+   * Reference to a field of type 'PaymentMethod'
    */
-  export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Boolean'>
+  export type EnumPaymentMethodFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PaymentMethod'>
+    
+
+
+  /**
+   * Reference to a field of type 'PaymentMethod[]'
+   */
+  export type ListEnumPaymentMethodFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PaymentMethod[]'>
     
 
 
@@ -27796,20 +30328,6 @@ export namespace Prisma {
    * Reference to a field of type 'Int[]'
    */
   export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int[]'>
-    
-
-
-  /**
-   * Reference to a field of type 'Json'
-   */
-  export type JsonFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Json'>
-    
-
-
-  /**
-   * Reference to a field of type 'QueryMode'
-   */
-  export type EnumQueryModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'QueryMode'>
     
 
 
@@ -27838,20 +30356,6 @@ export namespace Prisma {
    * Reference to a field of type 'OrderStatus[]'
    */
   export type ListEnumOrderStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'OrderStatus[]'>
-    
-
-
-  /**
-   * Reference to a field of type 'PaymentMethod'
-   */
-  export type EnumPaymentMethodFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PaymentMethod'>
-    
-
-
-  /**
-   * Reference to a field of type 'PaymentMethod[]'
-   */
-  export type ListEnumPaymentMethodFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'PaymentMethod[]'>
     
 
 
@@ -27942,6 +30446,76 @@ export namespace Prisma {
    */
 
 
+  export type RoleWhereInput = {
+    AND?: RoleWhereInput | RoleWhereInput[]
+    OR?: RoleWhereInput[]
+    NOT?: RoleWhereInput | RoleWhereInput[]
+    id?: StringFilter<"Role"> | string
+    name?: StringFilter<"Role"> | string
+    description?: StringNullableFilter<"Role"> | string | null
+    permissions?: JsonFilter<"Role">
+    isSystem?: BoolFilter<"Role"> | boolean
+    defaultRoute?: StringNullableFilter<"Role"> | string | null
+    createdAt?: DateTimeFilter<"Role"> | Date | string
+    updatedAt?: DateTimeFilter<"Role"> | Date | string
+    users?: UserListRelationFilter
+  }
+
+  export type RoleOrderByWithRelationInput = {
+    id?: SortOrder
+    name?: SortOrder
+    description?: SortOrderInput | SortOrder
+    permissions?: SortOrder
+    isSystem?: SortOrder
+    defaultRoute?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    users?: UserOrderByRelationAggregateInput
+  }
+
+  export type RoleWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: RoleWhereInput | RoleWhereInput[]
+    OR?: RoleWhereInput[]
+    NOT?: RoleWhereInput | RoleWhereInput[]
+    name?: StringFilter<"Role"> | string
+    description?: StringNullableFilter<"Role"> | string | null
+    permissions?: JsonFilter<"Role">
+    isSystem?: BoolFilter<"Role"> | boolean
+    defaultRoute?: StringNullableFilter<"Role"> | string | null
+    createdAt?: DateTimeFilter<"Role"> | Date | string
+    updatedAt?: DateTimeFilter<"Role"> | Date | string
+    users?: UserListRelationFilter
+  }, "id">
+
+  export type RoleOrderByWithAggregationInput = {
+    id?: SortOrder
+    name?: SortOrder
+    description?: SortOrderInput | SortOrder
+    permissions?: SortOrder
+    isSystem?: SortOrder
+    defaultRoute?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: RoleCountOrderByAggregateInput
+    _max?: RoleMaxOrderByAggregateInput
+    _min?: RoleMinOrderByAggregateInput
+  }
+
+  export type RoleScalarWhereWithAggregatesInput = {
+    AND?: RoleScalarWhereWithAggregatesInput | RoleScalarWhereWithAggregatesInput[]
+    OR?: RoleScalarWhereWithAggregatesInput[]
+    NOT?: RoleScalarWhereWithAggregatesInput | RoleScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"Role"> | string
+    name?: StringWithAggregatesFilter<"Role"> | string
+    description?: StringNullableWithAggregatesFilter<"Role"> | string | null
+    permissions?: JsonWithAggregatesFilter<"Role">
+    isSystem?: BoolWithAggregatesFilter<"Role"> | boolean
+    defaultRoute?: StringNullableWithAggregatesFilter<"Role"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"Role"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"Role"> | Date | string
+  }
+
   export type UserWhereInput = {
     AND?: UserWhereInput | UserWhereInput[]
     OR?: UserWhereInput[]
@@ -27949,11 +30523,15 @@ export namespace Prisma {
     id?: StringFilter<"User"> | string
     name?: StringFilter<"User"> | string
     email?: StringFilter<"User"> | string
+    phone?: StringNullableFilter<"User"> | string | null
     passwordHash?: StringFilter<"User"> | string
-    role?: EnumRoleFilter<"User"> | $Enums.Role
+    role?: StringFilter<"User"> | string
     avatar?: StringNullableFilter<"User"> | string | null
+    defaultRoute?: StringNullableFilter<"User"> | string | null
+    monthlySalary?: DecimalNullableFilter<"User"> | Decimal | DecimalJsLike | number | string | null
     createdAt?: DateTimeFilter<"User"> | Date | string
     updatedAt?: DateTimeFilter<"User"> | Date | string
+    roleRef?: XOR<RoleScalarRelationFilter, RoleWhereInput>
     sessions?: SessionListRelationFilter
     orders?: OrderListRelationFilter
     shifts?: ShiftListRelationFilter
@@ -27964,11 +30542,15 @@ export namespace Prisma {
     id?: SortOrder
     name?: SortOrder
     email?: SortOrder
+    phone?: SortOrderInput | SortOrder
     passwordHash?: SortOrder
     role?: SortOrder
     avatar?: SortOrderInput | SortOrder
+    defaultRoute?: SortOrderInput | SortOrder
+    monthlySalary?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+    roleRef?: RoleOrderByWithRelationInput
     sessions?: SessionOrderByRelationAggregateInput
     orders?: OrderOrderByRelationAggregateInput
     shifts?: ShiftOrderByRelationAggregateInput
@@ -27982,11 +30564,15 @@ export namespace Prisma {
     OR?: UserWhereInput[]
     NOT?: UserWhereInput | UserWhereInput[]
     name?: StringFilter<"User"> | string
+    phone?: StringNullableFilter<"User"> | string | null
     passwordHash?: StringFilter<"User"> | string
-    role?: EnumRoleFilter<"User"> | $Enums.Role
+    role?: StringFilter<"User"> | string
     avatar?: StringNullableFilter<"User"> | string | null
+    defaultRoute?: StringNullableFilter<"User"> | string | null
+    monthlySalary?: DecimalNullableFilter<"User"> | Decimal | DecimalJsLike | number | string | null
     createdAt?: DateTimeFilter<"User"> | Date | string
     updatedAt?: DateTimeFilter<"User"> | Date | string
+    roleRef?: XOR<RoleScalarRelationFilter, RoleWhereInput>
     sessions?: SessionListRelationFilter
     orders?: OrderListRelationFilter
     shifts?: ShiftListRelationFilter
@@ -27997,14 +30583,19 @@ export namespace Prisma {
     id?: SortOrder
     name?: SortOrder
     email?: SortOrder
+    phone?: SortOrderInput | SortOrder
     passwordHash?: SortOrder
     role?: SortOrder
     avatar?: SortOrderInput | SortOrder
+    defaultRoute?: SortOrderInput | SortOrder
+    monthlySalary?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: UserCountOrderByAggregateInput
+    _avg?: UserAvgOrderByAggregateInput
     _max?: UserMaxOrderByAggregateInput
     _min?: UserMinOrderByAggregateInput
+    _sum?: UserSumOrderByAggregateInput
   }
 
   export type UserScalarWhereWithAggregatesInput = {
@@ -28014,9 +30605,12 @@ export namespace Prisma {
     id?: StringWithAggregatesFilter<"User"> | string
     name?: StringWithAggregatesFilter<"User"> | string
     email?: StringWithAggregatesFilter<"User"> | string
+    phone?: StringNullableWithAggregatesFilter<"User"> | string | null
     passwordHash?: StringWithAggregatesFilter<"User"> | string
-    role?: EnumRoleWithAggregatesFilter<"User"> | $Enums.Role
+    role?: StringWithAggregatesFilter<"User"> | string
     avatar?: StringNullableWithAggregatesFilter<"User"> | string | null
+    defaultRoute?: StringNullableWithAggregatesFilter<"User"> | string | null
+    monthlySalary?: DecimalNullableWithAggregatesFilter<"User"> | Decimal | DecimalJsLike | number | string | null
     createdAt?: DateTimeWithAggregatesFilter<"User"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"User"> | Date | string
   }
@@ -28078,6 +30672,7 @@ export namespace Prisma {
     id?: StringFilter<"PendingMember"> | string
     name?: StringFilter<"PendingMember"> | string
     email?: StringFilter<"PendingMember"> | string
+    phone?: StringNullableFilter<"PendingMember"> | string | null
     createdAt?: DateTimeFilter<"PendingMember"> | Date | string
   }
 
@@ -28085,6 +30680,7 @@ export namespace Prisma {
     id?: SortOrder
     name?: SortOrder
     email?: SortOrder
+    phone?: SortOrderInput | SortOrder
     createdAt?: SortOrder
   }
 
@@ -28095,6 +30691,7 @@ export namespace Prisma {
     OR?: PendingMemberWhereInput[]
     NOT?: PendingMemberWhereInput | PendingMemberWhereInput[]
     name?: StringFilter<"PendingMember"> | string
+    phone?: StringNullableFilter<"PendingMember"> | string | null
     createdAt?: DateTimeFilter<"PendingMember"> | Date | string
   }, "id" | "email">
 
@@ -28102,6 +30699,7 @@ export namespace Prisma {
     id?: SortOrder
     name?: SortOrder
     email?: SortOrder
+    phone?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     _count?: PendingMemberCountOrderByAggregateInput
     _max?: PendingMemberMaxOrderByAggregateInput
@@ -28115,6 +30713,7 @@ export namespace Prisma {
     id?: StringWithAggregatesFilter<"PendingMember"> | string
     name?: StringWithAggregatesFilter<"PendingMember"> | string
     email?: StringWithAggregatesFilter<"PendingMember"> | string
+    phone?: StringNullableWithAggregatesFilter<"PendingMember"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"PendingMember"> | Date | string
   }
 
@@ -28124,6 +30723,7 @@ export namespace Prisma {
     NOT?: PaymentChannelWhereInput | PaymentChannelWhereInput[]
     id?: StringFilter<"PaymentChannel"> | string
     name?: StringFilter<"PaymentChannel"> | string
+    kind?: EnumPaymentMethodFilter<"PaymentChannel"> | $Enums.PaymentMethod
     openingBalance?: DecimalFilter<"PaymentChannel"> | Decimal | DecimalJsLike | number | string
     currentBalance?: DecimalFilter<"PaymentChannel"> | Decimal | DecimalJsLike | number | string
     archived?: BoolFilter<"PaymentChannel"> | boolean
@@ -28137,6 +30737,7 @@ export namespace Prisma {
   export type PaymentChannelOrderByWithRelationInput = {
     id?: SortOrder
     name?: SortOrder
+    kind?: SortOrder
     openingBalance?: SortOrder
     currentBalance?: SortOrder
     archived?: SortOrder
@@ -28153,6 +30754,7 @@ export namespace Prisma {
     AND?: PaymentChannelWhereInput | PaymentChannelWhereInput[]
     OR?: PaymentChannelWhereInput[]
     NOT?: PaymentChannelWhereInput | PaymentChannelWhereInput[]
+    kind?: EnumPaymentMethodFilter<"PaymentChannel"> | $Enums.PaymentMethod
     openingBalance?: DecimalFilter<"PaymentChannel"> | Decimal | DecimalJsLike | number | string
     currentBalance?: DecimalFilter<"PaymentChannel"> | Decimal | DecimalJsLike | number | string
     archived?: BoolFilter<"PaymentChannel"> | boolean
@@ -28166,6 +30768,7 @@ export namespace Prisma {
   export type PaymentChannelOrderByWithAggregationInput = {
     id?: SortOrder
     name?: SortOrder
+    kind?: SortOrder
     openingBalance?: SortOrder
     currentBalance?: SortOrder
     archived?: SortOrder
@@ -28185,6 +30788,7 @@ export namespace Prisma {
     NOT?: PaymentChannelScalarWhereWithAggregatesInput | PaymentChannelScalarWhereWithAggregatesInput[]
     id?: StringWithAggregatesFilter<"PaymentChannel"> | string
     name?: StringWithAggregatesFilter<"PaymentChannel"> | string
+    kind?: EnumPaymentMethodWithAggregatesFilter<"PaymentChannel"> | $Enums.PaymentMethod
     openingBalance?: DecimalWithAggregatesFilter<"PaymentChannel"> | Decimal | DecimalJsLike | number | string
     currentBalance?: DecimalWithAggregatesFilter<"PaymentChannel"> | Decimal | DecimalJsLike | number | string
     archived?: BoolWithAggregatesFilter<"PaymentChannel"> | boolean
@@ -29165,6 +31769,55 @@ export namespace Prisma {
     updatedAt?: DateTimeWithAggregatesFilter<"KitchenTicket"> | Date | string
   }
 
+  export type TaxConfigWhereInput = {
+    AND?: TaxConfigWhereInput | TaxConfigWhereInput[]
+    OR?: TaxConfigWhereInput[]
+    NOT?: TaxConfigWhereInput | TaxConfigWhereInput[]
+    id?: StringFilter<"TaxConfig"> | string
+    rate?: FloatFilter<"TaxConfig"> | number
+    label?: StringFilter<"TaxConfig"> | string
+    updatedAt?: DateTimeFilter<"TaxConfig"> | Date | string
+  }
+
+  export type TaxConfigOrderByWithRelationInput = {
+    id?: SortOrder
+    rate?: SortOrder
+    label?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type TaxConfigWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: TaxConfigWhereInput | TaxConfigWhereInput[]
+    OR?: TaxConfigWhereInput[]
+    NOT?: TaxConfigWhereInput | TaxConfigWhereInput[]
+    rate?: FloatFilter<"TaxConfig"> | number
+    label?: StringFilter<"TaxConfig"> | string
+    updatedAt?: DateTimeFilter<"TaxConfig"> | Date | string
+  }, "id">
+
+  export type TaxConfigOrderByWithAggregationInput = {
+    id?: SortOrder
+    rate?: SortOrder
+    label?: SortOrder
+    updatedAt?: SortOrder
+    _count?: TaxConfigCountOrderByAggregateInput
+    _avg?: TaxConfigAvgOrderByAggregateInput
+    _max?: TaxConfigMaxOrderByAggregateInput
+    _min?: TaxConfigMinOrderByAggregateInput
+    _sum?: TaxConfigSumOrderByAggregateInput
+  }
+
+  export type TaxConfigScalarWhereWithAggregatesInput = {
+    AND?: TaxConfigScalarWhereWithAggregatesInput | TaxConfigScalarWhereWithAggregatesInput[]
+    OR?: TaxConfigScalarWhereWithAggregatesInput[]
+    NOT?: TaxConfigScalarWhereWithAggregatesInput | TaxConfigScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"TaxConfig"> | string
+    rate?: FloatWithAggregatesFilter<"TaxConfig"> | number
+    label?: StringWithAggregatesFilter<"TaxConfig"> | string
+    updatedAt?: DateTimeWithAggregatesFilter<"TaxConfig"> | Date | string
+  }
+
   export type FiscalConfigWhereInput = {
     AND?: FiscalConfigWhereInput | FiscalConfigWhereInput[]
     OR?: FiscalConfigWhereInput[]
@@ -29562,15 +32215,99 @@ export namespace Prisma {
     createdAt?: DateTimeWithAggregatesFilter<"Activity"> | Date | string
   }
 
+  export type RoleCreateInput = {
+    id: string
+    name: string
+    description?: string | null
+    permissions: JsonNullValueInput | InputJsonValue
+    isSystem?: boolean
+    defaultRoute?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    users?: UserCreateNestedManyWithoutRoleRefInput
+  }
+
+  export type RoleUncheckedCreateInput = {
+    id: string
+    name: string
+    description?: string | null
+    permissions: JsonNullValueInput | InputJsonValue
+    isSystem?: boolean
+    defaultRoute?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    users?: UserUncheckedCreateNestedManyWithoutRoleRefInput
+  }
+
+  export type RoleUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    permissions?: JsonNullValueInput | InputJsonValue
+    isSystem?: BoolFieldUpdateOperationsInput | boolean
+    defaultRoute?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    users?: UserUpdateManyWithoutRoleRefNestedInput
+  }
+
+  export type RoleUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    permissions?: JsonNullValueInput | InputJsonValue
+    isSystem?: BoolFieldUpdateOperationsInput | boolean
+    defaultRoute?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    users?: UserUncheckedUpdateManyWithoutRoleRefNestedInput
+  }
+
+  export type RoleCreateManyInput = {
+    id: string
+    name: string
+    description?: string | null
+    permissions: JsonNullValueInput | InputJsonValue
+    isSystem?: boolean
+    defaultRoute?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type RoleUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    permissions?: JsonNullValueInput | InputJsonValue
+    isSystem?: BoolFieldUpdateOperationsInput | boolean
+    defaultRoute?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type RoleUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    permissions?: JsonNullValueInput | InputJsonValue
+    isSystem?: BoolFieldUpdateOperationsInput | boolean
+    defaultRoute?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type UserCreateInput = {
     id?: string
     name: string
     email: string
+    phone?: string | null
     passwordHash: string
-    role: $Enums.Role
     avatar?: string | null
+    defaultRoute?: string | null
+    monthlySalary?: Decimal | DecimalJsLike | number | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    roleRef: RoleCreateNestedOneWithoutUsersInput
     sessions?: SessionCreateNestedManyWithoutUserInput
     orders?: OrderCreateNestedManyWithoutStaffInput
     shifts?: ShiftCreateNestedManyWithoutUserInput
@@ -29581,9 +32318,12 @@ export namespace Prisma {
     id?: string
     name: string
     email: string
+    phone?: string | null
     passwordHash: string
-    role: $Enums.Role
+    role: string
     avatar?: string | null
+    defaultRoute?: string | null
+    monthlySalary?: Decimal | DecimalJsLike | number | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     sessions?: SessionUncheckedCreateNestedManyWithoutUserInput
@@ -29596,11 +32336,14 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
+    phone?: NullableStringFieldUpdateOperationsInput | string | null
     passwordHash?: StringFieldUpdateOperationsInput | string
-    role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
     avatar?: NullableStringFieldUpdateOperationsInput | string | null
+    defaultRoute?: NullableStringFieldUpdateOperationsInput | string | null
+    monthlySalary?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    roleRef?: RoleUpdateOneRequiredWithoutUsersNestedInput
     sessions?: SessionUpdateManyWithoutUserNestedInput
     orders?: OrderUpdateManyWithoutStaffNestedInput
     shifts?: ShiftUpdateManyWithoutUserNestedInput
@@ -29611,9 +32354,12 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
+    phone?: NullableStringFieldUpdateOperationsInput | string | null
     passwordHash?: StringFieldUpdateOperationsInput | string
-    role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
+    role?: StringFieldUpdateOperationsInput | string
     avatar?: NullableStringFieldUpdateOperationsInput | string | null
+    defaultRoute?: NullableStringFieldUpdateOperationsInput | string | null
+    monthlySalary?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sessions?: SessionUncheckedUpdateManyWithoutUserNestedInput
@@ -29626,9 +32372,12 @@ export namespace Prisma {
     id?: string
     name: string
     email: string
+    phone?: string | null
     passwordHash: string
-    role: $Enums.Role
+    role: string
     avatar?: string | null
+    defaultRoute?: string | null
+    monthlySalary?: Decimal | DecimalJsLike | number | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -29637,9 +32386,11 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
+    phone?: NullableStringFieldUpdateOperationsInput | string | null
     passwordHash?: StringFieldUpdateOperationsInput | string
-    role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
     avatar?: NullableStringFieldUpdateOperationsInput | string | null
+    defaultRoute?: NullableStringFieldUpdateOperationsInput | string | null
+    monthlySalary?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -29648,9 +32399,12 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
+    phone?: NullableStringFieldUpdateOperationsInput | string | null
     passwordHash?: StringFieldUpdateOperationsInput | string
-    role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
+    role?: StringFieldUpdateOperationsInput | string
     avatar?: NullableStringFieldUpdateOperationsInput | string | null
+    defaultRoute?: NullableStringFieldUpdateOperationsInput | string | null
+    monthlySalary?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -29707,6 +32461,7 @@ export namespace Prisma {
     id?: string
     name: string
     email: string
+    phone?: string | null
     createdAt?: Date | string
   }
 
@@ -29714,6 +32469,7 @@ export namespace Prisma {
     id?: string
     name: string
     email: string
+    phone?: string | null
     createdAt?: Date | string
   }
 
@@ -29721,6 +32477,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
+    phone?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -29728,6 +32485,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
+    phone?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -29735,6 +32493,7 @@ export namespace Prisma {
     id?: string
     name: string
     email: string
+    phone?: string | null
     createdAt?: Date | string
   }
 
@@ -29742,6 +32501,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
+    phone?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -29749,12 +32509,14 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
+    phone?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type PaymentChannelCreateInput = {
     id?: string
     name: string
+    kind?: $Enums.PaymentMethod
     openingBalance: Decimal | DecimalJsLike | number | string
     currentBalance: Decimal | DecimalJsLike | number | string
     archived?: boolean
@@ -29768,6 +32530,7 @@ export namespace Prisma {
   export type PaymentChannelUncheckedCreateInput = {
     id?: string
     name: string
+    kind?: $Enums.PaymentMethod
     openingBalance: Decimal | DecimalJsLike | number | string
     currentBalance: Decimal | DecimalJsLike | number | string
     archived?: boolean
@@ -29781,6 +32544,7 @@ export namespace Prisma {
   export type PaymentChannelUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
+    kind?: EnumPaymentMethodFieldUpdateOperationsInput | $Enums.PaymentMethod
     openingBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     currentBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     archived?: BoolFieldUpdateOperationsInput | boolean
@@ -29794,6 +32558,7 @@ export namespace Prisma {
   export type PaymentChannelUncheckedUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
+    kind?: EnumPaymentMethodFieldUpdateOperationsInput | $Enums.PaymentMethod
     openingBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     currentBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     archived?: BoolFieldUpdateOperationsInput | boolean
@@ -29807,6 +32572,7 @@ export namespace Prisma {
   export type PaymentChannelCreateManyInput = {
     id?: string
     name: string
+    kind?: $Enums.PaymentMethod
     openingBalance: Decimal | DecimalJsLike | number | string
     currentBalance: Decimal | DecimalJsLike | number | string
     archived?: boolean
@@ -29818,6 +32584,7 @@ export namespace Prisma {
   export type PaymentChannelUpdateManyMutationInput = {
     id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
+    kind?: EnumPaymentMethodFieldUpdateOperationsInput | $Enums.PaymentMethod
     openingBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     currentBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     archived?: BoolFieldUpdateOperationsInput | boolean
@@ -29829,6 +32596,7 @@ export namespace Prisma {
   export type PaymentChannelUncheckedUpdateManyInput = {
     id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
+    kind?: EnumPaymentMethodFieldUpdateOperationsInput | $Enums.PaymentMethod
     openingBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     currentBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     archived?: BoolFieldUpdateOperationsInput | boolean
@@ -30893,6 +33661,55 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type TaxConfigCreateInput = {
+    id?: string
+    rate?: number
+    label?: string
+    updatedAt?: Date | string
+  }
+
+  export type TaxConfigUncheckedCreateInput = {
+    id?: string
+    rate?: number
+    label?: string
+    updatedAt?: Date | string
+  }
+
+  export type TaxConfigUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    rate?: FloatFieldUpdateOperationsInput | number
+    label?: StringFieldUpdateOperationsInput | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type TaxConfigUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    rate?: FloatFieldUpdateOperationsInput | number
+    label?: StringFieldUpdateOperationsInput | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type TaxConfigCreateManyInput = {
+    id?: string
+    rate?: number
+    label?: string
+    updatedAt?: Date | string
+  }
+
+  export type TaxConfigUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    rate?: FloatFieldUpdateOperationsInput | number
+    label?: StringFieldUpdateOperationsInput | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type TaxConfigUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    rate?: FloatFieldUpdateOperationsInput | number
+    label?: StringFieldUpdateOperationsInput | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type FiscalConfigCreateInput = {
     id?: string
     enabled?: boolean
@@ -31360,13 +34177,6 @@ export namespace Prisma {
     not?: NestedStringFilter<$PrismaModel> | string
   }
 
-  export type EnumRoleFilter<$PrismaModel = never> = {
-    equals?: $Enums.Role | EnumRoleFieldRefInput<$PrismaModel>
-    in?: $Enums.Role[] | ListEnumRoleFieldRefInput<$PrismaModel>
-    notIn?: $Enums.Role[] | ListEnumRoleFieldRefInput<$PrismaModel>
-    not?: NestedEnumRoleFilter<$PrismaModel> | $Enums.Role
-  }
-
   export type StringNullableFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel> | null
     in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
@@ -31381,6 +34191,34 @@ export namespace Prisma {
     mode?: QueryMode
     not?: NestedStringNullableFilter<$PrismaModel> | string | null
   }
+  export type JsonFilter<$PrismaModel = never> =
+    | PatchUndefined<
+        Either<Required<JsonFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonFilterBase<$PrismaModel>>, 'path'>>,
+        Required<JsonFilterBase<$PrismaModel>>
+      >
+    | OptionalFlat<Omit<Required<JsonFilterBase<$PrismaModel>>, 'path'>>
+
+  export type JsonFilterBase<$PrismaModel = never> = {
+    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    path?: string[]
+    mode?: QueryMode | EnumQueryModeFieldRefInput<$PrismaModel>
+    string_contains?: string | StringFieldRefInput<$PrismaModel>
+    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
+    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
+    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+  }
+
+  export type BoolFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
+    not?: NestedBoolFilter<$PrismaModel> | boolean
+  }
 
   export type DateTimeFilter<$PrismaModel = never> = {
     equals?: Date | string | DateTimeFieldRefInput<$PrismaModel>
@@ -31391,6 +34229,152 @@ export namespace Prisma {
     gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     not?: NestedDateTimeFilter<$PrismaModel> | Date | string
+  }
+
+  export type UserListRelationFilter = {
+    every?: UserWhereInput
+    some?: UserWhereInput
+    none?: UserWhereInput
+  }
+
+  export type SortOrderInput = {
+    sort: SortOrder
+    nulls?: NullsOrder
+  }
+
+  export type UserOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type RoleCountOrderByAggregateInput = {
+    id?: SortOrder
+    name?: SortOrder
+    description?: SortOrder
+    permissions?: SortOrder
+    isSystem?: SortOrder
+    defaultRoute?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type RoleMaxOrderByAggregateInput = {
+    id?: SortOrder
+    name?: SortOrder
+    description?: SortOrder
+    isSystem?: SortOrder
+    defaultRoute?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type RoleMinOrderByAggregateInput = {
+    id?: SortOrder
+    name?: SortOrder
+    description?: SortOrder
+    isSystem?: SortOrder
+    defaultRoute?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type StringWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: string | StringFieldRefInput<$PrismaModel>
+    in?: string[] | ListStringFieldRefInput<$PrismaModel>
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel>
+    lt?: string | StringFieldRefInput<$PrismaModel>
+    lte?: string | StringFieldRefInput<$PrismaModel>
+    gt?: string | StringFieldRefInput<$PrismaModel>
+    gte?: string | StringFieldRefInput<$PrismaModel>
+    contains?: string | StringFieldRefInput<$PrismaModel>
+    startsWith?: string | StringFieldRefInput<$PrismaModel>
+    endsWith?: string | StringFieldRefInput<$PrismaModel>
+    mode?: QueryMode
+    not?: NestedStringWithAggregatesFilter<$PrismaModel> | string
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedStringFilter<$PrismaModel>
+    _max?: NestedStringFilter<$PrismaModel>
+  }
+
+  export type StringNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: string | StringFieldRefInput<$PrismaModel> | null
+    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    lt?: string | StringFieldRefInput<$PrismaModel>
+    lte?: string | StringFieldRefInput<$PrismaModel>
+    gt?: string | StringFieldRefInput<$PrismaModel>
+    gte?: string | StringFieldRefInput<$PrismaModel>
+    contains?: string | StringFieldRefInput<$PrismaModel>
+    startsWith?: string | StringFieldRefInput<$PrismaModel>
+    endsWith?: string | StringFieldRefInput<$PrismaModel>
+    mode?: QueryMode
+    not?: NestedStringNullableWithAggregatesFilter<$PrismaModel> | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedStringNullableFilter<$PrismaModel>
+    _max?: NestedStringNullableFilter<$PrismaModel>
+  }
+  export type JsonWithAggregatesFilter<$PrismaModel = never> =
+    | PatchUndefined<
+        Either<Required<JsonWithAggregatesFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonWithAggregatesFilterBase<$PrismaModel>>, 'path'>>,
+        Required<JsonWithAggregatesFilterBase<$PrismaModel>>
+      >
+    | OptionalFlat<Omit<Required<JsonWithAggregatesFilterBase<$PrismaModel>>, 'path'>>
+
+  export type JsonWithAggregatesFilterBase<$PrismaModel = never> = {
+    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    path?: string[]
+    mode?: QueryMode | EnumQueryModeFieldRefInput<$PrismaModel>
+    string_contains?: string | StringFieldRefInput<$PrismaModel>
+    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
+    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
+    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedJsonFilter<$PrismaModel>
+    _max?: NestedJsonFilter<$PrismaModel>
+  }
+
+  export type BoolWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
+    not?: NestedBoolWithAggregatesFilter<$PrismaModel> | boolean
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedBoolFilter<$PrismaModel>
+    _max?: NestedBoolFilter<$PrismaModel>
+  }
+
+  export type DateTimeWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeWithAggregatesFilter<$PrismaModel> | Date | string
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedDateTimeFilter<$PrismaModel>
+    _max?: NestedDateTimeFilter<$PrismaModel>
+  }
+
+  export type DecimalNullableFilter<$PrismaModel = never> = {
+    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel> | null
+    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
+    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
+    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    not?: NestedDecimalNullableFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string | null
+  }
+
+  export type RoleScalarRelationFilter = {
+    is?: RoleWhereInput
+    isNot?: RoleWhereInput
   }
 
   export type SessionListRelationFilter = {
@@ -31417,11 +34401,6 @@ export namespace Prisma {
     none?: AttendanceWhereInput
   }
 
-  export type SortOrderInput = {
-    sort: SortOrder
-    nulls?: NullsOrder
-  }
-
   export type SessionOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
@@ -31442,20 +34421,30 @@ export namespace Prisma {
     id?: SortOrder
     name?: SortOrder
     email?: SortOrder
+    phone?: SortOrder
     passwordHash?: SortOrder
     role?: SortOrder
     avatar?: SortOrder
+    defaultRoute?: SortOrder
+    monthlySalary?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+  }
+
+  export type UserAvgOrderByAggregateInput = {
+    monthlySalary?: SortOrder
   }
 
   export type UserMaxOrderByAggregateInput = {
     id?: SortOrder
     name?: SortOrder
     email?: SortOrder
+    phone?: SortOrder
     passwordHash?: SortOrder
     role?: SortOrder
     avatar?: SortOrder
+    defaultRoute?: SortOrder
+    monthlySalary?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -31464,71 +34453,34 @@ export namespace Prisma {
     id?: SortOrder
     name?: SortOrder
     email?: SortOrder
+    phone?: SortOrder
     passwordHash?: SortOrder
     role?: SortOrder
     avatar?: SortOrder
+    defaultRoute?: SortOrder
+    monthlySalary?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
 
-  export type StringWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: string | StringFieldRefInput<$PrismaModel>
-    in?: string[] | ListStringFieldRefInput<$PrismaModel>
-    notIn?: string[] | ListStringFieldRefInput<$PrismaModel>
-    lt?: string | StringFieldRefInput<$PrismaModel>
-    lte?: string | StringFieldRefInput<$PrismaModel>
-    gt?: string | StringFieldRefInput<$PrismaModel>
-    gte?: string | StringFieldRefInput<$PrismaModel>
-    contains?: string | StringFieldRefInput<$PrismaModel>
-    startsWith?: string | StringFieldRefInput<$PrismaModel>
-    endsWith?: string | StringFieldRefInput<$PrismaModel>
-    mode?: QueryMode
-    not?: NestedStringWithAggregatesFilter<$PrismaModel> | string
-    _count?: NestedIntFilter<$PrismaModel>
-    _min?: NestedStringFilter<$PrismaModel>
-    _max?: NestedStringFilter<$PrismaModel>
+  export type UserSumOrderByAggregateInput = {
+    monthlySalary?: SortOrder
   }
 
-  export type EnumRoleWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: $Enums.Role | EnumRoleFieldRefInput<$PrismaModel>
-    in?: $Enums.Role[] | ListEnumRoleFieldRefInput<$PrismaModel>
-    notIn?: $Enums.Role[] | ListEnumRoleFieldRefInput<$PrismaModel>
-    not?: NestedEnumRoleWithAggregatesFilter<$PrismaModel> | $Enums.Role
-    _count?: NestedIntFilter<$PrismaModel>
-    _min?: NestedEnumRoleFilter<$PrismaModel>
-    _max?: NestedEnumRoleFilter<$PrismaModel>
-  }
-
-  export type StringNullableWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: string | StringFieldRefInput<$PrismaModel> | null
-    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    lt?: string | StringFieldRefInput<$PrismaModel>
-    lte?: string | StringFieldRefInput<$PrismaModel>
-    gt?: string | StringFieldRefInput<$PrismaModel>
-    gte?: string | StringFieldRefInput<$PrismaModel>
-    contains?: string | StringFieldRefInput<$PrismaModel>
-    startsWith?: string | StringFieldRefInput<$PrismaModel>
-    endsWith?: string | StringFieldRefInput<$PrismaModel>
-    mode?: QueryMode
-    not?: NestedStringNullableWithAggregatesFilter<$PrismaModel> | string | null
+  export type DecimalNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel> | null
+    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
+    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
+    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    not?: NestedDecimalNullableWithAggregatesFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string | null
     _count?: NestedIntNullableFilter<$PrismaModel>
-    _min?: NestedStringNullableFilter<$PrismaModel>
-    _max?: NestedStringNullableFilter<$PrismaModel>
-  }
-
-  export type DateTimeWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
-    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
-    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    not?: NestedDateTimeWithAggregatesFilter<$PrismaModel> | Date | string
-    _count?: NestedIntFilter<$PrismaModel>
-    _min?: NestedDateTimeFilter<$PrismaModel>
-    _max?: NestedDateTimeFilter<$PrismaModel>
+    _avg?: NestedDecimalNullableFilter<$PrismaModel>
+    _sum?: NestedDecimalNullableFilter<$PrismaModel>
+    _min?: NestedDecimalNullableFilter<$PrismaModel>
+    _max?: NestedDecimalNullableFilter<$PrismaModel>
   }
 
   export type UserScalarRelationFilter = {
@@ -31561,6 +34513,7 @@ export namespace Prisma {
     id?: SortOrder
     name?: SortOrder
     email?: SortOrder
+    phone?: SortOrder
     createdAt?: SortOrder
   }
 
@@ -31568,6 +34521,7 @@ export namespace Prisma {
     id?: SortOrder
     name?: SortOrder
     email?: SortOrder
+    phone?: SortOrder
     createdAt?: SortOrder
   }
 
@@ -31575,7 +34529,15 @@ export namespace Prisma {
     id?: SortOrder
     name?: SortOrder
     email?: SortOrder
+    phone?: SortOrder
     createdAt?: SortOrder
+  }
+
+  export type EnumPaymentMethodFilter<$PrismaModel = never> = {
+    equals?: $Enums.PaymentMethod | EnumPaymentMethodFieldRefInput<$PrismaModel>
+    in?: $Enums.PaymentMethod[] | ListEnumPaymentMethodFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PaymentMethod[] | ListEnumPaymentMethodFieldRefInput<$PrismaModel>
+    not?: NestedEnumPaymentMethodFilter<$PrismaModel> | $Enums.PaymentMethod
   }
 
   export type DecimalFilter<$PrismaModel = never> = {
@@ -31587,11 +34549,6 @@ export namespace Prisma {
     gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
     gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
     not?: NestedDecimalFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string
-  }
-
-  export type BoolFilter<$PrismaModel = never> = {
-    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
-    not?: NestedBoolFilter<$PrismaModel> | boolean
   }
 
   export type DateTimeNullableFilter<$PrismaModel = never> = {
@@ -31618,6 +34575,7 @@ export namespace Prisma {
   export type PaymentChannelCountOrderByAggregateInput = {
     id?: SortOrder
     name?: SortOrder
+    kind?: SortOrder
     openingBalance?: SortOrder
     currentBalance?: SortOrder
     archived?: SortOrder
@@ -31634,6 +34592,7 @@ export namespace Prisma {
   export type PaymentChannelMaxOrderByAggregateInput = {
     id?: SortOrder
     name?: SortOrder
+    kind?: SortOrder
     openingBalance?: SortOrder
     currentBalance?: SortOrder
     archived?: SortOrder
@@ -31645,6 +34604,7 @@ export namespace Prisma {
   export type PaymentChannelMinOrderByAggregateInput = {
     id?: SortOrder
     name?: SortOrder
+    kind?: SortOrder
     openingBalance?: SortOrder
     currentBalance?: SortOrder
     archived?: SortOrder
@@ -31656,6 +34616,16 @@ export namespace Prisma {
   export type PaymentChannelSumOrderByAggregateInput = {
     openingBalance?: SortOrder
     currentBalance?: SortOrder
+  }
+
+  export type EnumPaymentMethodWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.PaymentMethod | EnumPaymentMethodFieldRefInput<$PrismaModel>
+    in?: $Enums.PaymentMethod[] | ListEnumPaymentMethodFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PaymentMethod[] | ListEnumPaymentMethodFieldRefInput<$PrismaModel>
+    not?: NestedEnumPaymentMethodWithAggregatesFilter<$PrismaModel> | $Enums.PaymentMethod
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumPaymentMethodFilter<$PrismaModel>
+    _max?: NestedEnumPaymentMethodFilter<$PrismaModel>
   }
 
   export type DecimalWithAggregatesFilter<$PrismaModel = never> = {
@@ -31672,14 +34642,6 @@ export namespace Prisma {
     _sum?: NestedDecimalFilter<$PrismaModel>
     _min?: NestedDecimalFilter<$PrismaModel>
     _max?: NestedDecimalFilter<$PrismaModel>
-  }
-
-  export type BoolWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
-    not?: NestedBoolWithAggregatesFilter<$PrismaModel> | boolean
-    _count?: NestedIntFilter<$PrismaModel>
-    _min?: NestedBoolFilter<$PrismaModel>
-    _max?: NestedBoolFilter<$PrismaModel>
   }
 
   export type DateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
@@ -32287,17 +35249,6 @@ export namespace Prisma {
     not?: NestedEnumOrderStatusFilter<$PrismaModel> | $Enums.OrderStatus
   }
 
-  export type DecimalNullableFilter<$PrismaModel = never> = {
-    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel> | null
-    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
-    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
-    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    not?: NestedDecimalNullableFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string | null
-  }
-
   export type EnumPaymentMethodNullableFilter<$PrismaModel = never> = {
     equals?: $Enums.PaymentMethod | EnumPaymentMethodFieldRefInput<$PrismaModel> | null
     in?: $Enums.PaymentMethod[] | ListEnumPaymentMethodFieldRefInput<$PrismaModel> | null
@@ -32434,22 +35385,6 @@ export namespace Prisma {
     _max?: NestedEnumOrderStatusFilter<$PrismaModel>
   }
 
-  export type DecimalNullableWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel> | null
-    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
-    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
-    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    not?: NestedDecimalNullableWithAggregatesFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string | null
-    _count?: NestedIntNullableFilter<$PrismaModel>
-    _avg?: NestedDecimalNullableFilter<$PrismaModel>
-    _sum?: NestedDecimalNullableFilter<$PrismaModel>
-    _min?: NestedDecimalNullableFilter<$PrismaModel>
-    _max?: NestedDecimalNullableFilter<$PrismaModel>
-  }
-
   export type EnumPaymentMethodNullableWithAggregatesFilter<$PrismaModel = never> = {
     equals?: $Enums.PaymentMethod | EnumPaymentMethodFieldRefInput<$PrismaModel> | null
     in?: $Enums.PaymentMethod[] | ListEnumPaymentMethodFieldRefInput<$PrismaModel> | null
@@ -32555,6 +35490,35 @@ export namespace Prisma {
     _max?: NestedEnumTicketStatusFilter<$PrismaModel>
   }
 
+  export type TaxConfigCountOrderByAggregateInput = {
+    id?: SortOrder
+    rate?: SortOrder
+    label?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type TaxConfigAvgOrderByAggregateInput = {
+    rate?: SortOrder
+  }
+
+  export type TaxConfigMaxOrderByAggregateInput = {
+    id?: SortOrder
+    rate?: SortOrder
+    label?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type TaxConfigMinOrderByAggregateInput = {
+    id?: SortOrder
+    rate?: SortOrder
+    label?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type TaxConfigSumOrderByAggregateInput = {
+    rate?: SortOrder
+  }
+
   export type EnumFiscalModeFilter<$PrismaModel = never> = {
     equals?: $Enums.FiscalMode | EnumFiscalModeFieldRefInput<$PrismaModel>
     in?: $Enums.FiscalMode[] | ListEnumFiscalModeFieldRefInput<$PrismaModel>
@@ -32636,29 +35600,6 @@ export namespace Prisma {
     _min?: NestedEnumFiscalEnvironmentFilter<$PrismaModel>
     _max?: NestedEnumFiscalEnvironmentFilter<$PrismaModel>
   }
-  export type JsonFilter<$PrismaModel = never> =
-    | PatchUndefined<
-        Either<Required<JsonFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonFilterBase<$PrismaModel>>, 'path'>>,
-        Required<JsonFilterBase<$PrismaModel>>
-      >
-    | OptionalFlat<Omit<Required<JsonFilterBase<$PrismaModel>>, 'path'>>
-
-  export type JsonFilterBase<$PrismaModel = never> = {
-    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
-    path?: string[]
-    mode?: QueryMode | EnumQueryModeFieldRefInput<$PrismaModel>
-    string_contains?: string | StringFieldRefInput<$PrismaModel>
-    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
-    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
-    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
-  }
 
   export type FiscalSubmissionCountOrderByAggregateInput = {
     id?: SortOrder
@@ -32702,32 +35643,6 @@ export namespace Prisma {
     responseMessage?: SortOrder
     errorMessage?: SortOrder
     attemptedAt?: SortOrder
-  }
-  export type JsonWithAggregatesFilter<$PrismaModel = never> =
-    | PatchUndefined<
-        Either<Required<JsonWithAggregatesFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonWithAggregatesFilterBase<$PrismaModel>>, 'path'>>,
-        Required<JsonWithAggregatesFilterBase<$PrismaModel>>
-      >
-    | OptionalFlat<Omit<Required<JsonWithAggregatesFilterBase<$PrismaModel>>, 'path'>>
-
-  export type JsonWithAggregatesFilterBase<$PrismaModel = never> = {
-    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
-    path?: string[]
-    mode?: QueryMode | EnumQueryModeFieldRefInput<$PrismaModel>
-    string_contains?: string | StringFieldRefInput<$PrismaModel>
-    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
-    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
-    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
-    _count?: NestedIntFilter<$PrismaModel>
-    _min?: NestedJsonFilter<$PrismaModel>
-    _max?: NestedJsonFilter<$PrismaModel>
   }
 
   export type EnumShiftStatusFilter<$PrismaModel = never> = {
@@ -32891,6 +35806,70 @@ export namespace Prisma {
     _max?: NestedEnumActivityTypeFilter<$PrismaModel>
   }
 
+  export type UserCreateNestedManyWithoutRoleRefInput = {
+    create?: XOR<UserCreateWithoutRoleRefInput, UserUncheckedCreateWithoutRoleRefInput> | UserCreateWithoutRoleRefInput[] | UserUncheckedCreateWithoutRoleRefInput[]
+    connectOrCreate?: UserCreateOrConnectWithoutRoleRefInput | UserCreateOrConnectWithoutRoleRefInput[]
+    createMany?: UserCreateManyRoleRefInputEnvelope
+    connect?: UserWhereUniqueInput | UserWhereUniqueInput[]
+  }
+
+  export type UserUncheckedCreateNestedManyWithoutRoleRefInput = {
+    create?: XOR<UserCreateWithoutRoleRefInput, UserUncheckedCreateWithoutRoleRefInput> | UserCreateWithoutRoleRefInput[] | UserUncheckedCreateWithoutRoleRefInput[]
+    connectOrCreate?: UserCreateOrConnectWithoutRoleRefInput | UserCreateOrConnectWithoutRoleRefInput[]
+    createMany?: UserCreateManyRoleRefInputEnvelope
+    connect?: UserWhereUniqueInput | UserWhereUniqueInput[]
+  }
+
+  export type StringFieldUpdateOperationsInput = {
+    set?: string
+  }
+
+  export type NullableStringFieldUpdateOperationsInput = {
+    set?: string | null
+  }
+
+  export type BoolFieldUpdateOperationsInput = {
+    set?: boolean
+  }
+
+  export type DateTimeFieldUpdateOperationsInput = {
+    set?: Date | string
+  }
+
+  export type UserUpdateManyWithoutRoleRefNestedInput = {
+    create?: XOR<UserCreateWithoutRoleRefInput, UserUncheckedCreateWithoutRoleRefInput> | UserCreateWithoutRoleRefInput[] | UserUncheckedCreateWithoutRoleRefInput[]
+    connectOrCreate?: UserCreateOrConnectWithoutRoleRefInput | UserCreateOrConnectWithoutRoleRefInput[]
+    upsert?: UserUpsertWithWhereUniqueWithoutRoleRefInput | UserUpsertWithWhereUniqueWithoutRoleRefInput[]
+    createMany?: UserCreateManyRoleRefInputEnvelope
+    set?: UserWhereUniqueInput | UserWhereUniqueInput[]
+    disconnect?: UserWhereUniqueInput | UserWhereUniqueInput[]
+    delete?: UserWhereUniqueInput | UserWhereUniqueInput[]
+    connect?: UserWhereUniqueInput | UserWhereUniqueInput[]
+    update?: UserUpdateWithWhereUniqueWithoutRoleRefInput | UserUpdateWithWhereUniqueWithoutRoleRefInput[]
+    updateMany?: UserUpdateManyWithWhereWithoutRoleRefInput | UserUpdateManyWithWhereWithoutRoleRefInput[]
+    deleteMany?: UserScalarWhereInput | UserScalarWhereInput[]
+  }
+
+  export type UserUncheckedUpdateManyWithoutRoleRefNestedInput = {
+    create?: XOR<UserCreateWithoutRoleRefInput, UserUncheckedCreateWithoutRoleRefInput> | UserCreateWithoutRoleRefInput[] | UserUncheckedCreateWithoutRoleRefInput[]
+    connectOrCreate?: UserCreateOrConnectWithoutRoleRefInput | UserCreateOrConnectWithoutRoleRefInput[]
+    upsert?: UserUpsertWithWhereUniqueWithoutRoleRefInput | UserUpsertWithWhereUniqueWithoutRoleRefInput[]
+    createMany?: UserCreateManyRoleRefInputEnvelope
+    set?: UserWhereUniqueInput | UserWhereUniqueInput[]
+    disconnect?: UserWhereUniqueInput | UserWhereUniqueInput[]
+    delete?: UserWhereUniqueInput | UserWhereUniqueInput[]
+    connect?: UserWhereUniqueInput | UserWhereUniqueInput[]
+    update?: UserUpdateWithWhereUniqueWithoutRoleRefInput | UserUpdateWithWhereUniqueWithoutRoleRefInput[]
+    updateMany?: UserUpdateManyWithWhereWithoutRoleRefInput | UserUpdateManyWithWhereWithoutRoleRefInput[]
+    deleteMany?: UserScalarWhereInput | UserScalarWhereInput[]
+  }
+
+  export type RoleCreateNestedOneWithoutUsersInput = {
+    create?: XOR<RoleCreateWithoutUsersInput, RoleUncheckedCreateWithoutUsersInput>
+    connectOrCreate?: RoleCreateOrConnectWithoutUsersInput
+    connect?: RoleWhereUniqueInput
+  }
+
   export type SessionCreateNestedManyWithoutUserInput = {
     create?: XOR<SessionCreateWithoutUserInput, SessionUncheckedCreateWithoutUserInput> | SessionCreateWithoutUserInput[] | SessionUncheckedCreateWithoutUserInput[]
     connectOrCreate?: SessionCreateOrConnectWithoutUserInput | SessionCreateOrConnectWithoutUserInput[]
@@ -32947,20 +35926,20 @@ export namespace Prisma {
     connect?: AttendanceWhereUniqueInput | AttendanceWhereUniqueInput[]
   }
 
-  export type StringFieldUpdateOperationsInput = {
-    set?: string
+  export type NullableDecimalFieldUpdateOperationsInput = {
+    set?: Decimal | DecimalJsLike | number | string | null
+    increment?: Decimal | DecimalJsLike | number | string
+    decrement?: Decimal | DecimalJsLike | number | string
+    multiply?: Decimal | DecimalJsLike | number | string
+    divide?: Decimal | DecimalJsLike | number | string
   }
 
-  export type EnumRoleFieldUpdateOperationsInput = {
-    set?: $Enums.Role
-  }
-
-  export type NullableStringFieldUpdateOperationsInput = {
-    set?: string | null
-  }
-
-  export type DateTimeFieldUpdateOperationsInput = {
-    set?: Date | string
+  export type RoleUpdateOneRequiredWithoutUsersNestedInput = {
+    create?: XOR<RoleCreateWithoutUsersInput, RoleUncheckedCreateWithoutUsersInput>
+    connectOrCreate?: RoleCreateOrConnectWithoutUsersInput
+    upsert?: RoleUpsertWithoutUsersInput
+    connect?: RoleWhereUniqueInput
+    update?: XOR<XOR<RoleUpdateToOneWithWhereWithoutUsersInput, RoleUpdateWithoutUsersInput>, RoleUncheckedUpdateWithoutUsersInput>
   }
 
   export type SessionUpdateManyWithoutUserNestedInput = {
@@ -33117,16 +36096,16 @@ export namespace Prisma {
     connect?: PaymentTransferWhereUniqueInput | PaymentTransferWhereUniqueInput[]
   }
 
+  export type EnumPaymentMethodFieldUpdateOperationsInput = {
+    set?: $Enums.PaymentMethod
+  }
+
   export type DecimalFieldUpdateOperationsInput = {
     set?: Decimal | DecimalJsLike | number | string
     increment?: Decimal | DecimalJsLike | number | string
     decrement?: Decimal | DecimalJsLike | number | string
     multiply?: Decimal | DecimalJsLike | number | string
     divide?: Decimal | DecimalJsLike | number | string
-  }
-
-  export type BoolFieldUpdateOperationsInput = {
-    set?: boolean
   }
 
   export type NullableDateTimeFieldUpdateOperationsInput = {
@@ -33763,14 +36742,6 @@ export namespace Prisma {
     set?: $Enums.OrderStatus
   }
 
-  export type NullableDecimalFieldUpdateOperationsInput = {
-    set?: Decimal | DecimalJsLike | number | string | null
-    increment?: Decimal | DecimalJsLike | number | string
-    decrement?: Decimal | DecimalJsLike | number | string
-    multiply?: Decimal | DecimalJsLike | number | string
-    divide?: Decimal | DecimalJsLike | number | string
-  }
-
   export type NullableEnumPaymentMethodFieldUpdateOperationsInput = {
     set?: $Enums.PaymentMethod | null
   }
@@ -34015,13 +36986,6 @@ export namespace Prisma {
     not?: NestedStringFilter<$PrismaModel> | string
   }
 
-  export type NestedEnumRoleFilter<$PrismaModel = never> = {
-    equals?: $Enums.Role | EnumRoleFieldRefInput<$PrismaModel>
-    in?: $Enums.Role[] | ListEnumRoleFieldRefInput<$PrismaModel>
-    notIn?: $Enums.Role[] | ListEnumRoleFieldRefInput<$PrismaModel>
-    not?: NestedEnumRoleFilter<$PrismaModel> | $Enums.Role
-  }
-
   export type NestedStringNullableFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel> | null
     in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
@@ -34034,6 +36998,11 @@ export namespace Prisma {
     startsWith?: string | StringFieldRefInput<$PrismaModel>
     endsWith?: string | StringFieldRefInput<$PrismaModel>
     not?: NestedStringNullableFilter<$PrismaModel> | string | null
+  }
+
+  export type NestedBoolFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
+    not?: NestedBoolFilter<$PrismaModel> | boolean
   }
 
   export type NestedDateTimeFilter<$PrismaModel = never> = {
@@ -34075,16 +37044,6 @@ export namespace Prisma {
     not?: NestedIntFilter<$PrismaModel> | number
   }
 
-  export type NestedEnumRoleWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: $Enums.Role | EnumRoleFieldRefInput<$PrismaModel>
-    in?: $Enums.Role[] | ListEnumRoleFieldRefInput<$PrismaModel>
-    notIn?: $Enums.Role[] | ListEnumRoleFieldRefInput<$PrismaModel>
-    not?: NestedEnumRoleWithAggregatesFilter<$PrismaModel> | $Enums.Role
-    _count?: NestedIntFilter<$PrismaModel>
-    _min?: NestedEnumRoleFilter<$PrismaModel>
-    _max?: NestedEnumRoleFilter<$PrismaModel>
-  }
-
   export type NestedStringNullableWithAggregatesFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel> | null
     in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
@@ -34112,6 +37071,37 @@ export namespace Prisma {
     gte?: number | IntFieldRefInput<$PrismaModel>
     not?: NestedIntNullableFilter<$PrismaModel> | number | null
   }
+  export type NestedJsonFilter<$PrismaModel = never> =
+    | PatchUndefined<
+        Either<Required<NestedJsonFilterBase<$PrismaModel>>, Exclude<keyof Required<NestedJsonFilterBase<$PrismaModel>>, 'path'>>,
+        Required<NestedJsonFilterBase<$PrismaModel>>
+      >
+    | OptionalFlat<Omit<Required<NestedJsonFilterBase<$PrismaModel>>, 'path'>>
+
+  export type NestedJsonFilterBase<$PrismaModel = never> = {
+    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    path?: string[]
+    mode?: QueryMode | EnumQueryModeFieldRefInput<$PrismaModel>
+    string_contains?: string | StringFieldRefInput<$PrismaModel>
+    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
+    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
+    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+  }
+
+  export type NestedBoolWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
+    not?: NestedBoolWithAggregatesFilter<$PrismaModel> | boolean
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedBoolFilter<$PrismaModel>
+    _max?: NestedBoolFilter<$PrismaModel>
+  }
 
   export type NestedDateTimeWithAggregatesFilter<$PrismaModel = never> = {
     equals?: Date | string | DateTimeFieldRefInput<$PrismaModel>
@@ -34127,6 +37117,40 @@ export namespace Prisma {
     _max?: NestedDateTimeFilter<$PrismaModel>
   }
 
+  export type NestedDecimalNullableFilter<$PrismaModel = never> = {
+    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel> | null
+    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
+    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
+    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    not?: NestedDecimalNullableFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string | null
+  }
+
+  export type NestedDecimalNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel> | null
+    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
+    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
+    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
+    not?: NestedDecimalNullableWithAggregatesFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _avg?: NestedDecimalNullableFilter<$PrismaModel>
+    _sum?: NestedDecimalNullableFilter<$PrismaModel>
+    _min?: NestedDecimalNullableFilter<$PrismaModel>
+    _max?: NestedDecimalNullableFilter<$PrismaModel>
+  }
+
+  export type NestedEnumPaymentMethodFilter<$PrismaModel = never> = {
+    equals?: $Enums.PaymentMethod | EnumPaymentMethodFieldRefInput<$PrismaModel>
+    in?: $Enums.PaymentMethod[] | ListEnumPaymentMethodFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PaymentMethod[] | ListEnumPaymentMethodFieldRefInput<$PrismaModel>
+    not?: NestedEnumPaymentMethodFilter<$PrismaModel> | $Enums.PaymentMethod
+  }
+
   export type NestedDecimalFilter<$PrismaModel = never> = {
     equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
     in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel>
@@ -34138,11 +37162,6 @@ export namespace Prisma {
     not?: NestedDecimalFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string
   }
 
-  export type NestedBoolFilter<$PrismaModel = never> = {
-    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
-    not?: NestedBoolFilter<$PrismaModel> | boolean
-  }
-
   export type NestedDateTimeNullableFilter<$PrismaModel = never> = {
     equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
     in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
@@ -34152,6 +37171,16 @@ export namespace Prisma {
     gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
+  }
+
+  export type NestedEnumPaymentMethodWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.PaymentMethod | EnumPaymentMethodFieldRefInput<$PrismaModel>
+    in?: $Enums.PaymentMethod[] | ListEnumPaymentMethodFieldRefInput<$PrismaModel>
+    notIn?: $Enums.PaymentMethod[] | ListEnumPaymentMethodFieldRefInput<$PrismaModel>
+    not?: NestedEnumPaymentMethodWithAggregatesFilter<$PrismaModel> | $Enums.PaymentMethod
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumPaymentMethodFilter<$PrismaModel>
+    _max?: NestedEnumPaymentMethodFilter<$PrismaModel>
   }
 
   export type NestedDecimalWithAggregatesFilter<$PrismaModel = never> = {
@@ -34168,14 +37197,6 @@ export namespace Prisma {
     _sum?: NestedDecimalFilter<$PrismaModel>
     _min?: NestedDecimalFilter<$PrismaModel>
     _max?: NestedDecimalFilter<$PrismaModel>
-  }
-
-  export type NestedBoolWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: boolean | BooleanFieldRefInput<$PrismaModel>
-    not?: NestedBoolWithAggregatesFilter<$PrismaModel> | boolean
-    _count?: NestedIntFilter<$PrismaModel>
-    _min?: NestedBoolFilter<$PrismaModel>
-    _max?: NestedBoolFilter<$PrismaModel>
   }
 
   export type NestedDateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
@@ -34292,17 +37313,6 @@ export namespace Prisma {
     not?: NestedEnumOrderStatusFilter<$PrismaModel> | $Enums.OrderStatus
   }
 
-  export type NestedDecimalNullableFilter<$PrismaModel = never> = {
-    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel> | null
-    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
-    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
-    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    not?: NestedDecimalNullableFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string | null
-  }
-
   export type NestedEnumPaymentMethodNullableFilter<$PrismaModel = never> = {
     equals?: $Enums.PaymentMethod | EnumPaymentMethodFieldRefInput<$PrismaModel> | null
     in?: $Enums.PaymentMethod[] | ListEnumPaymentMethodFieldRefInput<$PrismaModel> | null
@@ -34318,22 +37328,6 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumOrderStatusFilter<$PrismaModel>
     _max?: NestedEnumOrderStatusFilter<$PrismaModel>
-  }
-
-  export type NestedDecimalNullableWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel> | null
-    in?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
-    notIn?: Decimal[] | DecimalJsLike[] | number[] | string[] | ListDecimalFieldRefInput<$PrismaModel> | null
-    lt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    lte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    gt?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    gte?: Decimal | DecimalJsLike | number | string | DecimalFieldRefInput<$PrismaModel>
-    not?: NestedDecimalNullableWithAggregatesFilter<$PrismaModel> | Decimal | DecimalJsLike | number | string | null
-    _count?: NestedIntNullableFilter<$PrismaModel>
-    _avg?: NestedDecimalNullableFilter<$PrismaModel>
-    _sum?: NestedDecimalNullableFilter<$PrismaModel>
-    _min?: NestedDecimalNullableFilter<$PrismaModel>
-    _max?: NestedDecimalNullableFilter<$PrismaModel>
   }
 
   export type NestedEnumPaymentMethodNullableWithAggregatesFilter<$PrismaModel = never> = {
@@ -34396,29 +37390,6 @@ export namespace Prisma {
     _min?: NestedEnumFiscalEnvironmentFilter<$PrismaModel>
     _max?: NestedEnumFiscalEnvironmentFilter<$PrismaModel>
   }
-  export type NestedJsonFilter<$PrismaModel = never> =
-    | PatchUndefined<
-        Either<Required<NestedJsonFilterBase<$PrismaModel>>, Exclude<keyof Required<NestedJsonFilterBase<$PrismaModel>>, 'path'>>,
-        Required<NestedJsonFilterBase<$PrismaModel>>
-      >
-    | OptionalFlat<Omit<Required<NestedJsonFilterBase<$PrismaModel>>, 'path'>>
-
-  export type NestedJsonFilterBase<$PrismaModel = never> = {
-    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
-    path?: string[]
-    mode?: QueryMode | EnumQueryModeFieldRefInput<$PrismaModel>
-    string_contains?: string | StringFieldRefInput<$PrismaModel>
-    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
-    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
-    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
-  }
 
   export type NestedEnumShiftStatusFilter<$PrismaModel = never> = {
     equals?: $Enums.ShiftStatus | EnumShiftStatusFieldRefInput<$PrismaModel>
@@ -34469,6 +37440,110 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumActivityTypeFilter<$PrismaModel>
     _max?: NestedEnumActivityTypeFilter<$PrismaModel>
+  }
+
+  export type UserCreateWithoutRoleRefInput = {
+    id?: string
+    name: string
+    email: string
+    phone?: string | null
+    passwordHash: string
+    avatar?: string | null
+    defaultRoute?: string | null
+    monthlySalary?: Decimal | DecimalJsLike | number | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    sessions?: SessionCreateNestedManyWithoutUserInput
+    orders?: OrderCreateNestedManyWithoutStaffInput
+    shifts?: ShiftCreateNestedManyWithoutUserInput
+    attendance?: AttendanceCreateNestedManyWithoutUserInput
+  }
+
+  export type UserUncheckedCreateWithoutRoleRefInput = {
+    id?: string
+    name: string
+    email: string
+    phone?: string | null
+    passwordHash: string
+    avatar?: string | null
+    defaultRoute?: string | null
+    monthlySalary?: Decimal | DecimalJsLike | number | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    sessions?: SessionUncheckedCreateNestedManyWithoutUserInput
+    orders?: OrderUncheckedCreateNestedManyWithoutStaffInput
+    shifts?: ShiftUncheckedCreateNestedManyWithoutUserInput
+    attendance?: AttendanceUncheckedCreateNestedManyWithoutUserInput
+  }
+
+  export type UserCreateOrConnectWithoutRoleRefInput = {
+    where: UserWhereUniqueInput
+    create: XOR<UserCreateWithoutRoleRefInput, UserUncheckedCreateWithoutRoleRefInput>
+  }
+
+  export type UserCreateManyRoleRefInputEnvelope = {
+    data: UserCreateManyRoleRefInput | UserCreateManyRoleRefInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type UserUpsertWithWhereUniqueWithoutRoleRefInput = {
+    where: UserWhereUniqueInput
+    update: XOR<UserUpdateWithoutRoleRefInput, UserUncheckedUpdateWithoutRoleRefInput>
+    create: XOR<UserCreateWithoutRoleRefInput, UserUncheckedCreateWithoutRoleRefInput>
+  }
+
+  export type UserUpdateWithWhereUniqueWithoutRoleRefInput = {
+    where: UserWhereUniqueInput
+    data: XOR<UserUpdateWithoutRoleRefInput, UserUncheckedUpdateWithoutRoleRefInput>
+  }
+
+  export type UserUpdateManyWithWhereWithoutRoleRefInput = {
+    where: UserScalarWhereInput
+    data: XOR<UserUpdateManyMutationInput, UserUncheckedUpdateManyWithoutRoleRefInput>
+  }
+
+  export type UserScalarWhereInput = {
+    AND?: UserScalarWhereInput | UserScalarWhereInput[]
+    OR?: UserScalarWhereInput[]
+    NOT?: UserScalarWhereInput | UserScalarWhereInput[]
+    id?: StringFilter<"User"> | string
+    name?: StringFilter<"User"> | string
+    email?: StringFilter<"User"> | string
+    phone?: StringNullableFilter<"User"> | string | null
+    passwordHash?: StringFilter<"User"> | string
+    role?: StringFilter<"User"> | string
+    avatar?: StringNullableFilter<"User"> | string | null
+    defaultRoute?: StringNullableFilter<"User"> | string | null
+    monthlySalary?: DecimalNullableFilter<"User"> | Decimal | DecimalJsLike | number | string | null
+    createdAt?: DateTimeFilter<"User"> | Date | string
+    updatedAt?: DateTimeFilter<"User"> | Date | string
+  }
+
+  export type RoleCreateWithoutUsersInput = {
+    id: string
+    name: string
+    description?: string | null
+    permissions: JsonNullValueInput | InputJsonValue
+    isSystem?: boolean
+    defaultRoute?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type RoleUncheckedCreateWithoutUsersInput = {
+    id: string
+    name: string
+    description?: string | null
+    permissions: JsonNullValueInput | InputJsonValue
+    isSystem?: boolean
+    defaultRoute?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type RoleCreateOrConnectWithoutUsersInput = {
+    where: RoleWhereUniqueInput
+    create: XOR<RoleCreateWithoutUsersInput, RoleUncheckedCreateWithoutUsersInput>
   }
 
   export type SessionCreateWithoutUserInput = {
@@ -34619,6 +37694,39 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type RoleUpsertWithoutUsersInput = {
+    update: XOR<RoleUpdateWithoutUsersInput, RoleUncheckedUpdateWithoutUsersInput>
+    create: XOR<RoleCreateWithoutUsersInput, RoleUncheckedCreateWithoutUsersInput>
+    where?: RoleWhereInput
+  }
+
+  export type RoleUpdateToOneWithWhereWithoutUsersInput = {
+    where?: RoleWhereInput
+    data: XOR<RoleUpdateWithoutUsersInput, RoleUncheckedUpdateWithoutUsersInput>
+  }
+
+  export type RoleUpdateWithoutUsersInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    permissions?: JsonNullValueInput | InputJsonValue
+    isSystem?: BoolFieldUpdateOperationsInput | boolean
+    defaultRoute?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type RoleUncheckedUpdateWithoutUsersInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    permissions?: JsonNullValueInput | InputJsonValue
+    isSystem?: BoolFieldUpdateOperationsInput | boolean
+    defaultRoute?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type SessionUpsertWithWhereUniqueWithoutUserInput = {
     where: SessionWhereUniqueInput
     update: XOR<SessionUpdateWithoutUserInput, SessionUncheckedUpdateWithoutUserInput>
@@ -34754,11 +37862,14 @@ export namespace Prisma {
     id?: string
     name: string
     email: string
+    phone?: string | null
     passwordHash: string
-    role: $Enums.Role
     avatar?: string | null
+    defaultRoute?: string | null
+    monthlySalary?: Decimal | DecimalJsLike | number | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    roleRef: RoleCreateNestedOneWithoutUsersInput
     orders?: OrderCreateNestedManyWithoutStaffInput
     shifts?: ShiftCreateNestedManyWithoutUserInput
     attendance?: AttendanceCreateNestedManyWithoutUserInput
@@ -34768,9 +37879,12 @@ export namespace Prisma {
     id?: string
     name: string
     email: string
+    phone?: string | null
     passwordHash: string
-    role: $Enums.Role
+    role: string
     avatar?: string | null
+    defaultRoute?: string | null
+    monthlySalary?: Decimal | DecimalJsLike | number | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     orders?: OrderUncheckedCreateNestedManyWithoutStaffInput
@@ -34798,11 +37912,14 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
+    phone?: NullableStringFieldUpdateOperationsInput | string | null
     passwordHash?: StringFieldUpdateOperationsInput | string
-    role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
     avatar?: NullableStringFieldUpdateOperationsInput | string | null
+    defaultRoute?: NullableStringFieldUpdateOperationsInput | string | null
+    monthlySalary?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    roleRef?: RoleUpdateOneRequiredWithoutUsersNestedInput
     orders?: OrderUpdateManyWithoutStaffNestedInput
     shifts?: ShiftUpdateManyWithoutUserNestedInput
     attendance?: AttendanceUpdateManyWithoutUserNestedInput
@@ -34812,9 +37929,12 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
+    phone?: NullableStringFieldUpdateOperationsInput | string | null
     passwordHash?: StringFieldUpdateOperationsInput | string
-    role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
+    role?: StringFieldUpdateOperationsInput | string
     avatar?: NullableStringFieldUpdateOperationsInput | string | null
+    defaultRoute?: NullableStringFieldUpdateOperationsInput | string | null
+    monthlySalary?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     orders?: OrderUncheckedUpdateManyWithoutStaffNestedInput
@@ -34926,6 +38046,7 @@ export namespace Prisma {
   export type PaymentChannelCreateWithoutOutgoingInput = {
     id?: string
     name: string
+    kind?: $Enums.PaymentMethod
     openingBalance: Decimal | DecimalJsLike | number | string
     currentBalance: Decimal | DecimalJsLike | number | string
     archived?: boolean
@@ -34938,6 +38059,7 @@ export namespace Prisma {
   export type PaymentChannelUncheckedCreateWithoutOutgoingInput = {
     id?: string
     name: string
+    kind?: $Enums.PaymentMethod
     openingBalance: Decimal | DecimalJsLike | number | string
     currentBalance: Decimal | DecimalJsLike | number | string
     archived?: boolean
@@ -34955,6 +38077,7 @@ export namespace Prisma {
   export type PaymentChannelCreateWithoutIncomingInput = {
     id?: string
     name: string
+    kind?: $Enums.PaymentMethod
     openingBalance: Decimal | DecimalJsLike | number | string
     currentBalance: Decimal | DecimalJsLike | number | string
     archived?: boolean
@@ -34967,6 +38090,7 @@ export namespace Prisma {
   export type PaymentChannelUncheckedCreateWithoutIncomingInput = {
     id?: string
     name: string
+    kind?: $Enums.PaymentMethod
     openingBalance: Decimal | DecimalJsLike | number | string
     currentBalance: Decimal | DecimalJsLike | number | string
     archived?: boolean
@@ -34995,6 +38119,7 @@ export namespace Prisma {
   export type PaymentChannelUpdateWithoutOutgoingInput = {
     id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
+    kind?: EnumPaymentMethodFieldUpdateOperationsInput | $Enums.PaymentMethod
     openingBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     currentBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     archived?: BoolFieldUpdateOperationsInput | boolean
@@ -35007,6 +38132,7 @@ export namespace Prisma {
   export type PaymentChannelUncheckedUpdateWithoutOutgoingInput = {
     id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
+    kind?: EnumPaymentMethodFieldUpdateOperationsInput | $Enums.PaymentMethod
     openingBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     currentBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     archived?: BoolFieldUpdateOperationsInput | boolean
@@ -35030,6 +38156,7 @@ export namespace Prisma {
   export type PaymentChannelUpdateWithoutIncomingInput = {
     id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
+    kind?: EnumPaymentMethodFieldUpdateOperationsInput | $Enums.PaymentMethod
     openingBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     currentBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     archived?: BoolFieldUpdateOperationsInput | boolean
@@ -35042,6 +38169,7 @@ export namespace Prisma {
   export type PaymentChannelUncheckedUpdateWithoutIncomingInput = {
     id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
+    kind?: EnumPaymentMethodFieldUpdateOperationsInput | $Enums.PaymentMethod
     openingBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     currentBalance?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     archived?: BoolFieldUpdateOperationsInput | boolean
@@ -36082,11 +39210,14 @@ export namespace Prisma {
     id?: string
     name: string
     email: string
+    phone?: string | null
     passwordHash: string
-    role: $Enums.Role
     avatar?: string | null
+    defaultRoute?: string | null
+    monthlySalary?: Decimal | DecimalJsLike | number | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    roleRef: RoleCreateNestedOneWithoutUsersInput
     sessions?: SessionCreateNestedManyWithoutUserInput
     shifts?: ShiftCreateNestedManyWithoutUserInput
     attendance?: AttendanceCreateNestedManyWithoutUserInput
@@ -36096,9 +39227,12 @@ export namespace Prisma {
     id?: string
     name: string
     email: string
+    phone?: string | null
     passwordHash: string
-    role: $Enums.Role
+    role: string
     avatar?: string | null
+    defaultRoute?: string | null
+    monthlySalary?: Decimal | DecimalJsLike | number | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     sessions?: SessionUncheckedCreateNestedManyWithoutUserInput
@@ -36251,11 +39385,14 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
+    phone?: NullableStringFieldUpdateOperationsInput | string | null
     passwordHash?: StringFieldUpdateOperationsInput | string
-    role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
     avatar?: NullableStringFieldUpdateOperationsInput | string | null
+    defaultRoute?: NullableStringFieldUpdateOperationsInput | string | null
+    monthlySalary?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    roleRef?: RoleUpdateOneRequiredWithoutUsersNestedInput
     sessions?: SessionUpdateManyWithoutUserNestedInput
     shifts?: ShiftUpdateManyWithoutUserNestedInput
     attendance?: AttendanceUpdateManyWithoutUserNestedInput
@@ -36265,9 +39402,12 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
+    phone?: NullableStringFieldUpdateOperationsInput | string | null
     passwordHash?: StringFieldUpdateOperationsInput | string
-    role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
+    role?: StringFieldUpdateOperationsInput | string
     avatar?: NullableStringFieldUpdateOperationsInput | string | null
+    defaultRoute?: NullableStringFieldUpdateOperationsInput | string | null
+    monthlySalary?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sessions?: SessionUncheckedUpdateManyWithoutUserNestedInput
@@ -36898,11 +40038,14 @@ export namespace Prisma {
     id?: string
     name: string
     email: string
+    phone?: string | null
     passwordHash: string
-    role: $Enums.Role
     avatar?: string | null
+    defaultRoute?: string | null
+    monthlySalary?: Decimal | DecimalJsLike | number | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    roleRef: RoleCreateNestedOneWithoutUsersInput
     sessions?: SessionCreateNestedManyWithoutUserInput
     orders?: OrderCreateNestedManyWithoutStaffInput
     attendance?: AttendanceCreateNestedManyWithoutUserInput
@@ -36912,9 +40055,12 @@ export namespace Prisma {
     id?: string
     name: string
     email: string
+    phone?: string | null
     passwordHash: string
-    role: $Enums.Role
+    role: string
     avatar?: string | null
+    defaultRoute?: string | null
+    monthlySalary?: Decimal | DecimalJsLike | number | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     sessions?: SessionUncheckedCreateNestedManyWithoutUserInput
@@ -36942,11 +40088,14 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
+    phone?: NullableStringFieldUpdateOperationsInput | string | null
     passwordHash?: StringFieldUpdateOperationsInput | string
-    role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
     avatar?: NullableStringFieldUpdateOperationsInput | string | null
+    defaultRoute?: NullableStringFieldUpdateOperationsInput | string | null
+    monthlySalary?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    roleRef?: RoleUpdateOneRequiredWithoutUsersNestedInput
     sessions?: SessionUpdateManyWithoutUserNestedInput
     orders?: OrderUpdateManyWithoutStaffNestedInput
     attendance?: AttendanceUpdateManyWithoutUserNestedInput
@@ -36956,9 +40105,12 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
+    phone?: NullableStringFieldUpdateOperationsInput | string | null
     passwordHash?: StringFieldUpdateOperationsInput | string
-    role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
+    role?: StringFieldUpdateOperationsInput | string
     avatar?: NullableStringFieldUpdateOperationsInput | string | null
+    defaultRoute?: NullableStringFieldUpdateOperationsInput | string | null
+    monthlySalary?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sessions?: SessionUncheckedUpdateManyWithoutUserNestedInput
@@ -36970,11 +40122,14 @@ export namespace Prisma {
     id?: string
     name: string
     email: string
+    phone?: string | null
     passwordHash: string
-    role: $Enums.Role
     avatar?: string | null
+    defaultRoute?: string | null
+    monthlySalary?: Decimal | DecimalJsLike | number | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    roleRef: RoleCreateNestedOneWithoutUsersInput
     sessions?: SessionCreateNestedManyWithoutUserInput
     orders?: OrderCreateNestedManyWithoutStaffInput
     shifts?: ShiftCreateNestedManyWithoutUserInput
@@ -36984,9 +40139,12 @@ export namespace Prisma {
     id?: string
     name: string
     email: string
+    phone?: string | null
     passwordHash: string
-    role: $Enums.Role
+    role: string
     avatar?: string | null
+    defaultRoute?: string | null
+    monthlySalary?: Decimal | DecimalJsLike | number | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     sessions?: SessionUncheckedCreateNestedManyWithoutUserInput
@@ -37014,11 +40172,14 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
+    phone?: NullableStringFieldUpdateOperationsInput | string | null
     passwordHash?: StringFieldUpdateOperationsInput | string
-    role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
     avatar?: NullableStringFieldUpdateOperationsInput | string | null
+    defaultRoute?: NullableStringFieldUpdateOperationsInput | string | null
+    monthlySalary?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    roleRef?: RoleUpdateOneRequiredWithoutUsersNestedInput
     sessions?: SessionUpdateManyWithoutUserNestedInput
     orders?: OrderUpdateManyWithoutStaffNestedInput
     shifts?: ShiftUpdateManyWithoutUserNestedInput
@@ -37028,14 +40189,77 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
+    phone?: NullableStringFieldUpdateOperationsInput | string | null
     passwordHash?: StringFieldUpdateOperationsInput | string
-    role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
+    role?: StringFieldUpdateOperationsInput | string
     avatar?: NullableStringFieldUpdateOperationsInput | string | null
+    defaultRoute?: NullableStringFieldUpdateOperationsInput | string | null
+    monthlySalary?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sessions?: SessionUncheckedUpdateManyWithoutUserNestedInput
     orders?: OrderUncheckedUpdateManyWithoutStaffNestedInput
     shifts?: ShiftUncheckedUpdateManyWithoutUserNestedInput
+  }
+
+  export type UserCreateManyRoleRefInput = {
+    id?: string
+    name: string
+    email: string
+    phone?: string | null
+    passwordHash: string
+    avatar?: string | null
+    defaultRoute?: string | null
+    monthlySalary?: Decimal | DecimalJsLike | number | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type UserUpdateWithoutRoleRefInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    phone?: NullableStringFieldUpdateOperationsInput | string | null
+    passwordHash?: StringFieldUpdateOperationsInput | string
+    avatar?: NullableStringFieldUpdateOperationsInput | string | null
+    defaultRoute?: NullableStringFieldUpdateOperationsInput | string | null
+    monthlySalary?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    sessions?: SessionUpdateManyWithoutUserNestedInput
+    orders?: OrderUpdateManyWithoutStaffNestedInput
+    shifts?: ShiftUpdateManyWithoutUserNestedInput
+    attendance?: AttendanceUpdateManyWithoutUserNestedInput
+  }
+
+  export type UserUncheckedUpdateWithoutRoleRefInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    phone?: NullableStringFieldUpdateOperationsInput | string | null
+    passwordHash?: StringFieldUpdateOperationsInput | string
+    avatar?: NullableStringFieldUpdateOperationsInput | string | null
+    defaultRoute?: NullableStringFieldUpdateOperationsInput | string | null
+    monthlySalary?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    sessions?: SessionUncheckedUpdateManyWithoutUserNestedInput
+    orders?: OrderUncheckedUpdateManyWithoutStaffNestedInput
+    shifts?: ShiftUncheckedUpdateManyWithoutUserNestedInput
+    attendance?: AttendanceUncheckedUpdateManyWithoutUserNestedInput
+  }
+
+  export type UserUncheckedUpdateManyWithoutRoleRefInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    phone?: NullableStringFieldUpdateOperationsInput | string | null
+    passwordHash?: StringFieldUpdateOperationsInput | string
+    avatar?: NullableStringFieldUpdateOperationsInput | string | null
+    defaultRoute?: NullableStringFieldUpdateOperationsInput | string | null
+    monthlySalary?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type SessionCreateManyUserInput = {

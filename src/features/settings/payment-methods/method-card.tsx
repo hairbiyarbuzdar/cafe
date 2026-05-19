@@ -17,11 +17,34 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   archivePaymentChannelAction,
   renamePaymentChannelAction,
+  updatePaymentChannelKindAction,
 } from "@/lib/actions/payment-channels";
 import type { PaymentChannel } from "@/lib/queries/payment-channels";
 import { formatCurrency } from "@/lib/utils";
+import type { PaymentMethod } from "@/types";
+
+const KIND_OPTIONS: { value: PaymentMethod; label: string }[] = [
+  { value: "cash", label: "Cash" },
+  { value: "card", label: "Card" },
+  { value: "wallet", label: "Wallet (EasyPaisa, JazzCash…)" },
+  { value: "online", label: "Online / Bank transfer" },
+];
+
+const KIND_LABEL: Record<PaymentMethod, string> = {
+  cash: "Cash",
+  card: "Card",
+  wallet: "Wallet",
+  online: "Online",
+};
 
 /**
  * Single payment method card. Shows opening (read-only) and current
@@ -50,7 +73,7 @@ export function PaymentMethodCard({
             {channel.name}
           </h3>
           <p className="mt-1 text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
-            Opening ·{" "}
+            {KIND_LABEL[channel.kind]} · Opening{" "}
             <span className="font-mono tabular-nums text-foreground/85">
               {formatCurrency(channel.openingBalance)}
             </span>
@@ -154,24 +177,45 @@ function EditMethodDialog({
 }) {
   const router = useRouter();
   const [name, setName] = React.useState(channel.name);
+  const [kind, setKind] = React.useState<PaymentMethod>(channel.kind);
   const [submitting, setSubmitting] = React.useState(false);
 
   React.useEffect(() => {
-    if (open) setName(channel.name);
-  }, [open, channel.name]);
+    if (open) {
+      setName(channel.name);
+      setKind(channel.kind);
+    }
+  }, [open, channel.name, channel.kind]);
 
-  const canSave = name.trim().length > 1 && name.trim() !== channel.name;
+  const nameChanged = name.trim().length > 1 && name.trim() !== channel.name;
+  const kindChanged = kind !== channel.kind;
+  const canSave = nameChanged || kindChanged;
 
   async function save() {
     if (!canSave || submitting) return;
     setSubmitting(true);
     try {
-      const result = await renamePaymentChannelAction(channel.id, name.trim());
-      if (!result.ok) {
-        toast.error("Couldn't rename", { description: result.error });
-        return;
+      if (nameChanged) {
+        const renameResult = await renamePaymentChannelAction(
+          channel.id,
+          name.trim(),
+        );
+        if (!renameResult.ok) {
+          toast.error("Couldn't rename", { description: renameResult.error });
+          return;
+        }
       }
-      toast.success(`Renamed to ${name.trim()}`);
+      if (kindChanged) {
+        const kindResult = await updatePaymentChannelKindAction(
+          channel.id,
+          kind,
+        );
+        if (!kindResult.ok) {
+          toast.error("Couldn't update kind", { description: kindResult.error });
+          return;
+        }
+      }
+      toast.success(`${name.trim()} saved`);
       onOpenChange(false);
       router.refresh();
     } finally {
@@ -184,11 +228,11 @@ function EditMethodDialog({
       <DialogContent className="max-w-[420px] gap-4 rounded-lg p-0">
         <DialogHeader className="px-5 pt-5">
           <DialogTitle className="text-[15px] font-semibold tracking-tight">
-            Rename payment method
+            Edit payment method
           </DialogTitle>
           <DialogDescription className="text-[12.5px]">
-            Only the name is editable. Balances change through transfers
-            and (eventually) sales — never by hand.
+            Rename or switch the kind. Balances change through transfers
+            and sales — never by hand.
           </DialogDescription>
         </DialogHeader>
 
@@ -207,6 +251,29 @@ function EditMethodDialog({
               className="h-10"
               autoFocus
             />
+          </div>
+          <div className="space-y-1.5">
+            <Label
+              htmlFor="pm-kind-edit"
+              className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground"
+            >
+              Kind
+            </Label>
+            <Select
+              value={kind}
+              onValueChange={(v) => setKind(v as PaymentMethod)}
+            >
+              <SelectTrigger id="pm-kind-edit" className="h-10">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {KIND_OPTIONS.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>
+                    {o.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <p className="rounded-md border bg-muted/30 px-3 py-2 text-[11.5px] text-muted-foreground">
             Current balance:{" "}

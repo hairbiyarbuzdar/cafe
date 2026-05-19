@@ -7,22 +7,26 @@ import { AttendanceChart } from "@/features/staff/attendance-chart";
 import { ManageRolesDialog } from "@/features/staff/manage-roles-dialog";
 import { ScheduleGrid } from "@/features/staff/schedule-grid";
 import { StaffCards } from "@/features/staff/staff-cards";
+import { listRoles } from "@/lib/queries/roles";
 import {
   attendance7d,
   listThisWeekSchedule,
 } from "@/lib/queries/schedule";
 import { listPendingMembers, listPublicUsers } from "@/lib/queries/users";
+import { ensureBuiltInRoles } from "@/lib/roles-seed";
 
 export const metadata = { title: "Staff" };
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export default async function StaffPage() {
-  const [members, pending, shifts, attendance] = await Promise.all([
+  await ensureBuiltInRoles();
+  const [members, pending, shifts, attendance, roles] = await Promise.all([
     listPublicUsers(),
     listPendingMembers(),
     listThisWeekSchedule(),
     attendance7d(),
+    listRoles(),
   ]);
   const totalSeats = members.length + pending.length;
 
@@ -72,7 +76,7 @@ export default async function StaffPage() {
         <h2 className="text-[14px] font-semibold tracking-tight text-foreground">
           Team members
         </h2>
-        <ManageRolesDialog users={members} />
+        <ManageRolesDialog users={members} roles={roles} />
       </div>
 
       <StaffCards members={members} pending={pending} />

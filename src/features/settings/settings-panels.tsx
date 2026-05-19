@@ -4,9 +4,7 @@ import * as React from "react";
 import { useTheme } from "next-themes";
 import {
   Check,
-  Code2,
   CreditCard,
-  Globe,
   Hash,
   KeyRound,
   Laptop,
@@ -35,7 +33,6 @@ import {
 import { SectionCard } from "@/components/shared/section-card";
 import { InviteMemberDialog } from "@/features/settings/invite-member-dialog";
 import {
-  ConnectIntegrationDialog,
   Manage2FADialog,
   RotateApiKeyDialog,
   SignOutSessionDialog,
@@ -43,7 +40,6 @@ import {
 } from "@/features/settings/settings-demo-dialogs";
 import { RoleBadge } from "@/features/staff/role-badge";
 import { useCurrentUser } from "@/hooks/use-current-user";
-import { ROLE_LABEL } from "@/lib/permissions";
 import type { PendingMember } from "@/lib/queries/users";
 import type { SessionUser } from "@/types/auth";
 import { cn, initials } from "@/lib/utils";
@@ -271,9 +267,11 @@ const MATRIX: Record<string, Record<string, boolean>> = {
 export function TeamPanel({
   members,
   pending,
+  roles,
 }: {
   members: SessionUser[];
   pending: PendingMember[];
+  roles: { id: string; name: string }[];
 }) {
   const currentUser = useCurrentUser();
   return (
@@ -288,6 +286,7 @@ export function TeamPanel({
         action={
           <InviteMemberDialog
             pending={pending}
+            roles={roles}
             trigger={
               <Button size="sm" className="h-9 rounded-md text-[12.5px]">
                 Invite
@@ -323,13 +322,7 @@ export function TeamPanel({
                     {u.email}
                   </p>
                 </div>
-                <RoleBadge role={u.role} />
-                <Badge
-                  variant="outline"
-                  className="rounded-md text-[10.5px] font-normal"
-                >
-                  {ROLE_LABEL[u.role]}
-                </Badge>
+                <RoleBadge role={u.role} label={u.roleName} />
               </li>
             );
           })}
@@ -515,61 +508,6 @@ export function BillingPanel() {
         </div>
       </SectionCard>
     </div>
-  );
-}
-
-export function IntegrationsPanel() {
-  const integrations = [
-    { name: "Stripe", description: "Card payments and payouts", connected: true, icon: CreditCard },
-    { name: "QuickBooks", description: "Sync sales and expenses", connected: true, icon: Globe },
-    { name: "Slack", description: "Operational alerts in #brewline-ops", connected: true, icon: Hash },
-    { name: "Mailchimp", description: "Customer marketing campaigns", connected: false, icon: Mail },
-    { name: "GitHub", description: "Connect your menu repo", connected: false, icon: Code2 },
-  ];
-
-  return (
-    <SectionCard
-      title="Integrations"
-      description="Connect Brewline with the tools you already use"
-      contentClassName="p-0"
-    >
-      <ul className="divide-y">
-        {integrations.map((i) => {
-          const Icon = i.icon;
-          return (
-            <li
-              key={i.name}
-              className="flex items-center gap-3 px-4 py-3 md:px-5"
-            >
-              <span className="flex size-9 items-center justify-center rounded-md bg-secondary text-secondary-foreground">
-                <Icon className="size-4" />
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-[13px] font-medium">{i.name}</p>
-                <p className="truncate text-[11.5px] text-muted-foreground">
-                  {i.description}
-                </p>
-              </div>
-              {i.connected ? (
-                <Badge className="rounded-md border-success/20 bg-success/12 text-success">
-                  Connected
-                </Badge>
-              ) : (
-                <ConnectIntegrationDialog
-                  name={i.name}
-                  description={i.description}
-                  trigger={
-                    <Button variant="outline" size="sm" className="h-7 rounded-md text-[11.5px]">
-                      Connect
-                    </Button>
-                  }
-                />
-              )}
-            </li>
-          );
-        })}
-      </ul>
-    </SectionCard>
   );
 }
 

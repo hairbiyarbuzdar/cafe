@@ -4,16 +4,71 @@ import { cookies } from "next/headers";
 import bcrypt from "bcryptjs";
 
 import { prisma } from "@/lib/prisma";
+import { ensureBuiltInRoles } from "@/lib/roles-seed";
 import {
   SESSION_COOKIE,
   SESSION_MAX_AGE,
   serializeSession,
 } from "@/lib/session";
-import type { Role, SessionUser } from "@/types/auth";
+import type { Permission, Role, SessionUser } from "@/types/auth";
 
 export type AuthActionResult =
   | { ok: true; user: SessionUser }
   | { ok: false; error: string };
+
+const USER_SELECT = {
+  id: true,
+  name: true,
+  email: true,
+  phone: true,
+  role: true,
+  avatar: true,
+  defaultRoute: true,
+  monthlySalary: true,
+  roleRef: {
+    select: { name: true, permissions: true, defaultRoute: true },
+  },
+} as const;
+
+type LoadedUser = {
+  id: string;
+  name: string;
+  email: string;
+  phone: string | null;
+  role: string;
+  avatar: string | null;
+  defaultRoute: string | null;
+  monthlySalary: { toNumber?: () => number } | null | string | number;
+  roleRef: {
+    name: string;
+    permissions: unknown;
+    defaultRoute: string | null;
+  } | null;
+};
+
+function toSessionUser(row: LoadedUser): SessionUser {
+  const permissions = Array.isArray(row.roleRef?.permissions)
+    ? (row.roleRef.permissions as Permission[])
+    : [];
+  const monthlySalary =
+    row.monthlySalary == null
+      ? null
+      : typeof row.monthlySalary === "object" && "toNumber" in row.monthlySalary
+        ? row.monthlySalary.toNumber!()
+        : Number(row.monthlySalary);
+  return {
+    id: row.id,
+    name: row.name,
+    email: row.email,
+    phone: row.phone,
+    role: row.role,
+    roleName: row.roleRef?.name,
+    permissions,
+    avatar: row.avatar,
+    defaultRoute: row.defaultRoute ?? row.roleRef?.defaultRoute ?? null,
+    monthlySalary,
+  };
+}
 
 /**
  * Credential sign-in. Returns the public user record on success; the
@@ -29,34 +84,19 @@ export async function signInAction(
     return { ok: false, error: "Email and password are required" };
   }
 
-  const user = await prisma.user.findUnique({
+  const row = await prisma.user.findUnique({
     where: { email: trimmed },
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      role: true,
-      avatar: true,
-      passwordHash: true,
-    },
+    select: { ...USER_SELECT, passwordHash: true },
   });
-  if (!user) return { ok: false, error: "Invalid email or password" };
+  if (!row) return { ok: false, error: "Invalid email or password" };
 
-  const matches = await bcrypt.compare(password, user.passwordHash);
+  const matches = await bcrypt.compare(password, row.passwordHash);
   if (!matches) return { ok: false, error: "Invalid email or password" };
 
-  await writeSessionCookie(user.id, user.role);
+  const user = toSessionUser(row);
+  await writeSessionCookie(user);
 
-  return {
-    ok: true,
-    user: {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      avatar: user.avatar,
-    },
-  };
+  return { ok: true, user };
 }
 
 /**
@@ -65,13 +105,14 @@ export async function signInAction(
  * this build is explicitly a demo. Gate or remove for production.
  */
 export async function demoSignInAction(userId: string): Promise<AuthActionResult> {
-  const user = await prisma.user.findUnique({
+  const row = await prisma.user.findUnique({
     where: { id: userId },
-    select: { id: true, name: true, email: true, role: true, avatar: true },
+    select: USER_SELECT,
   });
-  if (!user) return { ok: false, error: "User not found" };
+  if (!row) return { ok: false, error: "User not found" };
 
-  await writeSessionCookie(user.id, user.role);
+  const user = toSessionUser(row);
+  await writeSessionCookie(user);
   return { ok: true, user };
 }
 
@@ -107,6 +148,10 @@ export async function completeOnboardingAction(
     return { ok: false, error: "Password must be at least 6 characters" };
   }
 
+  // First touch of the workspace — make sure the built-in roles are
+  // present so `User.role = "admin"` has a valid FK target.
+  await ensureBuiltInRoles();
+
   const existing = await prisma.user.count();
   if (existing > 0) {
     return {
@@ -116,20 +161,26 @@ export async function completeOnboardingAction(
   }
 
   const passwordHash = await bcrypt.hash(password, 10);
-  const user = await prisma.user.create({
+  const row = await prisma.user.create({
     data: { name, email, passwordHash, role: "admin" },
-    select: { id: true, name: true, email: true, role: true, avatar: true },
+    select: USER_SELECT,
   });
 
-  await writeSessionCookie(user.id, user.role);
+  const user = toSessionUser(row);
+  await writeSessionCookie(user);
   return { ok: true, user };
 }
 
-async function writeSessionCookie(userId: string, role: Role) {
+export async function writeSessionCookie(user: SessionUser) {
   const store = await cookies();
   store.set({
     name: SESSION_COOKIE,
-    value: serializeSession(userId, role),
+    value: serializeSession(
+      user.id,
+      user.role,
+      user.permissions ?? [],
+      user.defaultRoute,
+    ),
     httpOnly: false, // client store reads it on hydration for demo UX
     sameSite: "lax",
     path: "/",

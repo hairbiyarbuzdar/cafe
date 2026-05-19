@@ -7,16 +7,10 @@
  * user record is resolved server-side via Prisma — see `lib/auth.ts`.
  */
 
-import type { Role, SessionCookie } from "@/types/auth";
+import type { Permission, Role, SessionCookie } from "@/types/auth";
 
 export const SESSION_COOKIE = "brewline_session";
 export const SESSION_MAX_AGE = 60 * 60 * 24 * 7; // 7 days
-
-const ROLES: Role[] = ["admin", "manager", "cashier", "kitchen"];
-
-function isRole(value: unknown): value is Role {
-  return typeof value === "string" && (ROLES as string[]).includes(value);
-}
 
 export function parseSession(raw: string | undefined | null): SessionCookie | null {
   if (!raw) return null;
@@ -25,18 +19,42 @@ export function parseSession(raw: string | undefined | null): SessionCookie | nu
     if (
       typeof parsed.userId !== "string" ||
       typeof parsed.issuedAt !== "number" ||
-      !isRole(parsed.role)
+      typeof parsed.role !== "string" ||
+      parsed.role.length === 0
     ) {
       return null;
     }
-    return { userId: parsed.userId, role: parsed.role, issuedAt: parsed.issuedAt };
+    const permissions: Permission[] = Array.isArray(parsed.permissions)
+      ? (parsed.permissions.filter((p) => typeof p === "string") as Permission[])
+      : [];
+    return {
+      userId: parsed.userId,
+      role: parsed.role,
+      permissions,
+      defaultRoute:
+        typeof parsed.defaultRoute === "string" && parsed.defaultRoute
+          ? parsed.defaultRoute
+          : undefined,
+      issuedAt: parsed.issuedAt,
+    };
   } catch {
     return null;
   }
 }
 
-export function serializeSession(userId: string, role: Role): string {
+export function serializeSession(
+  userId: string,
+  role: Role,
+  permissions: Permission[],
+  defaultRoute?: string | null,
+): string {
   return encodeURIComponent(
-    JSON.stringify({ userId, role, issuedAt: Date.now() } satisfies SessionCookie),
+    JSON.stringify({
+      userId,
+      role,
+      permissions,
+      defaultRoute: defaultRoute ?? undefined,
+      issuedAt: Date.now(),
+    } satisfies SessionCookie),
   );
 }

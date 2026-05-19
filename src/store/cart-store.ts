@@ -16,6 +16,7 @@ type CartState = {
   note: string;
   discountPct: number;
   taxRate: number;
+  taxLabel: string;
   /**
    * When set, the cart represents *additions* to an existing held order
    * rather than a fresh placement. The cart panel renders an "Adding to
@@ -33,6 +34,7 @@ type CartState = {
   setTableId: (tableId: string | undefined) => void;
   setNote: (note: string) => void;
   setDiscountPct: (pct: number) => void;
+  setTaxConfig: (rate: number, label: string) => void;
   /** Bind the cart to a held order — subsequent items are added to it. */
   attach: (orderId: string, orderNumber: string) => void;
   detach: () => void;
@@ -45,6 +47,7 @@ export const useCart = create<CartState>((set) => ({
   note: "",
   discountPct: 0,
   taxRate: 0.085,
+  taxLabel: "Tax",
   attachedOrderId: null,
   attachedOrderNumber: null,
 
@@ -123,6 +126,7 @@ export const useCart = create<CartState>((set) => ({
   setTableId: (tableId) => set({ tableId }),
   setNote: (note) => set({ note }),
   setDiscountPct: (discountPct) => set({ discountPct }),
+  setTaxConfig: (taxRate, taxLabel) => set({ taxRate, taxLabel }),
 
   attach: (orderId, orderNumber) =>
     set({ attachedOrderId: orderId, attachedOrderNumber: orderNumber }),

@@ -9,7 +9,18 @@
  * passwords with bcrypt (see `src/lib/actions/auth.ts`).
  */
 
-export type Role = "admin" | "manager" | "cashier" | "kitchen";
+/**
+ * Role slug. Used to be a closed union; now a free-form string because
+ * custom roles can be added from Settings → Roles. The four built-ins
+ * (admin / manager / cashier / kitchen) are always present — see
+ * `BUILT_IN_ROLES` in `src/lib/roles-seed.ts`.
+ */
+export type Role = string;
+
+/** Slugs of the four roles that are seeded on every boot. Useful
+ * when code genuinely needs to compare against a built-in (e.g.
+ * "is this user an admin?"). New roles never share these slugs. */
+export type BuiltInRole = "admin" | "manager" | "cashier" | "kitchen";
 
 export type Permission =
   | "pos.access"
@@ -36,8 +47,17 @@ export type SessionUser = {
   id: string;
   name: string;
   email: string;
+  phone?: string | null;
   role: Role;
+  /** Display name of the role (e.g. "Administrator", "Head chef"). */
+  roleName?: string;
+  /** Denormalized permission slugs from the user's role. Keep this
+   * field populated on every server query that surfaces a SessionUser
+   * so client-side `hasPermission(user, …)` calls always work. */
+  permissions?: Permission[];
   avatar?: string | null;
+  defaultRoute?: string | null;
+  monthlySalary?: number | null;
 };
 
 /**
@@ -47,6 +67,14 @@ export type SessionUser = {
 export type SessionCookie = {
   userId: string;
   role: Role;
+  /** Permission slugs granted to the user via their role. Embedded
+   * so the edge proxy + client-side components can authorise without
+   * a DB round-trip. Refreshed on each sign-in and on profile/role
+   * edits. */
+  permissions: Permission[];
+  /** Optional per-user landing route; the proxy reads this when
+   * redirecting "/" so the user lands on their preferred page. */
+  defaultRoute?: string;
   issuedAt: number;
 };
 

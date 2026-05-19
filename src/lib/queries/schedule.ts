@@ -8,12 +8,15 @@ export type ScheduleShift = {
   userId: string;
   userName: string;
   role: Role;
+  /** ISO date "YYYY-MM-DD" — what the create/update actions write. */
+  date: string;
   /** Day-of-week label ("Mon"…"Sun") — same as the UI grid expects. */
   day: string;
   /** Local "HH:mm" string. */
   start: string;
   end: string;
   status: "scheduled" | "confirmed" | "completed" | "missed";
+  notes?: string | null;
 };
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -49,16 +52,21 @@ export async function listThisWeekSchedule(): Promise<ScheduleShift[]> {
     orderBy: [{ date: "asc" }, { start: "asc" }],
   });
 
-  return rows.map((r) => ({
-    id: r.id,
-    userId: r.userId,
-    userName: r.user.name,
-    role: r.user.role as Role,
-    day: DAYS[new Date(r.date).getDay()] ?? "?",
-    start: hhmm(r.start),
-    end: hhmm(r.end),
-    status: r.status,
-  }));
+  return rows.map((r) => {
+    const dayDate = new Date(r.date);
+    return {
+      id: r.id,
+      userId: r.userId,
+      userName: r.user.name,
+      role: r.user.role as Role,
+      date: dayDate.toISOString().slice(0, 10),
+      day: DAYS[dayDate.getDay()] ?? "?",
+      start: hhmm(r.start),
+      end: hhmm(r.end),
+      status: r.status,
+      notes: r.notes,
+    };
+  });
 }
 
 export type AttendanceBucket = {

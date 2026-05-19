@@ -6,15 +6,26 @@ import bcrypt from "bcryptjs";
 import { logActivity } from "@/lib/activity";
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import type { Role, SessionUser } from "@/types/auth";
+import type { Permission, Role, SessionUser } from "@/types/auth";
 
-const ROLES: readonly Role[] = ["admin", "manager", "cashier", "kitchen"];
+async function isValidRoleSlug(slug: string): Promise<boolean> {
+  if (!slug) return false;
+  const found = await prisma.role.findUnique({
+    where: { id: slug },
+    select: { id: true },
+  });
+  return !!found;
+}
 
 // ──────────────────────────────────────────────────────────────
 // Pending members (drafts created from the Staff page)
 // ──────────────────────────────────────────────────────────────
 
-export type CreatePendingMemberInput = { name: string; email: string };
+export type CreatePendingMemberInput = {
+  name: string;
+  email: string;
+  phone?: string | null;
+};
 
 export type CreatePendingMemberResult =
   | { ok: true; id: string }
@@ -30,12 +41,16 @@ export async function createPendingMemberAction(
 ): Promise<CreatePendingMemberResult> {
   const name = input.name?.trim();
   const email = input.email?.trim().toLowerCase();
+  const phone = input.phone?.trim() || null;
 
   if (!name || name.length < 2) {
     return { ok: false, error: "Name is required" };
   }
   if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
     return { ok: false, error: "Enter a valid email" };
+  }
+  if (phone && phone.length > 32) {
+    return { ok: false, error: "Phone is too long" };
   }
 
   // Either a live user or a pending draft with this email is a conflict.
@@ -48,7 +63,7 @@ export async function createPendingMemberAction(
 
   try {
     const created = await prisma.pendingMember.create({
-      data: { name, email },
+      data: { name, email, phone },
       select: { id: true },
     });
     revalidatePath("/staff");
@@ -88,7 +103,9 @@ export async function invitePendingMemberAction(
   input: InvitePendingMemberInput,
 ): Promise<InvitePendingMemberResult> {
   if (!input.pendingId) return { ok: false, error: "Pick a member to invite" };
-  if (!ROLES.includes(input.role)) return { ok: false, error: "Invalid role" };
+  if (!(await isValidRoleSlug(input.role))) {
+    return { ok: false, error: "Invalid role" };
+  }
   if (!input.password || input.password.length < 6) {
     return { ok: false, error: "Password must be at least 6 characters" };
   }
@@ -115,10 +132,23 @@ export async function invitePendingMemberAction(
         data: {
           name: pending.name,
           email: pending.email,
+          phone: pending.phone,
           role: input.role,
           passwordHash: await bcrypt.hash(input.password, 10),
         },
-        select: { id: true, name: true, email: true, role: true, avatar: true },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          phone: true,
+          role: true,
+          avatar: true,
+          defaultRoute: true,
+          monthlySalary: true,
+          roleRef: {
+            select: { name: true, permissions: true, defaultRoute: true },
+          },
+        },
       });
       await tx.pendingMember.delete({ where: { id: pending.id } });
       return created;
@@ -134,7 +164,23 @@ export async function invitePendingMemberAction(
       description: `${user.role} · ${user.email}`,
     });
 
-    return { ok: true, user };
+    return {
+      ok: true,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        role: user.role,
+        roleName: user.roleRef?.name,
+        permissions: Array.isArray(user.roleRef?.permissions)
+          ? (user.roleRef.permissions as Permission[])
+          : [],
+        avatar: user.avatar,
+        defaultRoute: user.defaultRoute ?? user.roleRef?.defaultRoute ?? null,
+        monthlySalary: user.monthlySalary ? Number(user.monthlySalary) : null,
+      },
+    };
   } catch (err) {
     console.error("invitePendingMemberAction failed", err);
     return {
@@ -161,7 +207,9 @@ export async function updateUserRoleAction(
   userId: string,
   role: Role,
 ): Promise<UpdateUserRoleResult> {
-  if (!ROLES.includes(role)) return { ok: false, error: "Invalid role" };
+  if (!(await isValidRoleSlug(role))) {
+    return { ok: false, error: "Invalid role" };
+  }
 
   const target = await prisma.user.findUnique({
     where: { id: userId },
@@ -196,21 +244,35 @@ export type UpdateMemberInput = {
   type: "user" | "pending";
   name: string;
   email: string;
+  phone?: string | null;
+  /** Only honored when type === "user". Null clears the salary. */
+  monthlySalary?: number | null;
 };
 
 export type UpdateMemberResult =
   | { ok: true }
   | { ok: false; error: string };
 
-/** Patch name / email on either a live user or a pending draft. */
+/** Patch name / email / phone (and salary for live users) on either
+ * a live user or a pending draft. */
 export async function updateMemberAction(
   input: UpdateMemberInput,
 ): Promise<UpdateMemberResult> {
   const name = input.name?.trim();
   const email = input.email?.trim().toLowerCase();
+  const phone = input.phone?.trim() || null;
   if (!name || name.length < 2) return { ok: false, error: "Name is required" };
   if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
     return { ok: false, error: "Enter a valid email" };
+  }
+  if (phone && phone.length > 32) {
+    return { ok: false, error: "Phone is too long" };
+  }
+  if (
+    input.monthlySalary != null &&
+    (!Number.isFinite(input.monthlySalary) || input.monthlySalary < 0)
+  ) {
+    return { ok: false, error: "Salary must be a positive number" };
   }
 
   // Reject if the new email collides with anyone else (user or draft).
@@ -227,11 +289,19 @@ export async function updateMemberAction(
 
   try {
     if (input.type === "user") {
-      await prisma.user.update({ where: { id: input.id }, data: { name, email } });
+      await prisma.user.update({
+        where: { id: input.id },
+        data: {
+          name,
+          email,
+          phone,
+          monthlySalary: input.monthlySalary ?? null,
+        },
+      });
     } else {
       await prisma.pendingMember.update({
         where: { id: input.id },
-        data: { name, email },
+        data: { name, email, phone },
       });
     }
     revalidatePath("/settings");

@@ -25,22 +25,26 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { invitePendingMemberAction } from "@/lib/actions/users";
-import { ROLE_LABEL } from "@/lib/permissions";
 import type { PendingMember } from "@/lib/queries/users";
-import type { Role } from "@/types/auth";
 
-const ROLES: Role[] = ["admin", "manager", "cashier", "kitchen"];
+type RoleOption = { id: string; name: string };
 
 type Form = {
   pendingId: string;
-  role: Role;
+  role: string;
   password: string;
 };
 
-function emptyForm(pending: PendingMember[]): Form {
+function pickDefaultRole(roles: RoleOption[]): string {
+  return (
+    roles.find((r) => r.id === "cashier")?.id ?? roles[0]?.id ?? ""
+  );
+}
+
+function emptyForm(pending: PendingMember[], roles: RoleOption[]): Form {
   return {
     pendingId: pending[0]?.id ?? "",
-    role: "cashier",
+    role: pickDefaultRole(roles),
     password: "",
   };
 }
@@ -53,34 +57,37 @@ function emptyForm(pending: PendingMember[]): Form {
  */
 export function InviteMemberDialog({
   pending,
+  roles,
   trigger,
 }: {
   pending: PendingMember[];
+  roles: RoleOption[];
   trigger?: React.ReactNode;
 }) {
   const router = useRouter();
   const [open, setOpen] = React.useState(false);
-  const [form, setForm] = React.useState<Form>(() => emptyForm(pending));
+  const [form, setForm] = React.useState<Form>(() => emptyForm(pending, roles));
   const [showPassword, setShowPassword] = React.useState(false);
   const [submitting, setSubmitting] = React.useState(false);
 
   React.useEffect(() => {
     if (!open) return;
-    setForm(emptyForm(pending));
+    setForm(emptyForm(pending, roles));
     setShowPassword(false);
-  }, [open, pending]);
+  }, [open, pending, roles]);
 
   const selected = pending.find((p) => p.id === form.pendingId);
+  const selectedRole = roles.find((r) => r.id === form.role);
   const hasPending = pending.length > 0;
   const canSave =
-    Boolean(form.pendingId) && form.password.length >= 6 && ROLES.includes(form.role);
+    Boolean(form.pendingId) && form.password.length >= 6 && !!selectedRole;
 
   function patch<K extends keyof Form>(key: K, value: Form[K]) {
     setForm((f) => ({ ...f, [key]: value }));
   }
 
   async function handleSave() {
-    if (!canSave || !selected || submitting) return;
+    if (!canSave || !selected || !selectedRole || submitting) return;
     setSubmitting(true);
     try {
       const result = await invitePendingMemberAction({
@@ -93,7 +100,7 @@ export function InviteMemberDialog({
         return;
       }
       toast.success(`${result.user.name} can now sign in`, {
-        description: `${ROLE_LABEL[result.user.role]} · ${result.user.email}`,
+        description: `${result.user.roleName ?? selectedRole.name} · ${result.user.email}`,
       });
       setOpen(false);
       router.refresh();
@@ -147,15 +154,15 @@ export function InviteMemberDialog({
             <Field label="Role">
               <Select
                 value={form.role}
-                onValueChange={(v) => patch("role", v as Role)}
+                onValueChange={(v) => patch("role", v)}
               >
                 <SelectTrigger className="h-10">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {ROLES.map((r) => (
-                    <SelectItem key={r} value={r}>
-                      {ROLE_LABEL[r]}
+                  {roles.map((r) => (
+                    <SelectItem key={r.id} value={r.id}>
+                      {r.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
