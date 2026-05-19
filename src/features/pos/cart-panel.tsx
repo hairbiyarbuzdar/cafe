@@ -54,6 +54,7 @@ export function CartPanel({
   const note = useCart((s) => s.note);
   const discountPct = useCart((s) => s.discountPct);
   const tableId = useCart((s) => s.tableId);
+  const guests = useCart((s) => s.guests);
   const taxRate = useCart((s) => s.taxRate);
   const taxLabel = useCart((s) => s.taxLabel);
   const attachedOrderId = useCart((s) => s.attachedOrderId);
@@ -61,6 +62,7 @@ export function CartPanel({
   const setNote = useCart((s) => s.setNote);
   const setDiscountPct = useCart((s) => s.setDiscountPct);
   const setQuantity = useCart((s) => s.setQuantity);
+  const setGuests = useCart((s) => s.setGuests);
   const remove = useCart((s) => s.remove);
   const clear = useCart((s) => s.clear);
   const detach = useCart((s) => s.detach);
@@ -141,7 +143,39 @@ export function CartPanel({
         </div>
       ) : null}
 
-      {channel === "dine-in" && !isAttach ? <TablePicker /> : null}
+      {channel === "dine-in" && !isAttach ? (
+        <>
+          <TablePicker />
+          <div className="flex items-center justify-between gap-3 border-b px-4 py-2">
+            <span className="text-[12.5px] text-muted-foreground">
+              Guests
+            </span>
+            <div className="inline-flex items-center overflow-hidden rounded-md border bg-card">
+              <button
+                type="button"
+                onClick={() => setGuests(guests - 1)}
+                disabled={guests <= 1}
+                className="flex size-8 items-center justify-center text-muted-foreground transition hover:bg-muted disabled:opacity-40"
+                aria-label="Decrease guests"
+              >
+                <Minus className="size-3.5" />
+              </button>
+              <span className="min-w-9 text-center text-[13px] font-medium tabular-nums">
+                {guests}
+              </span>
+              <button
+                type="button"
+                onClick={() => setGuests(guests + 1)}
+                disabled={guests >= 20}
+                className="flex size-8 items-center justify-center text-muted-foreground transition hover:bg-muted disabled:opacity-40"
+                aria-label="Increase guests"
+              >
+                <Plus className="size-3.5" />
+              </button>
+            </div>
+          </div>
+        </>
+      ) : null}
 
       <ScrollArea className="min-h-0 flex-1">
         {items.length === 0 ? (

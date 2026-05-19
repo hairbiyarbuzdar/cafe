@@ -122,7 +122,8 @@ export function TablesDialog({ open, onOpenChange }: Props) {
   async function handleSelect(t: Table) {
     selectTable(t.id);
     setCartTableId(t.id);
-    if (t.occupancy === 0) await setOccupancy(t.id, 1);
+    // Occupancy is bumped by `placeOrderAction` based on the cart's
+    // guest count — assigning a table no longer pre-takes a seat.
     toast.success(`Order assigned to ${t.name}`);
     onOpenChange(false);
   }

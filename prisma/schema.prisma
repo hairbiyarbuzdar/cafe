@@ -298,6 +298,10 @@ model Order {
   buyerCnic     String?
   tableId       String?
   table         Table?          @relation(fields: [tableId], references: [id])
+  /// Party size for dine-in orders. Drives how many of the table's
+  /// seats the order takes up. 1 by default; 0 for non-dine-in
+  /// channels (the column is still required so totals stay simple).
+  guests        Int             @default(1)
   staffId       String?
   staff         User?           @relation(fields: [staffId], references: [id], onDelete: SetNull)
   subtotal      Decimal         @db.Decimal(10, 2)

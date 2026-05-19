@@ -13,6 +13,9 @@ type CartState = {
   items: CartItem[];
   channel: OrderChannel;
   tableId?: string;
+  /** Party size for dine-in orders. Sent with the placed order and
+   * used to bump the seated table's occupancy. */
+  guests: number;
   note: string;
   discountPct: number;
   taxRate: number;
@@ -32,6 +35,7 @@ type CartState = {
   clear: () => void;
   setChannel: (channel: OrderChannel) => void;
   setTableId: (tableId: string | undefined) => void;
+  setGuests: (guests: number) => void;
   setNote: (note: string) => void;
   setDiscountPct: (pct: number) => void;
   setTaxConfig: (rate: number, label: string) => void;
@@ -44,6 +48,7 @@ export const useCart = create<CartState>((set) => ({
   items: [],
   channel: "dine-in",
   tableId: undefined,
+  guests: 1,
   note: "",
   discountPct: 0,
   taxRate: 0.085,
@@ -116,14 +121,18 @@ export const useCart = create<CartState>((set) => ({
       note: "",
       discountPct: 0,
       tableId: undefined,
+      guests: 1,
     }),
 
   setChannel: (channel) =>
     set((state) => ({
       channel,
       tableId: channel === "dine-in" ? state.tableId : undefined,
+      guests: channel === "dine-in" ? state.guests : 0,
     })),
   setTableId: (tableId) => set({ tableId }),
+  setGuests: (guests) =>
+    set({ guests: Math.max(1, Math.min(20, Math.floor(guests))) }),
   setNote: (note) => set({ note }),
   setDiscountPct: (discountPct) => set({ discountPct }),
   setTaxConfig: (taxRate, taxLabel) => set({ taxRate, taxLabel }),

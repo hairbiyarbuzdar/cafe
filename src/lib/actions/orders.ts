@@ -82,6 +82,9 @@ export type PlaceOrderInput = {
   items: CheckoutItem[];
   channel: OrderChannel;
   tableId?: string;
+  /** Party size for dine-in (defaults to 1). Used to bump the
+   * table's occupancy by exactly this much; cleared on pay/cancel. */
+  guests?: number;
   note?: string;
   /** 0–100, cashier-applied discount percentage. */
   discountPct: number;
@@ -111,6 +114,29 @@ export async function placeOrderAction(
     return { ok: false, error: "Invalid tax rate" };
   }
 
+  // Normalise guests: dine-in defaults to 1; other channels store 0.
+  const isDineIn = input.channel === "dine-in" && !!input.tableId;
+  const requestedGuests = isDineIn ? Math.max(1, Math.floor(input.guests ?? 1)) : 0;
+
+  // Capacity guard — block over-seating with a clear message.
+  if (isDineIn) {
+    const table = await prisma.table.findUnique({
+      where: { id: input.tableId! },
+      select: { id: true, name: true, capacity: true, occupancy: true },
+    });
+    if (!table) return { ok: false, error: "Table not found" };
+    const free = Math.max(0, table.capacity - table.occupancy);
+    if (requestedGuests > free) {
+      return {
+        ok: false,
+        error:
+          free === 0
+            ? `${table.name} is full (${table.capacity}/${table.capacity})`
+            : `${table.name} only has ${free} seat${free === 1 ? "" : "s"} free`,
+      };
+    }
+  }
+
   const session = await getServerSession();
   const priced = await priceCart(input.items);
   if (!priced.ok) return priced;
@@ -134,6 +160,7 @@ export async function placeOrderAction(
           customerName: input.customerName?.trim() || null,
           customerPhone: input.customerPhone?.trim() || null,
           tableId: input.tableId ?? null,
+          guests: requestedGuests,
           staffId: session?.user.id ?? null,
           subtotal: round2(subtotal),
           tax,
@@ -152,6 +179,15 @@ export async function placeOrderAction(
           },
         },
       });
+      if (isDineIn) {
+        // Atomically bump the table's occupancy — the capacity guard
+        // above keeps us within bounds, and doing it inside the
+        // transaction means the row only exists if seats were taken.
+        await tx.table.update({
+          where: { id: input.tableId! },
+          data: { occupancy: { increment: requestedGuests } },
+        });
+      }
       await applyInventoryDelta(tx, ingredientDelta, {
         orderId: created.id,
         sign: -1,
@@ -164,13 +200,14 @@ export async function placeOrderAction(
     revalidatePath("/kitchen");
     revalidatePath("/inventory");
     revalidatePath("/dashboard");
+    if (isDineIn) revalidatePath("/pos");
 
     const itemCount = priced.lines.reduce((s, p) => s + p.line.quantity, 0);
     await logActivity({
       type: "order",
       title: `Order ${order.number} started`,
       description: `${itemCount} item${itemCount === 1 ? "" : "s"} · ${input.channel}${
-        input.tableId ? ` · table ${input.tableId}` : ""
+        input.tableId ? ` · table ${input.tableId}${isDineIn ? ` · ${requestedGuests} guest${requestedGuests === 1 ? "" : "s"}` : ""}` : ""
       }`,
       orderId: order.id,
     });
@@ -335,6 +372,8 @@ export async function cancelHeldOrderAction(
       status: true,
       paidAt: true,
       notes: true,
+      tableId: true,
+      guests: true,
     },
   });
   if (!order) return { ok: false, error: "Order not found" };
@@ -391,11 +430,16 @@ export async function cancelHeldOrderAction(
           },
         });
       }
+      // Free the seats the cancelled order had been holding.
+      if (order.tableId && order.guests > 0) {
+        await tx.$executeRaw`UPDATE "Table" SET "occupancy" = GREATEST(0, "occupancy" - ${order.guests}) WHERE "id" = ${order.tableId}`;
+      }
     });
 
     revalidatePath("/orders");
     revalidatePath("/kitchen");
     revalidatePath("/inventory");
+    if (order.tableId) revalidatePath("/pos");
 
     await logActivity({
       type: "order",
@@ -464,6 +508,8 @@ export async function payOrderAction(
       subtotal: true,
       tax: true,
       discount: true,
+      tableId: true,
+      guests: true,
     },
   });
   if (!order) return { ok: false, error: "Order not found" };
@@ -486,20 +532,30 @@ export async function payOrderAction(
   const total = round2(subtotal - discount + tax + tipAmount);
 
   try {
-    await prisma.order.update({
-      where: { id: order.id },
-      data: {
-        payment: input.payment,
-        paidAt: new Date(),
-        tip: tipAmount > 0 ? tipAmount : null,
-        total,
-        status: "completed",
-      },
+    // Same transaction: stamp the order paid AND free the seats it
+    // occupied. occupancy is clamped to 0 via `Math.max` in raw SQL
+    // so an out-of-band manual reset earlier in the day can't push
+    // us negative.
+    await prisma.$transaction(async (tx) => {
+      await tx.order.update({
+        where: { id: order.id },
+        data: {
+          payment: input.payment,
+          paidAt: new Date(),
+          tip: tipAmount > 0 ? tipAmount : null,
+          total,
+          status: "completed",
+        },
+      });
+      if (order.tableId && order.guests > 0) {
+        await tx.$executeRaw`UPDATE "Table" SET "occupancy" = GREATEST(0, "occupancy" - ${order.guests}) WHERE "id" = ${order.tableId}`;
+      }
     });
 
     revalidatePath("/orders");
     revalidatePath("/kitchen");
     revalidatePath("/dashboard");
+    if (order.tableId) revalidatePath("/pos");
 
     await logActivity({
       type: "order",

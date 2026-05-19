@@ -281,6 +281,7 @@ exports.Prisma.OrderScalarFieldEnum = {
   buyerNtn: 'buyerNtn',
   buyerCnic: 'buyerCnic',
   tableId: 'tableId',
+  guests: 'guests',
   staffId: 'staffId',
   subtotal: 'subtotal',
   tax: 'tax',
