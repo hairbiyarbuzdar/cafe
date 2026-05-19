@@ -57,6 +57,7 @@ export type UpdateWorkspaceInput = {
   city?: string | null;
   addressLine?: string | null;
   receiptFooter?: string | null;
+  receiptWidth?: "80" | "58";
   hours: Record<DayKey, DayHoursInput>;
 };
 
@@ -121,6 +122,8 @@ export async function updateWorkspaceAction(
     }
   }
 
+  const receiptWidth = input.receiptWidth === "58" ? "58" : "80";
+
   const data = {
     name,
     legalEntity: input.legalEntity?.trim() || null,
@@ -130,6 +133,7 @@ export async function updateWorkspaceAction(
     city: input.city?.trim() || null,
     addressLine: input.addressLine?.trim() || null,
     receiptFooter: input.receiptFooter?.trim() || null,
+    receiptWidth,
     ...hoursPatch,
   };
 

@@ -25,8 +25,14 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { buildPaymentReceipt } from "@/features/receipts/build";
+import {
+  ReceiptPreviewDialog,
+  type ReceiptPayload,
+} from "@/features/receipts/receipt-preview-dialog";
 import { payOrderAction } from "@/lib/actions/orders";
 import type { PaymentChannel } from "@/lib/queries/payment-channels";
+import { useWorkspace } from "@/store/workspace-store";
 import { cn, formatCurrency } from "@/lib/utils";
 import type { Order, PaymentMethod } from "@/types";
 
@@ -57,11 +63,14 @@ export function TakePaymentDialog({
     [channels],
   );
 
+  const workspace = useWorkspace((s) => s.workspace);
   const [channelId, setChannelId] = React.useState<string>(
     activeChannels[0]?.id ?? "",
   );
   const [tipStr, setTipStr] = React.useState("");
   const [submitting, setSubmitting] = React.useState(false);
+  const [receiptOpen, setReceiptOpen] = React.useState(false);
+  const [receipts, setReceipts] = React.useState<ReceiptPayload[]>([]);
 
   React.useEffect(() => {
     if (open) {
@@ -97,7 +106,31 @@ export function TakePaymentDialog({
             : ""
         }`,
       });
-      onOpenChange(false);
+
+      // Auto-open the printable payment receipt. We hydrate it from
+      // the order we already have on the client + the just-completed
+      // payment outcome — no extra round-trip.
+      if (workspace) {
+        const payload = buildPaymentReceipt({
+          order: {
+            ...order,
+            payment: selectedChannel.kind,
+            paidAt: new Date().toISOString(),
+            tip: tipNum > 0 ? tipNum : undefined,
+            total: result.total,
+            fiscalInvoiceNumber:
+              result.fiscalInvoiceNumber ?? order.fiscalInvoiceNumber,
+          },
+          workspace,
+          receiptNumber: result.receiptNumber,
+          paymentChannelName: selectedChannel.name,
+        });
+        setReceipts([{ kind: "payment", data: payload }]);
+        setReceiptOpen(true);
+      } else {
+        onOpenChange(false);
+      }
+
       router.refresh();
     } finally {
       setSubmitting(false);
@@ -105,6 +138,7 @@ export function TakePaymentDialog({
   }
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[440px] gap-4 rounded-lg p-0">
         <DialogHeader className="px-5 pt-5">
@@ -240,6 +274,18 @@ export function TakePaymentDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+    <ReceiptPreviewDialog
+      open={receiptOpen}
+      onOpenChange={(o) => {
+        setReceiptOpen(o);
+        if (!o) onOpenChange(false);
+      }}
+      title="Payment receipt"
+      description="Print to thermal, OS print, or download as a PDF."
+      receipts={receipts}
+    />
+    </>
   );
 }
 

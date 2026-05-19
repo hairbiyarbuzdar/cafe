@@ -23376,6 +23376,7 @@ export namespace Prisma {
     city: string | null
     addressLine: string | null
     receiptFooter: string | null
+    receiptWidth: string | null
     hoursMonOpen: string | null
     hoursMonClose: string | null
     hoursTueOpen: string | null
@@ -23403,6 +23404,7 @@ export namespace Prisma {
     city: string | null
     addressLine: string | null
     receiptFooter: string | null
+    receiptWidth: string | null
     hoursMonOpen: string | null
     hoursMonClose: string | null
     hoursTueOpen: string | null
@@ -23430,6 +23432,7 @@ export namespace Prisma {
     city: number
     addressLine: number
     receiptFooter: number
+    receiptWidth: number
     hoursMonOpen: number
     hoursMonClose: number
     hoursTueOpen: number
@@ -23459,6 +23462,7 @@ export namespace Prisma {
     city?: true
     addressLine?: true
     receiptFooter?: true
+    receiptWidth?: true
     hoursMonOpen?: true
     hoursMonClose?: true
     hoursTueOpen?: true
@@ -23486,6 +23490,7 @@ export namespace Prisma {
     city?: true
     addressLine?: true
     receiptFooter?: true
+    receiptWidth?: true
     hoursMonOpen?: true
     hoursMonClose?: true
     hoursTueOpen?: true
@@ -23513,6 +23518,7 @@ export namespace Prisma {
     city?: true
     addressLine?: true
     receiptFooter?: true
+    receiptWidth?: true
     hoursMonOpen?: true
     hoursMonClose?: true
     hoursTueOpen?: true
@@ -23613,6 +23619,7 @@ export namespace Prisma {
     city: string | null
     addressLine: string | null
     receiptFooter: string | null
+    receiptWidth: string
     hoursMonOpen: string | null
     hoursMonClose: string | null
     hoursTueOpen: string | null
@@ -23657,6 +23664,7 @@ export namespace Prisma {
     city?: boolean
     addressLine?: boolean
     receiptFooter?: boolean
+    receiptWidth?: boolean
     hoursMonOpen?: boolean
     hoursMonClose?: boolean
     hoursTueOpen?: boolean
@@ -23684,6 +23692,7 @@ export namespace Prisma {
     city?: boolean
     addressLine?: boolean
     receiptFooter?: boolean
+    receiptWidth?: boolean
     hoursMonOpen?: boolean
     hoursMonClose?: boolean
     hoursTueOpen?: boolean
@@ -23711,6 +23720,7 @@ export namespace Prisma {
     city?: boolean
     addressLine?: boolean
     receiptFooter?: boolean
+    receiptWidth?: boolean
     hoursMonOpen?: boolean
     hoursMonClose?: boolean
     hoursTueOpen?: boolean
@@ -23738,6 +23748,7 @@ export namespace Prisma {
     city?: boolean
     addressLine?: boolean
     receiptFooter?: boolean
+    receiptWidth?: boolean
     hoursMonOpen?: boolean
     hoursMonClose?: boolean
     hoursTueOpen?: boolean
@@ -23755,7 +23766,7 @@ export namespace Prisma {
     updatedAt?: boolean
   }
 
-  export type WorkspaceOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "legalEntity" | "taxId" | "currency" | "timezone" | "city" | "addressLine" | "receiptFooter" | "hoursMonOpen" | "hoursMonClose" | "hoursTueOpen" | "hoursTueClose" | "hoursWedOpen" | "hoursWedClose" | "hoursThuOpen" | "hoursThuClose" | "hoursFriOpen" | "hoursFriClose" | "hoursSatOpen" | "hoursSatClose" | "hoursSunOpen" | "hoursSunClose" | "updatedAt", ExtArgs["result"]["workspace"]>
+  export type WorkspaceOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "legalEntity" | "taxId" | "currency" | "timezone" | "city" | "addressLine" | "receiptFooter" | "receiptWidth" | "hoursMonOpen" | "hoursMonClose" | "hoursTueOpen" | "hoursTueClose" | "hoursWedOpen" | "hoursWedClose" | "hoursThuOpen" | "hoursThuClose" | "hoursFriOpen" | "hoursFriClose" | "hoursSatOpen" | "hoursSatClose" | "hoursSunOpen" | "hoursSunClose" | "updatedAt", ExtArgs["result"]["workspace"]>
 
   export type $WorkspacePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "Workspace"
@@ -23786,6 +23797,12 @@ export namespace Prisma {
        * Footer line printed on each receipt.
        */
       receiptFooter: string | null
+      /**
+       * Thermal paper width in millimeters. "80" (standard café roll) or
+       * "58" (compact handheld roll). Drives every receipt + ticket
+       * layout — see `src/features/receipts/`.
+       */
+      receiptWidth: string
       /**
        * Per-day operating hours. Null = closed that day. Format "HH:mm".
        */
@@ -24236,6 +24253,7 @@ export namespace Prisma {
     readonly city: FieldRef<"Workspace", 'String'>
     readonly addressLine: FieldRef<"Workspace", 'String'>
     readonly receiptFooter: FieldRef<"Workspace", 'String'>
+    readonly receiptWidth: FieldRef<"Workspace", 'String'>
     readonly hoursMonOpen: FieldRef<"Workspace", 'String'>
     readonly hoursMonClose: FieldRef<"Workspace", 'String'>
     readonly hoursTueOpen: FieldRef<"Workspace", 'String'>
@@ -31495,6 +31513,7 @@ export namespace Prisma {
     city: 'city',
     addressLine: 'addressLine',
     receiptFooter: 'receiptFooter',
+    receiptWidth: 'receiptWidth',
     hoursMonOpen: 'hoursMonOpen',
     hoursMonClose: 'hoursMonClose',
     hoursTueOpen: 'hoursTueOpen',
@@ -33205,6 +33224,7 @@ export namespace Prisma {
     city?: StringNullableFilter<"Workspace"> | string | null
     addressLine?: StringNullableFilter<"Workspace"> | string | null
     receiptFooter?: StringNullableFilter<"Workspace"> | string | null
+    receiptWidth?: StringFilter<"Workspace"> | string
     hoursMonOpen?: StringNullableFilter<"Workspace"> | string | null
     hoursMonClose?: StringNullableFilter<"Workspace"> | string | null
     hoursTueOpen?: StringNullableFilter<"Workspace"> | string | null
@@ -33232,6 +33252,7 @@ export namespace Prisma {
     city?: SortOrderInput | SortOrder
     addressLine?: SortOrderInput | SortOrder
     receiptFooter?: SortOrderInput | SortOrder
+    receiptWidth?: SortOrder
     hoursMonOpen?: SortOrderInput | SortOrder
     hoursMonClose?: SortOrderInput | SortOrder
     hoursTueOpen?: SortOrderInput | SortOrder
@@ -33262,6 +33283,7 @@ export namespace Prisma {
     city?: StringNullableFilter<"Workspace"> | string | null
     addressLine?: StringNullableFilter<"Workspace"> | string | null
     receiptFooter?: StringNullableFilter<"Workspace"> | string | null
+    receiptWidth?: StringFilter<"Workspace"> | string
     hoursMonOpen?: StringNullableFilter<"Workspace"> | string | null
     hoursMonClose?: StringNullableFilter<"Workspace"> | string | null
     hoursTueOpen?: StringNullableFilter<"Workspace"> | string | null
@@ -33289,6 +33311,7 @@ export namespace Prisma {
     city?: SortOrderInput | SortOrder
     addressLine?: SortOrderInput | SortOrder
     receiptFooter?: SortOrderInput | SortOrder
+    receiptWidth?: SortOrder
     hoursMonOpen?: SortOrderInput | SortOrder
     hoursMonClose?: SortOrderInput | SortOrder
     hoursTueOpen?: SortOrderInput | SortOrder
@@ -33322,6 +33345,7 @@ export namespace Prisma {
     city?: StringNullableWithAggregatesFilter<"Workspace"> | string | null
     addressLine?: StringNullableWithAggregatesFilter<"Workspace"> | string | null
     receiptFooter?: StringNullableWithAggregatesFilter<"Workspace"> | string | null
+    receiptWidth?: StringWithAggregatesFilter<"Workspace"> | string
     hoursMonOpen?: StringNullableWithAggregatesFilter<"Workspace"> | string | null
     hoursMonClose?: StringNullableWithAggregatesFilter<"Workspace"> | string | null
     hoursTueOpen?: StringNullableWithAggregatesFilter<"Workspace"> | string | null
@@ -35248,6 +35272,7 @@ export namespace Prisma {
     city?: string | null
     addressLine?: string | null
     receiptFooter?: string | null
+    receiptWidth?: string
     hoursMonOpen?: string | null
     hoursMonClose?: string | null
     hoursTueOpen?: string | null
@@ -35275,6 +35300,7 @@ export namespace Prisma {
     city?: string | null
     addressLine?: string | null
     receiptFooter?: string | null
+    receiptWidth?: string
     hoursMonOpen?: string | null
     hoursMonClose?: string | null
     hoursTueOpen?: string | null
@@ -35302,6 +35328,7 @@ export namespace Prisma {
     city?: NullableStringFieldUpdateOperationsInput | string | null
     addressLine?: NullableStringFieldUpdateOperationsInput | string | null
     receiptFooter?: NullableStringFieldUpdateOperationsInput | string | null
+    receiptWidth?: StringFieldUpdateOperationsInput | string
     hoursMonOpen?: NullableStringFieldUpdateOperationsInput | string | null
     hoursMonClose?: NullableStringFieldUpdateOperationsInput | string | null
     hoursTueOpen?: NullableStringFieldUpdateOperationsInput | string | null
@@ -35329,6 +35356,7 @@ export namespace Prisma {
     city?: NullableStringFieldUpdateOperationsInput | string | null
     addressLine?: NullableStringFieldUpdateOperationsInput | string | null
     receiptFooter?: NullableStringFieldUpdateOperationsInput | string | null
+    receiptWidth?: StringFieldUpdateOperationsInput | string
     hoursMonOpen?: NullableStringFieldUpdateOperationsInput | string | null
     hoursMonClose?: NullableStringFieldUpdateOperationsInput | string | null
     hoursTueOpen?: NullableStringFieldUpdateOperationsInput | string | null
@@ -35356,6 +35384,7 @@ export namespace Prisma {
     city?: string | null
     addressLine?: string | null
     receiptFooter?: string | null
+    receiptWidth?: string
     hoursMonOpen?: string | null
     hoursMonClose?: string | null
     hoursTueOpen?: string | null
@@ -35383,6 +35412,7 @@ export namespace Prisma {
     city?: NullableStringFieldUpdateOperationsInput | string | null
     addressLine?: NullableStringFieldUpdateOperationsInput | string | null
     receiptFooter?: NullableStringFieldUpdateOperationsInput | string | null
+    receiptWidth?: StringFieldUpdateOperationsInput | string
     hoursMonOpen?: NullableStringFieldUpdateOperationsInput | string | null
     hoursMonClose?: NullableStringFieldUpdateOperationsInput | string | null
     hoursTueOpen?: NullableStringFieldUpdateOperationsInput | string | null
@@ -35410,6 +35440,7 @@ export namespace Prisma {
     city?: NullableStringFieldUpdateOperationsInput | string | null
     addressLine?: NullableStringFieldUpdateOperationsInput | string | null
     receiptFooter?: NullableStringFieldUpdateOperationsInput | string | null
+    receiptWidth?: StringFieldUpdateOperationsInput | string
     hoursMonOpen?: NullableStringFieldUpdateOperationsInput | string | null
     hoursMonClose?: NullableStringFieldUpdateOperationsInput | string | null
     hoursTueOpen?: NullableStringFieldUpdateOperationsInput | string | null
@@ -37271,6 +37302,7 @@ export namespace Prisma {
     city?: SortOrder
     addressLine?: SortOrder
     receiptFooter?: SortOrder
+    receiptWidth?: SortOrder
     hoursMonOpen?: SortOrder
     hoursMonClose?: SortOrder
     hoursTueOpen?: SortOrder
@@ -37298,6 +37330,7 @@ export namespace Prisma {
     city?: SortOrder
     addressLine?: SortOrder
     receiptFooter?: SortOrder
+    receiptWidth?: SortOrder
     hoursMonOpen?: SortOrder
     hoursMonClose?: SortOrder
     hoursTueOpen?: SortOrder
@@ -37325,6 +37358,7 @@ export namespace Prisma {
     city?: SortOrder
     addressLine?: SortOrder
     receiptFooter?: SortOrder
+    receiptWidth?: SortOrder
     hoursMonOpen?: SortOrder
     hoursMonClose?: SortOrder
     hoursTueOpen?: SortOrder

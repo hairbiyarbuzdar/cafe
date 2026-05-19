@@ -19,6 +19,8 @@ export type DayHours = {
   close: string | null;
 };
 
+export type ReceiptWidth = "80" | "58";
+
 export type Workspace = {
   id: string;
   name: string;
@@ -29,6 +31,7 @@ export type Workspace = {
   city: string | null;
   addressLine: string | null;
   receiptFooter: string | null;
+  receiptWidth: ReceiptWidth;
   hours: Record<WeekDay, DayHours>;
   updatedAt: string;
 };
@@ -51,6 +54,7 @@ export async function getWorkspace(): Promise<Workspace | null> {
     city: row.city,
     addressLine: row.addressLine,
     receiptFooter: row.receiptFooter,
+    receiptWidth: row.receiptWidth === "58" ? "58" : "80",
     hours: {
       mon: { open: row.hoursMonOpen, close: row.hoursMonClose },
       tue: { open: row.hoursTueOpen, close: row.hoursTueClose },

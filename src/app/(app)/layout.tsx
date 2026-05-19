@@ -59,6 +59,7 @@ export default async function AppLayout({
         inventory={inventory}
         tables={tables}
         tax={tax}
+        workspace={workspace}
       />
       <SidebarProvider defaultOpen={defaultOpen}>
         <AmbientBackground />

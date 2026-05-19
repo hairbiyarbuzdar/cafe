@@ -420,6 +420,10 @@ model Workspace {
   addressLine   String?
   /// Footer line printed on each receipt.
   receiptFooter String?
+  /// Thermal paper width in millimeters. "80" (standard café roll) or
+  /// "58" (compact handheld roll). Drives every receipt + ticket
+  /// layout — see `src/features/receipts/`.
+  receiptWidth  String   @default("80")
   /// Per-day operating hours. Null = closed that day. Format "HH:mm".
   hoursMonOpen  String?  @default("06:30")
   hoursMonClose String?  @default("20:30")

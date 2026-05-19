@@ -67,6 +67,7 @@ type FormState = {
   city: string;
   addressLine: string;
   receiptFooter: string;
+  receiptWidth: "80" | "58";
   hours: Record<DayKey, { open: string | null; close: string | null }>;
 };
 
@@ -80,6 +81,7 @@ function workspaceToForm(w: Workspace): FormState {
     city: w.city ?? "",
     addressLine: w.addressLine ?? "",
     receiptFooter: w.receiptFooter ?? "",
+    receiptWidth: w.receiptWidth,
     hours: {
       mon: w.hours.mon,
       tue: w.hours.tue,
@@ -131,6 +133,7 @@ export function WorkspacePanel({ workspace }: { workspace: Workspace }) {
         city: form.city.trim() || null,
         addressLine: form.addressLine.trim() || null,
         receiptFooter: form.receiptFooter.trim() || null,
+        receiptWidth: form.receiptWidth,
         hours: form.hours,
       });
       if (!result.ok) {
@@ -245,6 +248,27 @@ export function WorkspacePanel({ workspace }: { workspace: Workspace }) {
             />
             <p className="text-[11.5px] text-muted-foreground">
               Printed at the bottom of every receipt. Leave blank to omit.
+            </p>
+          </Field>
+          <Field
+            label="Thermal roll width"
+            htmlFor="ws-width"
+            className="md:col-span-2"
+          >
+            <Select
+              value={form.receiptWidth}
+              onValueChange={(v) => patch("receiptWidth", v === "58" ? "58" : "80")}
+            >
+              <SelectTrigger id="ws-width" className="h-10">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="80">80 mm (standard café roll)</SelectItem>
+                <SelectItem value="58">58 mm (compact / handheld roll)</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-[11.5px] text-muted-foreground">
+              Drives layout of every receipt, kitchen ticket, and inventory slip.
             </p>
           </Field>
         </div>

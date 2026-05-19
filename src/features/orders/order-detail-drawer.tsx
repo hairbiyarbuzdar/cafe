@@ -39,9 +39,15 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { CancelHeldOrderDialog } from "@/features/orders/cancel-held-dialog";
 import { ChannelBadge, OrderStatusBadge } from "@/features/orders/status-badge";
 import { TakePaymentDialog } from "@/features/orders/take-payment-dialog";
+import { buildPaymentReceipt } from "@/features/receipts/build";
+import {
+  ReceiptPreviewDialog,
+  type ReceiptPayload,
+} from "@/features/receipts/receipt-preview-dialog";
 import { submitInvoiceToBraAction } from "@/lib/actions/fiscal";
 import type { PaymentChannel } from "@/lib/queries/payment-channels";
 import { useCart } from "@/store/cart-store";
+import { useWorkspace } from "@/store/workspace-store";
 import { cn, formatCurrency, formatRelativeTime, initials } from "@/lib/utils";
 import { isOrderHeld, type Order, type OrderStatus, type PaymentMethod } from "@/types";
 
@@ -301,8 +307,21 @@ function OrderDrawerFooter({
 }) {
   const router = useRouter();
   const attach = useCart((s) => s.attach);
+  const workspace = useWorkspace((s) => s.workspace);
   const [payOpen, setPayOpen] = React.useState(false);
   const [cancelOpen, setCancelOpen] = React.useState(false);
+  const [reprintOpen, setReprintOpen] = React.useState(false);
+  const reprintPayload = React.useMemo<ReceiptPayload[]>(() => {
+    if (!workspace) return [];
+    const data = buildPaymentReceipt({
+      order,
+      workspace,
+      receiptNumber: `BR-${order.number.replace(/^#/, "")}`,
+      paymentChannelName:
+        paymentChannels.find((c) => c.kind === order.payment)?.name ?? null,
+    });
+    return [{ kind: "payment", data }];
+  }, [order, workspace, paymentChannels]);
 
   function startAddingItems() {
     attach(order.id, order.number);
@@ -361,7 +380,13 @@ function OrderDrawerFooter({
   // Already paid (or cancelled/refunded) — the original receipt + refund row.
   return (
     <div className="grid shrink-0 grid-cols-3 gap-2 border-t bg-surface-1 px-5 pt-3 pb-[calc(12px+env(safe-area-inset-bottom))]">
-      <Button variant="outline" size="sm" className="h-9 rounded-md text-[12px]">
+      <Button
+        variant="outline"
+        size="sm"
+        className="h-9 rounded-md text-[12px]"
+        onClick={() => setReprintOpen(true)}
+        disabled={!workspace}
+      >
         <Printer className="size-3.5" />
         Print
       </Button>
@@ -377,6 +402,14 @@ function OrderDrawerFooter({
         <RotateCcw className="size-3.5" />
         Refund
       </Button>
+
+      <ReceiptPreviewDialog
+        open={reprintOpen}
+        onOpenChange={setReprintOpen}
+        title={`Receipt · ${order.number}`}
+        description="Reprint to thermal, OS print, or download a PDF copy."
+        receipts={reprintPayload}
+      />
     </div>
   );
 }

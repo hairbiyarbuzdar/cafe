@@ -346,3 +346,100 @@
     opacity: 0.7;
   }
 }
+
+/* -----------------------------------------------------------------
+   Print stylesheet — receipts only
+
+   The receipt preview dialog mounts a hidden `.receipt-print-stack`
+   straight onto <body> via React portal. Normally it's display:none.
+   When the cashier hits "OS print", JS adds `body.receipt-printing`
+   and triggers window.print(). This stylesheet then:
+
+     1. hides every other direct child of body (the app, the dialog,
+        ambient layers — anything that isn't the print stack);
+     2. reveals the stack and lays each receipt out at thermal width
+        with a page break between them.
+
+   Going through `body > *` (direct children only) sidesteps the
+   nested visibility / overflow / transform games that broke the
+   earlier "hide everything, then re-show the one element" approach.
+------------------------------------------------------------------ */
+
+.receipt-print-stack {
+  display: none;
+}
+
+/* Named @page rules — referenced by `page: roll-80` / `page: roll-58`
+ * on the print page wrappers below. Browsers that honor `@page size`
+ * (Chrome, Edge, recent Firefox) will use this hint to size the
+ * paper to match the workspace's configured roll instead of A4. */
+@page roll-80 {
+  size: 80mm auto;
+  margin: 0;
+}
+@page roll-58 {
+  size: 58mm auto;
+  margin: 0;
+}
+
+@media print {
+  @page {
+    margin: 0;
+  }
+  html,
+  body {
+    background: white !important;
+    color: black !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  body.receipt-printing > *:not(.receipt-print-stack) {
+    display: none !important;
+  }
+  body.receipt-printing .receipt-print-stack {
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  body.receipt-printing .receipt-print-page {
+    box-sizing: border-box;
+    break-after: page;
+    page-break-after: always;
+    /* Centre the receipt within whatever paper the printer ends up
+     * choosing. Combined with the explicit max-width below, this
+     * means the content lays out correctly on the configured roll
+     * AND degrades gracefully if the print driver falls back to A4. */
+    margin: 0 auto !important;
+    padding: 2mm 0;
+  }
+  body.receipt-printing .receipt-print-page:last-child {
+    break-after: auto;
+    page-break-after: auto;
+  }
+  /* 80mm roll path. `print-roll-80` is added to <body> at print
+   * time alongside `receipt-printing`, so the named page rule
+   * applies and the receipt is clamped to the roll width even when
+   * the print preview shows an A4 sheet. */
+  body.receipt-printing.print-roll-80 .receipt-print-page {
+    page: roll-80;
+    width: 80mm;
+    max-width: 80mm;
+  }
+  body.receipt-printing.print-roll-58 .receipt-print-page {
+    page: roll-58;
+    width: 58mm;
+    max-width: 58mm;
+  }
+  /* The shell ships with its own max-width (80mm / 58mm). Drop the
+   * box-shadow + reset margins so it sits flush within the page
+   * wrapper above. */
+  body.receipt-printing .receipt-print-page > * {
+    max-width: 100% !important;
+    width: 100% !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+  }
+}
+

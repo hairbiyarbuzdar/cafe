@@ -329,6 +329,7 @@ exports.Prisma.WorkspaceScalarFieldEnum = {
   city: 'city',
   addressLine: 'addressLine',
   receiptFooter: 'receiptFooter',
+  receiptWidth: 'receiptWidth',
   hoursMonOpen: 'hoursMonOpen',
   hoursMonClose: 'hoursMonClose',
   hoursTueOpen: 'hoursTueOpen',
