@@ -1,6 +1,7 @@
 import { CartPanel } from "@/features/pos/cart-panel";
 import { MobileCartTrigger } from "@/features/pos/mobile-cart-trigger";
 import { ProductGrid } from "@/features/pos/product-grid";
+import { LiveRefresh } from "@/features/realtime/live-refresh";
 import { listHeldOrders } from "@/lib/queries/orders";
 import { listPaymentChannels } from "@/lib/queries/payment-channels";
 
@@ -25,6 +26,15 @@ export default async function PosPage() {
       <MobileCartTrigger
         heldOrders={heldOrders}
         paymentChannels={paymentChannels}
+      />
+      <LiveRefresh
+        on={[
+          "order.placed",
+          "order.updated",
+          "order.cancelled",
+          "order.paid",
+          "ticket.status",
+        ]}
       />
     </div>
   );

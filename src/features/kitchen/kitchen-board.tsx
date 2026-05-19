@@ -1,13 +1,11 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
 import { ChefHat } from "lucide-react";
 
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { StationBoard } from "@/features/kitchen/station-board";
 import { useKitchenTickets } from "@/store/kitchen-tickets-store";
-import { useRealtime } from "@/lib/realtime/use-realtime";
 import { cn } from "@/lib/utils";
 import type { KitchenStation, KitchenTicket } from "@/types";
 
@@ -26,22 +24,6 @@ export function KitchenBoard({
   tickets: KitchenTicket[];
 }) {
   const overrides = useKitchenTickets((s) => s.statuses);
-  const router = useRouter();
-
-  // Live KDS: refresh the server-rendered ticket list as soon as POS
-  // places/cancels an order or any station advances a ticket from
-  // another browser. The SSE handler debounces nothing — Next.js's
-  // router already coalesces back-to-back refresh() calls.
-  useRealtime((event) => {
-    if (
-      event.type === "order.placed" ||
-      event.type === "order.updated" ||
-      event.type === "order.cancelled" ||
-      event.type === "ticket.status"
-    ) {
-      router.refresh();
-    }
-  });
 
   const merged = React.useMemo(() => {
     return tickets

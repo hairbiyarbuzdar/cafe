@@ -3,6 +3,7 @@ import { Download, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/layouts/page-header";
 import { OrdersTable } from "@/features/orders/orders-table";
+import { LiveRefresh } from "@/features/realtime/live-refresh";
 import { listOrders, ordersSummary } from "@/lib/queries/orders";
 import { listPaymentChannels } from "@/lib/queries/payment-channels";
 import { formatCurrency } from "@/lib/utils";
@@ -52,6 +53,15 @@ export default async function OrdersPage() {
       </section>
 
       <OrdersTable orders={orders} paymentChannels={paymentChannels} />
+      <LiveRefresh
+        on={[
+          "order.placed",
+          "order.updated",
+          "order.cancelled",
+          "order.paid",
+          "ticket.status",
+        ]}
+      />
     </>
   );
 }

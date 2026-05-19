@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/layouts/page-header";
 import { KitchenBoard } from "@/features/kitchen/kitchen-board";
+import { LiveRefresh } from "@/features/realtime/live-refresh";
 import { listActiveKitchenTickets } from "@/lib/queries/kitchen";
 import { listKitchenStations } from "@/lib/queries/stations";
 
@@ -46,6 +47,9 @@ export default async function KitchenPage() {
       />
 
       <KitchenBoard stations={stations} tickets={tickets} />
+      <LiveRefresh
+        on={["order.placed", "order.updated", "order.cancelled", "ticket.status"]}
+      />
     </>
   );
 }

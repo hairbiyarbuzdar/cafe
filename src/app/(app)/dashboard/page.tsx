@@ -10,6 +10,7 @@ import { QuickActions } from "@/features/dashboard/quick-actions";
 import { RecentActivity } from "@/features/dashboard/recent-activity";
 import { RevenueChart } from "@/features/dashboard/revenue-chart";
 import { TopProducts } from "@/features/dashboard/top-products";
+import { LiveRefresh } from "@/features/realtime/live-refresh";
 import { getCurrentUser } from "@/lib/auth";
 import { listRecentActivity } from "@/lib/queries/activity";
 import {
@@ -137,6 +138,7 @@ export default async function DashboardPage() {
           <TopProducts data={top} />
         </div>
       </section>
+      <LiveRefresh on={["order.placed", "order.paid", "order.cancelled"]} />
     </>
   );
 }
