@@ -210,7 +210,7 @@ export function MenuFormSheet({ open, onOpenChange, item }: Props) {
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="right"
-        className="flex w-full flex-col gap-0 p-0 sm:max-w-[520px]"
+        className="flex h-dvh w-full flex-col overflow-hidden gap-0 p-0 sm:max-w-[520px]"
       >
         <SheetHeader className="border-b px-5 py-4">
           <SheetTitle className="text-[16px] font-semibold tracking-tight">
@@ -221,7 +221,7 @@ export function MenuFormSheet({ open, onOpenChange, item }: Props) {
           </SheetDescription>
         </SheetHeader>
 
-        <ScrollArea className="flex-1">
+        <ScrollArea className="min-h-0 flex-1">
           <div className="space-y-5 p-5">
             <Section title="Basics">
               <Field label="Name" htmlFor="m-name">
