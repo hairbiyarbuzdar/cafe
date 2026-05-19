@@ -30,13 +30,6 @@ export const PRIMARY_NAV: NavGroup[] = [
         permission: "dashboard.view",
       },
       {
-        title: "Kitchen",
-        href: "/kitchen",
-        icon: ChefHat,
-        description: "Live ticket queue",
-        permission: "kitchen.view",
-      },
-      {
         title: "Point of Sale",
         href: "/pos",
         icon: CreditCard,
@@ -51,6 +44,14 @@ export const PRIMARY_NAV: NavGroup[] = [
         description: "Live and historical orders",
         permission: "orders.view",
       },
+      {
+        title: "Kitchen",
+        href: "/kitchen",
+        icon: ChefHat,
+        description: "Live ticket queue",
+        permission: "kitchen.view",
+      },
+      
     ],
   },
   {
