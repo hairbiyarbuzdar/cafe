@@ -24,6 +24,7 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ThemeSwitch } from "@/components/shared/theme-switch";
 import { CommandPalette } from "@/components/shared/command-palette";
+import { NetworkStatus } from "@/features/offline/network-status";
 
 const SEGMENT_LABELS: Record<string, string> = {
   dashboard: "Dashboard",
@@ -100,6 +101,8 @@ export function AppTopbar() {
       </Breadcrumb>
 
       <div className="ms-auto flex items-center gap-1 md:gap-2">
+        <NetworkStatus />
+
         {/* Mobile: search becomes an icon. Desktop: full quasi-input. */}
         <Tooltip>
           <TooltipTrigger asChild>

@@ -6,6 +6,7 @@ import { AppSidebar } from "@/components/layouts/app-sidebar";
 import { AppTopbar } from "@/components/layouts/app-topbar";
 import { MobileTabbar } from "@/components/layouts/mobile-tabbar";
 import { AmbientBackground } from "@/components/shared/ambient-background";
+import { OfflineReplay } from "@/features/offline/offline-replay";
 import { getCurrentUser } from "@/lib/auth";
 import { listInventory } from "@/lib/queries/inventory";
 import { listMenuCategories, listMenuItems } from "@/lib/queries/menu";
@@ -52,6 +53,7 @@ export default async function AppLayout({
 
   return (
     <SessionProvider user={user}>
+      <OfflineReplay />
       <DataHydrator
         items={items}
         stations={stations}

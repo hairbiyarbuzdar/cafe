@@ -9,10 +9,11 @@ const PUBLIC_PATHS = [
   "/unauthorized",
   // PWA assets — must load on the login screen too so the manifest
   // and SW can register before authentication. None of these expose
-  // PII; they're branding + cache plumbing.
+  // PII; they're branding + cache plumbing. /icon.svg auto-bypasses
+  // the proxy via the .svg extension exclusion in `config.matcher`
+  // below, so it doesn't need to be listed here.
   "/sw.js",
   "/manifest.webmanifest",
-  "/icon",
   "/apple-icon",
 ];
 

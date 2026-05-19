@@ -5,7 +5,10 @@ import { ChefHat } from "lucide-react";
 
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { StationBoard } from "@/features/kitchen/station-board";
+import { localTicketId } from "@/lib/offline/queue";
 import { useKitchenTickets } from "@/store/kitchen-tickets-store";
+import { useOfflineOrders } from "@/store/offline-orders-store";
+import { useOfflineTicketStatuses } from "@/store/offline-ticket-statuses-store";
 import { cn } from "@/lib/utils";
 import type { KitchenStation, KitchenTicket } from "@/types";
 
@@ -24,12 +27,47 @@ export function KitchenBoard({
   tickets: KitchenTicket[];
 }) {
   const overrides = useKitchenTickets((s) => s.statuses);
+  const queuedOverrides = useOfflineTicketStatuses((s) => s.byTicketId);
+  const offlineShadows = useOfflineOrders((s) => s.shadows);
+
+  // Tickets synthesised from offline-queued place-order mutations.
+  // One ticket per (shadow order × station). Same `${orderId}__${stationId}`
+  // id shape as real tickets but with a `local-` prefix so the rest
+  // of the kitchen UI can distinguish (and the offline status-change
+  // path knows not to call the server action).
+  const shadowTickets = React.useMemo<KitchenTicket[]>(() => {
+    const out: KitchenTicket[] = [];
+    for (const shadow of offlineShadows) {
+      for (const s of shadow.stations) {
+        out.push({
+          id: localTicketId(shadow.id, s.stationId),
+          orderId: `local-${shadow.id}`,
+          orderNumber: shadow.number,
+          stationId: s.stationId,
+          channel: shadow.channel,
+          table: shadow.tableName ?? undefined,
+          status: "pending",
+          items: s.items,
+          notes: shadow.notes ?? undefined,
+          createdAt: new Date(shadow.createdAt).toISOString(),
+        });
+      }
+    }
+    return out;
+  }, [offlineShadows]);
 
   const merged = React.useMemo(() => {
-    return tickets
-      .map((t) => ({ ...t, status: overrides[t.id] ?? t.status }))
+    const all = [...tickets, ...shadowTickets];
+    return all
+      .map((t) => ({
+        ...t,
+        // Precedence: queued (IDB-backed) override beats in-memory
+        // override beats server value. The IDB-backed override is
+        // the persistent one — it survives refreshes while offline.
+        status: queuedOverrides[t.id] ?? overrides[t.id] ?? t.status,
+      }))
       .filter((t) => t.status !== "served");
-  }, [tickets, overrides]);
+  }, [tickets, shadowTickets, queuedOverrides, overrides]);
 
   const [activeStation, setActiveStation] = React.useState<string>("all");
 

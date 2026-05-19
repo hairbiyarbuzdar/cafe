@@ -23,9 +23,18 @@ import type {
 import {
   addItemsToHeldOrderAction,
   placeOrderAction,
+  type PlaceOrderInput,
 } from "@/lib/actions/orders";
+import {
+  enqueueMutation,
+  generateLocalId,
+  generateLocalOrderNumber,
+  type ShadowStation,
+} from "@/lib/offline/queue";
+import type { KitchenTicketItem } from "@/types";
 import { useCart } from "@/store/cart-store";
 import { useMenu } from "@/store/menu-store";
+import { useOfflineOrders } from "@/store/offline-orders-store";
 import { useStations } from "@/store/stations-store";
 import { useTables } from "@/store/tables-store";
 import { useWorkspace } from "@/store/workspace-store";
@@ -105,44 +114,160 @@ export function CheckoutDialog({
       quantity: i.quantity,
       modifiers: i.modifiers,
     }));
+    const placeInput: PlaceOrderInput = {
+      items: payload,
+      channel,
+      tableId,
+      guests,
+      note,
+      discountPct,
+      taxRate,
+    };
 
-    const result = isAttach
-      ? await addItemsToHeldOrderAction(attachedOrderId!, payload)
-      : await placeOrderAction({
-          items: payload,
-          channel,
-          tableId,
-          guests,
-          note,
-          discountPct,
-          taxRate,
-        });
-
-    if (!result.ok) {
-      toast.error(isAttach ? "Couldn't add items" : "Couldn't place order", {
-        description: result.error,
+    // Append-to-held requires the server (we don't know the real
+    // ticket id offline, so we can't queue against it). Block it
+    // explicitly with a clear message; placing a new offline order
+    // still works.
+    if (isAttach && typeof navigator !== "undefined" && !navigator.onLine) {
+      toast.error("Adding to a held order needs internet", {
+        description: "Detach and place a new order — it will sync when you're back online.",
       });
       setStatus("review");
       return;
     }
 
+    let onlineResult: { ok: true; orderNumber: string; total: number } | null = null;
+    let appended = isAttach;
+    let usedOfflineFallback = false;
+
+    try {
+      const result = isAttach
+        ? await addItemsToHeldOrderAction(attachedOrderId!, payload)
+        : await placeOrderAction(placeInput);
+      if (!result.ok) {
+        toast.error(isAttach ? "Couldn't add items" : "Couldn't place order", {
+          description: result.error,
+        });
+        setStatus("review");
+        return;
+      }
+      onlineResult = {
+        ok: true,
+        orderNumber: result.orderNumber,
+        total: result.total,
+      };
+    } catch (err) {
+      // navigator.onLine can lie (captive portal, flaky wifi). If the
+      // network actually failed mid-flight and this is a new order,
+      // drop into the offline queue. For attach mode we already
+      // returned above.
+      if (!isAttach && isLikelyNetworkError(err)) {
+        usedOfflineFallback = true;
+      } else {
+        toast.error(isAttach ? "Couldn't add items" : "Couldn't place order", {
+          description: err instanceof Error ? err.message : String(err),
+        });
+        setStatus("review");
+        return;
+      }
+    }
+
+    let resolvedOrderNumber: string;
+    let resolvedTotal: number;
+
+    if (onlineResult) {
+      resolvedOrderNumber = onlineResult.orderNumber;
+      resolvedTotal = onlineResult.total;
+    } else {
+      // Offline path: queue the mutation, surface a local shadow so
+      // the cashier sees the order in the topbar pill count, and use
+      // a local order number ("L-…") for the kitchen ticket.
+      const localId = generateLocalId();
+      resolvedOrderNumber = generateLocalOrderNumber();
+      resolvedTotal = total;
+      const itemCount = items.reduce((s, i) => s + i.quantity, 0);
+
+      // Per-station breakdown so the kitchen board can render
+      // synthetic tickets for this order before it syncs. We map
+      // each cart line → its product's `stationId` from the menu
+      // store; unknown products are dropped (the cart shouldn't
+      // contain them but we don't want a missing menu item to
+      // tank the whole place-offline flow).
+      const stationsMap = new Map<string, KitchenTicketItem[]>();
+      for (const ci of items) {
+        const menu = menuItems.find((m) => m.id === ci.productId);
+        if (!menu) continue;
+        const list = stationsMap.get(menu.stationId) ?? [];
+        list.push({
+          id: `${localId}__${menu.stationId}__${list.length}`,
+          menuItemId: ci.productId,
+          name: ci.name,
+          quantity: ci.quantity,
+          modifiers:
+            ci.modifiers && ci.modifiers.length > 0
+              ? ci.modifiers.map((m) => m.name)
+              : undefined,
+        });
+        stationsMap.set(menu.stationId, list);
+      }
+      const shadowStations: ShadowStation[] = Array.from(stationsMap.entries()).map(
+        ([stationId, items]) => ({ stationId, items }),
+      );
+      const shadow = {
+        id: localId,
+        number: resolvedOrderNumber,
+        total: resolvedTotal,
+        itemCount,
+        channel,
+        tableName: table ?? null,
+        createdAt: Date.now(),
+        stations: shadowStations,
+        notes: note?.trim() || null,
+      };
+      try {
+        await enqueueMutation({
+          id: localId,
+          type: "placeOrder",
+          input: placeInput,
+          shadow,
+          attempts: 0,
+        });
+        useOfflineOrders.getState().add(shadow);
+      } catch (err) {
+        toast.error("Couldn't queue offline order", {
+          description: err instanceof Error ? err.message : "IndexedDB unavailable",
+        });
+        setStatus("review");
+        return;
+      }
+      toast.warning(`${resolvedOrderNumber} held offline`, {
+        description: usedOfflineFallback
+          ? "Network dropped — order saved locally and will sync when reachable."
+          : "You're offline — order will sync to the kitchen when the connection returns.",
+      });
+    }
+
     setSuccess({
-      orderNumber: result.orderNumber,
-      total: result.total,
-      appended: isAttach,
+      orderNumber: resolvedOrderNumber,
+      total: resolvedTotal,
+      appended,
     });
     setStatus("success");
-    toast.success(
-      isAttach
-        ? `Items added to ${result.orderNumber}`
-        : `Order ${result.orderNumber} sent to kitchen`,
-      {
-        description: `Running total ${formatCurrency(result.total)} · payment due at pickup`,
-      },
-    );
+    if (onlineResult) {
+      toast.success(
+        isAttach
+          ? `Items added to ${resolvedOrderNumber}`
+          : `Order ${resolvedOrderNumber} sent to kitchen`,
+        {
+          description: `Running total ${formatCurrency(resolvedTotal)} · payment due at pickup`,
+        },
+      );
+    }
 
     // Auto-build kitchen tickets per routed station so the cashier
     // can immediately print/send them to the kitchen printer(s).
+    // Offline orders still build tickets — the cashier can print
+    // them locally so the kitchen has paper while waiting for sync.
     if (workspace && stations.length > 0) {
       const stationById = new Map(stations.map((s) => [s.id, s]));
       const byStation = new Map<string, ReceiptLineItem[]>();
@@ -186,7 +311,7 @@ export function CheckoutDialog({
               kind: `Kitchen · ${stationName}`,
               printedAt: placedAt,
             },
-            orderNumber: result.orderNumber,
+            orderNumber: resolvedOrderNumber,
             channel,
             table: table ?? null,
             guests: channel === "dine-in" ? guests : null,
@@ -202,7 +327,17 @@ export function CheckoutDialog({
       if (tickets.length > 0) setReceiptOpen(true);
     }
 
-    router.refresh();
+    // router.refresh() picks up the new held order from the server.
+    // Offline orders don't exist server-side yet, so a refresh would
+    // be a no-op — skip it; the OfflineReplay component will refresh
+    // when the queue drains.
+    if (onlineResult) router.refresh();
+  }
+
+  function isLikelyNetworkError(err: unknown): boolean {
+    if (err instanceof TypeError) return true;
+    const msg = err instanceof Error ? err.message : String(err);
+    return /network|fetch|failed to fetch|offline/i.test(msg);
   }
 
   function dismiss() {

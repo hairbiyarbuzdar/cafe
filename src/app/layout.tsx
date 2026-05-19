@@ -28,6 +28,14 @@ export const metadata: Metadata = {
   authors: [{ name: BRAND.name }],
   keywords: ["café", "POS", "restaurant", "management", "SaaS"],
   formatDetection: { telephone: false, email: false, address: false },
+  // Explicit favicon link — Next.js 16.2.x's Turbopack doesn't serve
+  // the `app/icon.svg` file convention, so we host the asset in
+  // /public and point the head <link> at it manually. Apple touch
+  // icon still flows through `app/apple-icon.tsx` (a route handler,
+  // which Turbopack does serve correctly).
+  icons: {
+    icon: { url: "/icon.svg", type: "image/svg+xml" },
+  },
 };
 
 export const viewport: Viewport = {

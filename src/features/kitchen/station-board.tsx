@@ -19,7 +19,13 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { ChannelBadge } from "@/features/orders/status-badge";
 import { setKitchenTicketStatusAction } from "@/lib/actions/kitchen";
+import {
+  enqueueMutation,
+  generateLocalId,
+  isLocalTicketId,
+} from "@/lib/offline/queue";
 import { useKitchenTickets } from "@/store/kitchen-tickets-store";
+import { useOfflineTicketStatuses } from "@/store/offline-ticket-statuses-store";
 import { NEXT_STATUS, PREV_STATUS } from "@/lib/kitchen";
 import { cn, formatRelativeTime } from "@/lib/utils";
 import type {
@@ -67,6 +73,7 @@ export function StationBoard({ station, tickets }: Props) {
   const router = useRouter();
   const setLocal = useKitchenTickets((s) => s.setLocal);
   const clearLocal = useKitchenTickets((s) => s.clearLocal);
+  const addQueuedOverride = useOfflineTicketStatuses((s) => s.add);
 
   const cancelled = tickets.filter((t) => t.status === "cancelled");
   const lanes = LANES.map((lane) => ({
@@ -74,15 +81,95 @@ export function StationBoard({ station, tickets }: Props) {
     items: tickets.filter((t) => t.status === lane),
   }));
 
+  /**
+   * Path A — shadow ticket (`local-…__stationId`): the parent order
+   * is still in the offline queue, so there's nothing on the server
+   * to update. Capture the cook's intent as a queued override; when
+   * the parent order syncs, the real ticket starts at "pending" and
+   * the cook will re-advance from there (MVP).
+   *
+   * Path B — real ticket, online: optimistic in-memory override +
+   * action call + router.refresh on success.
+   *
+   * Path C — real ticket, offline (or network drops mid-flight):
+   * enqueue a `setTicketStatus` mutation and add it to the queued-
+   * overrides store. Survives refresh; the OfflineReplay component
+   * drains it on reconnect.
+   */
   async function setStatus(ticket: KitchenTicket, next: TicketStatus) {
-    setLocal(ticket.id, next); // optimistic
-    const result = await setKitchenTicketStatusAction(ticket.id, next);
-    if (!result.ok) {
-      clearLocal(ticket.id);
-      toast.error("Couldn't update ticket", { description: result.error });
+    if (isLocalTicketId(ticket.id)) {
+      // Path A — instant in-memory feedback + persistent IDB-backed
+      // override so the new status survives a refresh. The entry is
+      // garbage-collected when the parent order's `placeOrder`
+      // mutation drains successfully.
+      setLocal(ticket.id, next);
+      try {
+        const queueId = generateLocalId();
+        await enqueueMutation({
+          id: queueId,
+          type: "setLocalTicketStatus",
+          input: { ticketId: ticket.id, status: next },
+          attempts: 0,
+        });
+        addQueuedOverride(queueId, ticket.id, next);
+      } catch (err) {
+        // IDB blew up — the in-memory override still gives this
+        // session the right UI; we just won't survive a reload.
+        console.error("[kitchen] couldn't persist shadow status", err);
+      }
       return;
     }
-    router.refresh();
+
+    setLocal(ticket.id, next); // optimistic
+
+    const goOffline = async (reason: "preflight" | "network", err?: unknown) => {
+      try {
+        const queueId = generateLocalId();
+        await enqueueMutation({
+          id: queueId,
+          type: "setTicketStatus",
+          input: { ticketId: ticket.id, status: next },
+          attempts: 0,
+        });
+        addQueuedOverride(queueId, ticket.id, next);
+        if (reason === "network") {
+          toast.warning("Saved offline", {
+            description: `${ticket.orderNumber} → ${LANE_LABEL(next)}. Will sync when the connection returns.`,
+          });
+        }
+      } catch (queueErr) {
+        clearLocal(ticket.id);
+        toast.error("Couldn't queue status change", {
+          description:
+            queueErr instanceof Error ? queueErr.message : "IndexedDB unavailable",
+        });
+        if (err) console.error("[kitchen] action failed before queue", err);
+      }
+    };
+
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      await goOffline("preflight");
+      return;
+    }
+
+    try {
+      const result = await setKitchenTicketStatusAction(ticket.id, next);
+      if (!result.ok) {
+        clearLocal(ticket.id);
+        toast.error("Couldn't update ticket", { description: result.error });
+        return;
+      }
+      router.refresh();
+    } catch (err) {
+      if (isLikelyNetworkError(err)) {
+        await goOffline("network", err);
+      } else {
+        clearLocal(ticket.id);
+        toast.error("Couldn't update ticket", {
+          description: err instanceof Error ? err.message : String(err),
+        });
+      }
+    }
   }
 
   function advance(ticket: KitchenTicket) {
@@ -327,4 +414,10 @@ function LANE_LABEL(s: TicketStatus): string {
   if (s === "served") return "Served";
   if (s === "cancelled") return "Cancelled";
   return LANE_META[s].label;
+}
+
+function isLikelyNetworkError(err: unknown): boolean {
+  if (err instanceof TypeError) return true;
+  const msg = err instanceof Error ? err.message : String(err);
+  return /network|fetch|failed to fetch|offline/i.test(msg);
 }

@@ -17,9 +17,12 @@
  * the in-flight case (each new build references new file names).
  */
 
-const CACHE_VERSION = "brewline-v1";
+const CACHE_VERSION = "brewline-v3";
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
-const APP_SHELL = ["/", "/icon", "/manifest.webmanifest"];
+// `/pos` is the offline-critical route — cashiers must be able to
+// keep taking orders when the network drops. Pre-warming it on
+// install means a hard-reload while offline still paints the POS.
+const APP_SHELL = ["/", "/pos", "/icon.svg", "/manifest.webmanifest"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -82,7 +85,6 @@ self.addEventListener("fetch", (event) => {
   if (
     url.pathname.startsWith("/_next/static/") ||
     url.pathname.startsWith("/_next/image") ||
-    url.pathname === "/icon" ||
     url.pathname === "/apple-icon" ||
     url.pathname === "/manifest.webmanifest" ||
     /\.(?:js|css|woff2?|ttf|otf|svg|png|jpg|jpeg|gif|webp|ico)$/.test(url.pathname)

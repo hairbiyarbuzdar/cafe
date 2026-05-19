@@ -29,18 +29,21 @@ export default function manifest(): MetadataRoute.Manifest {
     theme_color: "#6B4423",
     categories: ["business", "productivity", "food"],
     icons: [
-      // Next.js serves `app/icon.svg` at `/icon`. We list it twice so the
-      // install prompt has both a "normal" icon and a "maskable" variant
-      // (Chromium uses the latter for adaptive home-screen masks on
-      // Android and the standalone window decoration).
+      // Static-served from /public/icon.svg. Turbopack in Next.js 16.2.x
+      // does not serve `app/icon.svg` via the metadata file convention
+      // (`GET /icon` returns 404), so we keep the asset in /public for a
+      // stable URL. Listed twice so the install prompt has both a
+      // "normal" icon and a "maskable" variant (Chromium uses the latter
+      // for adaptive home-screen masks on Android and the standalone
+      // window decoration).
       {
-        src: "/icon",
+        src: "/icon.svg",
         sizes: "any",
         type: "image/svg+xml",
         purpose: "any",
       },
       {
-        src: "/icon",
+        src: "/icon.svg",
         sizes: "any",
         type: "image/svg+xml",
         purpose: "maskable",
