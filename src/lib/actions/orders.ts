@@ -330,8 +330,13 @@ export async function addItemsToHeldOrderAction(
       });
 
       // For each station the additions touch, either create a fresh
-      // ticket or reopen an existing one that the kitchen had served
-      // (so cooks see "+ items added" rather than nothing).
+      // ticket or reopen an existing one. We reopen anything that
+      // isn't already in `pending` (or `preparing`, where the cook is
+      // actively watching the card) — critically, this catches the
+      // `ready` case where the kitchen has filed the ticket away and
+      // would otherwise never notice the new items appear inside it.
+      // Without this, attaching to a ready order + adding items would
+      // silently land them in a card no cook is looking at.
       for (const stationId of newStationIds) {
         const existing = await tx.kitchenTicket.findUnique({
           where: { orderId_stationId: { orderId: order.id, stationId } },
@@ -340,16 +345,37 @@ export async function addItemsToHeldOrderAction(
           await tx.kitchenTicket.create({
             data: { orderId: order.id, stationId, status: "pending" },
           });
-        } else if (
-          existing.status === "served" ||
-          existing.status === "cancelled"
-        ) {
+        } else if (existing.status !== "pending" && existing.status !== "preparing") {
           await tx.kitchenTicket.update({
             where: { id: existing.id },
             data: { status: "pending" },
           });
         }
       }
+
+      // Recompute order.status from the freshly-mutated tickets so
+      // the cashier's Pay button (gated to `ready`) re-locks if any
+      // station now has fresh work pending. Mirrors the logic in
+      // setKitchenTicketStatusAction so the two stay coherent.
+      const allTickets = await tx.kitchenTicket.findMany({
+        where: { orderId: order.id },
+        select: { status: true },
+      });
+      const activeTickets = allTickets.filter(
+        (t) => t.status !== "cancelled" && t.status !== "served",
+      );
+      const nextOrderStatus =
+        activeTickets.length === 0
+          ? "pending"
+          : activeTickets.every((t) => t.status === "ready")
+            ? "ready"
+            : activeTickets.some((t) => t.status === "preparing")
+              ? "preparing"
+              : "pending";
+      await tx.order.update({
+        where: { id: order.id },
+        data: { status: nextOrderStatus },
+      });
 
       await applyInventoryDelta(tx, ingredientDelta, {
         orderId: order.id,

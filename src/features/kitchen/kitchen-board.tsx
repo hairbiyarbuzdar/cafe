@@ -27,8 +27,34 @@ export function KitchenBoard({
   tickets: KitchenTicket[];
 }) {
   const overrides = useKitchenTickets((s) => s.statuses);
+  const clearLocalOverride = useKitchenTickets((s) => s.clearLocal);
   const queuedOverrides = useOfflineTicketStatuses((s) => s.byTicketId);
   const offlineShadows = useOfflineOrders((s) => s.shadows);
+
+  // Reconcile optimistic overrides with the server. When the cook
+  // marks a ticket "ready" we stash the override in `useKitchenTickets`
+  // for instant feedback; once the server confirms, the override is
+  // redundant. But if the server later moves *backwards* — e.g. POS
+  // attaches and adds items, which resets the ticket to "pending" —
+  // the stale override would otherwise keep painting the ticket on
+  // the ready lane until the user manually refreshed.
+  //
+  // Drop any override whose value no longer matches the canonical
+  // server status carried in the freshly-fetched `tickets` prop.
+  // Only the in-memory store is touched; `useOfflineTicketStatuses`
+  // is IDB-backed and self-clears when the queue drains.
+  React.useEffect(() => {
+    for (const t of tickets) {
+      const override = overrides[t.id];
+      if (override !== undefined && override !== t.status) {
+        clearLocalOverride(t.id);
+      }
+    }
+    // Intentionally not depending on `overrides` — the override map
+    // mutates as a side effect of this very effect, and we only want
+    // to reconcile when the server brings new ticket data.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tickets]);
 
   // Tickets synthesised from offline-queued place-order mutations.
   // One ticket per (shadow order × station). Same `${orderId}__${stationId}`
