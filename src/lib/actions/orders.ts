@@ -8,6 +8,7 @@ import { getServerSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getOrderById } from "@/lib/queries/orders";
 import { publish } from "@/lib/realtime/bus";
+import { sendPushInBackground, userIdsWithPermission } from "@/lib/push/server";
 import type { Order, OrderChannel, PaymentMethod, ProductModifier } from "@/types";
 
 export type LoadOrderResult =
@@ -32,6 +33,12 @@ export async function loadOrderForPaymentAction(
     order.status === "completed"
   ) {
     return { ok: false, error: `Order is ${order.status} — cannot collect` };
+  }
+  if (order.status !== "ready") {
+    return {
+      ok: false,
+      error: `Order is ${order.status} — cashier can collect only after the kitchen marks it ready.`,
+    };
   }
   return { ok: true, order };
 }
@@ -113,6 +120,14 @@ export async function placeOrderAction(
   }
   if (input.taxRate < 0 || input.taxRate > 1) {
     return { ok: false, error: "Invalid tax rate" };
+  }
+
+  // Dine-in must always carry a table — otherwise the order has no
+  // surface to sit on and the floor team can't find it. Surfaced as
+  // a clean reject so the client toasts the right thing rather than
+  // silently downgrading to a tableless order.
+  if (input.channel === "dine-in" && !input.tableId) {
+    return { ok: false, error: "Pick a table before placing a dine-in order" };
   }
 
   // Normalise guests: dine-in defaults to 1; other channels store 0.
@@ -208,6 +223,19 @@ export async function placeOrderAction(
       orderId: order.id,
       orderNumber: order.number,
     });
+
+    // Ping every device whose role can see /kitchen so the kitchen
+    // tablet wakes the screen on a new order even if Brewline's tab
+    // isn't focused. Fire-and-forget so push latency doesn't sit on
+    // the cashier's response path.
+    void userIdsWithPermission("kitchen.view").then((userIds) =>
+      sendPushInBackground(userIds, {
+        title: `New order · ${order.number}`,
+        body: `${priced.lines.reduce((s, p) => s + p.line.quantity, 0)} item${priced.lines.reduce((s, p) => s + p.line.quantity, 0) === 1 ? "" : "s"} · ${input.channel}${input.tableId ? ` · table` : ""}`,
+        url: "/kitchen",
+        tag: "order.placed",
+      }),
+    );
 
     const itemCount = priced.lines.reduce((s, p) => s + p.line.quantity, 0);
     await logActivity({
@@ -534,6 +562,12 @@ export async function payOrderAction(
       orderNumber: order.number,
       receiptNumber: receiptNumberFor(order.number),
       total: round2(toNumber(order.subtotal) - toNumber(order.discount) + toNumber(order.tax)),
+    };
+  }
+  if (order.status !== "ready") {
+    return {
+      ok: false,
+      error: `Order is ${order.status}. Wait for the kitchen to mark it ready before collecting payment.`,
     };
   }
 

@@ -27,13 +27,45 @@ import { CancelHeldOrderDialog } from "@/features/orders/cancel-held-dialog";
 import type { HeldOrderSummary } from "@/lib/queries/orders";
 import { useCart } from "@/store/cart-store";
 import { cn, formatCurrency, formatRelativeTime } from "@/lib/utils";
-import type { OrderChannel } from "@/types";
+import type { OrderChannel, OrderStatus } from "@/types";
 
 const CHANNEL_ICON: Record<OrderChannel, typeof Utensils> = {
   "dine-in": Utensils,
   takeaway: ShoppingBag,
   delivery: Bike,
   online: ShoppingBag,
+};
+
+const STATUS_META: Record<
+  OrderStatus,
+  { label: string; className: string }
+> = {
+  pending: {
+    label: "Pending",
+    className:
+      "border-warning/40 bg-warning/10 text-warning-foreground/90",
+  },
+  preparing: {
+    label: "Preparing",
+    className: "border-info/40 bg-info/10 text-info-foreground/90",
+  },
+  ready: {
+    label: "Ready",
+    className: "border-success/40 bg-success/10 text-success",
+  },
+  completed: {
+    label: "Completed",
+    className: "border-success/40 bg-success/10 text-success",
+  },
+  cancelled: {
+    label: "Cancelled",
+    className:
+      "border-destructive/40 bg-destructive/10 text-destructive",
+  },
+  refunded: {
+    label: "Refunded",
+    className: "border-muted/60 bg-muted/40 text-muted-foreground",
+  },
 };
 
 /**
@@ -175,6 +207,15 @@ export function HeldOrdersPicker({ orders }: { orders: HeldOrderSummary[] }) {
                                 {o.table}
                               </Badge>
                             ) : null}
+                            <Badge
+                              variant="outline"
+                              className={cn(
+                                "rounded-md text-[10.5px] font-medium",
+                                STATUS_META[o.status]?.className,
+                              )}
+                            >
+                              {STATUS_META[o.status]?.label ?? o.status}
+                            </Badge>
                             {active ? (
                               <Badge className="rounded-md border-warning/40 bg-warning/15 text-warning-foreground/90">
                                 Attached

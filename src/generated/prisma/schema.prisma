@@ -46,27 +46,28 @@ model Role {
 }
 
 model User {
-  id            String       @id @default(cuid())
-  name          String
-  email         String       @unique
-  phone         String?
-  passwordHash  String
+  id                String             @id @default(cuid())
+  name              String
+  email             String             @unique
+  phone             String?
+  passwordHash      String
   /// Role slug. Foreign key into `Role.id`; user creation flows must
   /// ensure the slug exists (handled by `ensureBuiltInRoles()`).
-  role          String
-  roleRef       Role         @relation(fields: [role], references: [id])
-  avatar        String?
+  role              String
+  roleRef           Role               @relation(fields: [role], references: [id])
+  avatar            String?
   /// Optional per-user landing route. When unset we fall back to the
   /// role's `defaultRoute`, then to /pos.
-  defaultRoute  String?
+  defaultRoute      String?
   /// Gross monthly salary in workspace currency (Rs). Null = unset.
-  monthlySalary Decimal?     @db.Decimal(10, 2)
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
-  sessions      Session[]
-  orders        Order[]
-  shifts        Shift[]
-  attendance    Attendance[]
+  monthlySalary     Decimal?           @db.Decimal(10, 2)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  sessions          Session[]
+  orders            Order[]
+  shifts            Shift[]
+  attendance        Attendance[]
+  pushSubscriptions PushSubscription[]
 
   @@index([role])
 }
@@ -76,6 +77,24 @@ model Session {
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+/// One Web Push subscription per device the user has opted into
+/// notifications from. `endpoint` is globally unique (it's the URL
+/// the push service issued for this device); we use it as the
+/// natural key for upserts so re-subscribing on the same device
+/// updates the row rather than duplicating it.
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  userAgent String?
   createdAt DateTime @default(now())
 
   @@index([userId])
@@ -253,6 +272,10 @@ model InventoryMovement {
 
   @@index([inventoryItemId])
   @@index([orderId])
+  /// `stockTrend7d` filters by `createdAt >= X AND delta < 0`. Single-
+  /// column index on createdAt is plenty — the delta predicate prunes
+  /// a small remainder after the date scan.
+  @@index([createdAt])
 }
 
 // ──────────────────────────────────────────────────────────────
@@ -329,6 +352,11 @@ model Order {
 
   @@index([status])
   @@index([createdAt])
+  /// Every analytics query filters by `paidAt >= X AND status NOT IN
+  /// ('cancelled','refunded')`. Without this index the dashboard /
+  /// reports KPIs sequentially scan the whole Order table on every
+  /// page load.
+  @@index([paidAt])
 }
 
 model OrderItem {
@@ -346,6 +374,10 @@ model OrderItem {
   note       String?
 
   @@index([orderId])
+  /// `topProducts` + `categoryRevenue` group/join by menuItemId.
+  /// Postgres doesn't auto-index FK columns, so without this Prisma
+  /// scans the OrderItem table for every analytics roll-up.
+  @@index([menuItemId])
 }
 
 enum TicketStatus {

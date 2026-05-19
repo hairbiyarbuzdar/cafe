@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Bell,
@@ -168,18 +169,24 @@ export function AppTopbar() {
         <Separator orientation="vertical" className="mx-1 hidden h-6 md:block" />
 
         <Button
+          asChild
           size="sm"
           className="hidden h-9 gap-1.5 rounded-md text-[13px] sm:inline-flex"
         >
-          <Plus className="size-4" />
-          New order
+          <Link href="/pos">
+            <Plus className="size-4" />
+            New order
+          </Link>
         </Button>
         <Button
+          asChild
           size="icon"
           className="h-10 w-10 rounded-md sm:hidden"
           aria-label="New order"
         >
-          <Plus className="size-[18px]" />
+          <Link href="/pos">
+            <Plus className="size-[18px]" />
+          </Link>
         </Button>
       </div>
 

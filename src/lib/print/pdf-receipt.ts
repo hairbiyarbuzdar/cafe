@@ -3,6 +3,7 @@
 import { jsPDF } from "jspdf";
 
 import { BRAND } from "@/constants/nav";
+import { barcodeDataUrl } from "@/features/receipts/barcode";
 import { formatCurrency } from "@/lib/utils";
 import type {
   InventorySlipData,
@@ -62,13 +63,22 @@ function layoutFor(width: WidthChoice): Layout {
   };
 }
 
-type Op = {
-  text: string;
-  align: "left" | "center" | "right";
-  y: number;
-  bold: boolean;
-  size: number;
-};
+type Op =
+  | {
+      kind: "text";
+      text: string;
+      align: "left" | "center" | "right";
+      y: number;
+      bold: boolean;
+      size: number;
+    }
+  | {
+      kind: "barcode";
+      dataUrl: string;
+      y: number;
+      heightPt: number;
+      widthPt: number;
+    };
 
 class ReceiptCanvas {
   layout: Layout;
@@ -91,6 +101,7 @@ class ReceiptCanvas {
 
   text(value: string, align: "left" | "center" | "right" = "left"): void {
     this.ops.push({
+      kind: "text",
       text: value,
       align,
       y: this.cursorY,
@@ -109,6 +120,7 @@ class ReceiptCanvas {
     const trimmedLeft =
       left.length > leftBudget ? left.slice(0, leftBudget - 1) + "." : left;
     this.ops.push({
+      kind: "text",
       text: trimmedLeft,
       align: "left",
       y: this.cursorY,
@@ -116,6 +128,7 @@ class ReceiptCanvas {
       size: this.size,
     });
     this.ops.push({
+      kind: "text",
       text: right,
       align: "right",
       y: this.cursorY,
@@ -123,6 +136,29 @@ class ReceiptCanvas {
       size: this.size,
     });
     this.cursorY += this.layout.rowHeight;
+  }
+
+  /**
+   * Embed a Code 128 barcode of `value`. Pre-generates a PNG data
+   * URL via JsBarcode (canvas-backed) so finalise() can drop it in
+   * via doc.addImage without re-running the encoder.
+   *
+   * Reserves a vertical slot proportional to the roll width so the
+   * barcode always fits between the margins without scaling weirdly.
+   */
+  barcode(value: string): void {
+    const dataUrl = barcodeDataUrl(value, { height: 44, width: 1.4 });
+    if (!dataUrl) return;
+    const heightPt = 46;
+    const widthPt = this.layout.widthPt - this.layout.marginX * 2;
+    this.ops.push({
+      kind: "barcode",
+      dataUrl,
+      y: this.cursorY,
+      heightPt,
+      widthPt,
+    });
+    this.cursorY += heightPt + this.layout.rowHeight * 0.5;
   }
 
   rule(char: string = "-"): void {
@@ -164,6 +200,11 @@ class ReceiptCanvas {
     let lastSize: number | null = null;
 
     for (const op of this.ops) {
+      if (op.kind === "barcode") {
+        const x = (this.layout.widthPt - op.widthPt) / 2;
+        doc.addImage(op.dataUrl, "PNG", x, op.y, op.widthPt, op.heightPt);
+        continue;
+      }
       if (op.bold !== lastBold) {
         doc.setFont("courier", op.bold ? "bold" : "normal");
         lastBold = op.bold;
@@ -277,6 +318,8 @@ export function generatePaymentReceiptPdf(data: PaymentReceiptData): jsPDF {
     c.multiline(`Note: ${data.notes}`);
   }
 
+  c.blank(0.5);
+  c.barcode(data.receiptNumber);
   drawFooter(c, data.header);
   return c.finalise();
 }
@@ -314,6 +357,8 @@ export function generateKitchenTicketPdf(data: KitchenTicketData): jsPDF {
     c.multiline(data.notes);
   }
 
+  c.blank(0.5);
+  c.barcode(data.orderNumber.replace(/^#/, ""));
   drawFooter(c, { ...data.header, kind: `KITCHEN · ${data.stationName}` });
   return c.finalise();
 }
@@ -350,6 +395,8 @@ export function generateInventorySlipPdf(data: InventorySlipData): jsPDF {
     c.multiline(`Note: ${data.notes}`);
   }
 
+  c.blank(0.5);
+  c.barcode(data.movementId);
   drawFooter(c, data.header);
   return c.finalise();
 }

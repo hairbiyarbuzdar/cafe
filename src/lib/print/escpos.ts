@@ -118,6 +118,40 @@ export class EscPosBuilder {
     return this;
   }
 
+  /**
+   * Native Code 128 barcode. Uses the printer's built-in renderer
+   * (GS k command, type 73), which is faster + sharper than a
+   * raster image and works on every Epson/Star/generic 80mm
+   * dialect we care about.
+   *
+   *   GS h n   → barcode height in dots (sane: 60–100)
+   *   GS w n   → module width 1–6 (sane: 2)
+   *   GS H n   → HRI text position (0 none, 2 below, 3 both)
+   *   GS f n   → HRI font (0 = A, 1 = B; A is the default we want)
+   *   GS k m n data → emit barcode; data prefixed with `{B` for
+   *                    Code 128 mode B (alphanumeric, our case).
+   *
+   * Non-ASCII or characters Code 128 B can't carry are stripped to
+   * avoid a printer fault.
+   */
+  barcode(value: string, opts: { height?: number; width?: 1 | 2 | 3 | 4 | 5 | 6 } = {}): this {
+    const clean = value.replace(/[^\x20-\x7e]/g, "");
+    if (!clean) return this;
+    const height = Math.max(40, Math.min(255, Math.floor(opts.height ?? 80)));
+    const width = opts.width ?? 2;
+    this.chunks.push(GS, 0x68, height);
+    this.chunks.push(GS, 0x77, width);
+    this.chunks.push(GS, 0x48, 2);
+    this.chunks.push(GS, 0x66, 0);
+    const data = `{B${clean}`;
+    this.chunks.push(GS, 0x6b, 73, data.length);
+    for (let i = 0; i < data.length; i++) {
+      this.chunks.push(data.charCodeAt(i));
+    }
+    this.chunks.push(LF);
+    return this;
+  }
+
   /** Trigger the cash drawer kick connector. Most café printers
    * have one wired to the till. */
   kickDrawer(): this {

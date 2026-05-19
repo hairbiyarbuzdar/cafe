@@ -17,7 +17,7 @@
  * the in-flight case (each new build references new file names).
  */
 
-const CACHE_VERSION = "brewline-v3";
+const CACHE_VERSION = "brewline-v4";
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 // `/pos` is the offline-critical route — cashiers must be able to
 // keep taking orders when the network drops. Pre-warming it on
@@ -98,6 +98,60 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(networkFirst(request));
     return;
   }
+});
+
+// ──────────────────────────────────────────────────────────────
+// Web Push
+// ──────────────────────────────────────────────────────────────
+// `push` fires when the OS push service wakes the SW. The server
+// (src/lib/push/server.ts) sends a JSON `PushPayload` body. We
+// keep the SW resilient to malformed/missing payloads so a third-
+// party push routing accident doesn't blow up the worker.
+self.addEventListener("push", (event) => {
+  let payload = {};
+  try {
+    payload = event.data ? event.data.json() : {};
+  } catch {
+    payload = { title: "Brewline", body: event.data?.text() ?? "" };
+  }
+  const title = payload.title || "Brewline";
+  const options = {
+    body: payload.body || "",
+    icon: "/icon.svg",
+    badge: "/icon.svg",
+    tag: payload.tag || undefined,
+    data: { url: payload.url || "/" },
+  };
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+// On notification click: focus the matching tab if one is open
+// (so we don't pile up duplicate Brewline windows), else open a
+// new one to the URL the server attached.
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const targetUrl = event.notification.data?.url || "/";
+  event.waitUntil(
+    (async () => {
+      const all = await self.clients.matchAll({
+        type: "window",
+        includeUncontrolled: true,
+      });
+      for (const client of all) {
+        try {
+          const url = new URL(client.url);
+          if (url.pathname === targetUrl && "focus" in client) {
+            return client.focus();
+          }
+        } catch {
+          // ignore unparseable
+        }
+      }
+      if (self.clients.openWindow) {
+        return self.clients.openWindow(targetUrl);
+      }
+    })(),
+  );
 });
 
 async function cacheFirst(request) {

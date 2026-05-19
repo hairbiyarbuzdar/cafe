@@ -309,7 +309,15 @@ export function CartPanel({
         <div className="flex items-stretch gap-2">
           <Button
             className="h-12 flex-1 rounded-md text-[14px] font-semibold shadow-soft"
-            disabled={items.length === 0}
+            disabled={
+              items.length === 0 ||
+              (channel === "dine-in" && !isAttach && !tableId)
+            }
+            title={
+              channel === "dine-in" && !isAttach && !tableId
+                ? "Pick a table before placing a dine-in order"
+                : undefined
+            }
             onClick={() => {
               setCheckoutOpen(true);
               onChargeStart?.();
@@ -318,7 +326,9 @@ export function CartPanel({
             <ReceiptText className="size-4" />
             {isAttach
               ? `Add to ${attachedOrderNumber}`
-              : `Place order · ${formatCurrency(total)}`}
+              : channel === "dine-in" && !tableId
+                ? "Pick a table to place order"
+                : `Place order · ${formatCurrency(total)}`}
           </Button>
           <PayHeldOrdersPicker
             orders={heldOrders}

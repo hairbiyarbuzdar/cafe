@@ -109,6 +109,7 @@ export function buildPaymentReceiptBytes(data: PaymentReceiptData): Uint8Array {
   if (data.notes) {
     b.blank(1).line(`Note: ${data.notes}`);
   }
+  b.blank(1).align(ALIGN_CENTER).barcode(data.receiptNumber).align(ALIGN_LEFT);
   footer(b, data.header);
   b.cut();
   b.kickDrawer();
@@ -141,6 +142,7 @@ export function buildKitchenTicketBytes(data: KitchenTicketData): Uint8Array {
     b.line(data.notes);
   }
 
+  b.blank(1).align(ALIGN_CENTER).barcode(data.orderNumber.replace(/^#/, "")).align(ALIGN_LEFT);
   footer(b, h);
   b.cut();
   return b.build();
@@ -168,6 +170,7 @@ export function buildInventorySlipBytes(data: InventorySlipData): Uint8Array {
     b.rule().bold(true).row("Total", compact(data.total)).bold(false);
   }
   if (data.notes) b.blank(1).line(`Note: ${data.notes}`);
+  b.blank(1).align(ALIGN_CENTER).barcode(data.movementId).align(ALIGN_LEFT);
   footer(b, h);
   b.cut();
   return b.build();

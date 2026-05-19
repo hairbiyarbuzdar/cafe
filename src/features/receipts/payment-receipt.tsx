@@ -1,5 +1,6 @@
 "use client";
 
+import { Barcode } from "@/features/receipts/barcode";
 import {
   ReceiptDivider,
   ReceiptRow,
@@ -90,6 +91,10 @@ export function PaymentReceipt({ data }: { data: PaymentReceiptData }) {
       {data.notes ? (
         <p className="mt-2 text-[9.5px] text-zinc-700">Note: {data.notes}</p>
       ) : null}
+
+      <div className="mt-3 flex justify-center">
+        <Barcode value={data.receiptNumber} />
+      </div>
     </ReceiptShell>
   );
 }

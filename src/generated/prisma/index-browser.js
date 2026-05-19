@@ -152,6 +152,16 @@ exports.Prisma.SessionScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
+exports.Prisma.PushSubscriptionScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  endpoint: 'endpoint',
+  p256dh: 'p256dh',
+  auth: 'auth',
+  userAgent: 'userAgent',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.PendingMemberScalarFieldEnum = {
   id: 'id',
   name: 'name',
@@ -507,6 +517,7 @@ exports.Prisma.ModelName = {
   Role: 'Role',
   User: 'User',
   Session: 'Session',
+  PushSubscription: 'PushSubscription',
   PendingMember: 'PendingMember',
   PaymentChannel: 'PaymentChannel',
   PaymentTransfer: 'PaymentTransfer',

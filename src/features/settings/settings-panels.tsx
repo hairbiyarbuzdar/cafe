@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/select";
 import { SectionCard } from "@/components/shared/section-card";
 import { InviteMemberDialog } from "@/features/settings/invite-member-dialog";
+import { PushToggle } from "@/features/notifications/push-toggle";
 import {
   Manage2FADialog,
   RotateApiKeyDialog,
@@ -325,6 +326,13 @@ export function TeamPanel({
 export function NotificationsPanel() {
   return (
     <div className="space-y-4">
+      <SectionCard
+        title="Web Push"
+        description="Real-time alerts on your locked screen / closed tab. Subscription is per device — enable on every tablet that should ping."
+      >
+        <PushToggle />
+      </SectionCard>
+
       <SectionCard
         title="Channels"
         description="Where you receive operational alerts"

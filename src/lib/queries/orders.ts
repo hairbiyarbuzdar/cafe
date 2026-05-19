@@ -78,6 +78,10 @@ export type HeldOrderSummary = {
   id: string;
   number: string;
   channel: OrderChannel;
+  /** Aggregate lifecycle status, mirrored from kitchen-ticket
+   * transitions (see `setKitchenTicketStatusAction`). The pay flow
+   * gates on this — only `ready` orders are payable. */
+  status: OrderStatus;
   table?: string;
   customerName?: string;
   total: number;
@@ -99,6 +103,7 @@ export async function listHeldOrders(): Promise<HeldOrderSummary[]> {
       id: true,
       number: true,
       channel: true,
+      status: true,
       customerName: true,
       total: true,
       createdAt: true,
@@ -120,6 +125,7 @@ export async function listHeldOrders(): Promise<HeldOrderSummary[]> {
     id: o.id,
     number: o.number,
     channel: o.channel as OrderChannel,
+    status: o.status as OrderStatus,
     table: o.table?.name,
     customerName: o.customerName ?? undefined,
     total: toNumber(o.total),

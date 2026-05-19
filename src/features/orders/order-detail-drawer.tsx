@@ -357,6 +357,12 @@ function OrderDrawerFooter({
           size="sm"
           className="h-9 rounded-md text-[12px]"
           onClick={() => setPayOpen(true)}
+          disabled={order.status !== "ready"}
+          title={
+            order.status === "ready"
+              ? undefined
+              : `Kitchen still has the order in ${order.status}. Payment opens once every ticket is marked ready.`
+          }
         >
           <Receipt className="size-3.5" />
           Take payment

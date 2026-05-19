@@ -1,5 +1,6 @@
 "use client";
 
+import { Barcode } from "@/features/receipts/barcode";
 import {
   ReceiptDivider,
   ReceiptRow,
@@ -57,6 +58,10 @@ export function KitchenTicket({ data }: { data: KitchenTicketData }) {
           <p className="text-[10px] italic">{data.notes}</p>
         </>
       ) : null}
+
+      <div className="mt-3 flex justify-center">
+        <Barcode value={data.orderNumber.replace(/^#/, "")} />
+      </div>
     </ReceiptShell>
   );
 }
