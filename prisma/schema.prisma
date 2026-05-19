@@ -372,6 +372,12 @@ model OrderItem {
   unitPrice  Decimal  @db.Decimal(10, 2)
   modifiers  Json?
   note       String?
+  /// Stamped when this line item is finished by the kitchen — i.e.
+  /// when the parent ticket first transitions to `ready`. Items
+  /// inserted later (via `addItemsToHeldOrderAction`) land with
+  /// `preparedAt: null` so the cook can distinguish fresh additions
+  /// from already-completed work on a reopened ticket.
+  preparedAt DateTime?
 
   @@index([orderId])
   /// `topProducts` + `categoryRevenue` group/join by menuItemId.

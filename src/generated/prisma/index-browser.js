@@ -317,7 +317,8 @@ exports.Prisma.OrderItemScalarFieldEnum = {
   quantity: 'quantity',
   unitPrice: 'unitPrice',
   modifiers: 'modifiers',
-  note: 'note'
+  note: 'note',
+  preparedAt: 'preparedAt'
 };
 
 exports.Prisma.KitchenTicketScalarFieldEnum = {

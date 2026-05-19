@@ -360,18 +360,24 @@ model Order {
 }
 
 model OrderItem {
-  id         String   @id @default(cuid())
+  id         String    @id @default(cuid())
   orderId    String
-  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  order      Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
   menuItemId String
-  menuItem   MenuItem @relation(fields: [menuItemId], references: [id])
+  menuItem   MenuItem  @relation(fields: [menuItemId], references: [id])
   /// Denormalized at the time of sale so historical orders stay legible
   /// even if the underlying menu item is renamed or deleted.
   name       String
   quantity   Int
-  unitPrice  Decimal  @db.Decimal(10, 2)
+  unitPrice  Decimal   @db.Decimal(10, 2)
   modifiers  Json?
   note       String?
+  /// Stamped when this line item is finished by the kitchen — i.e.
+  /// when the parent ticket first transitions to `ready`. Items
+  /// inserted later (via `addItemsToHeldOrderAction`) land with
+  /// `preparedAt: null` so the cook can distinguish fresh additions
+  /// from already-completed work on a reopened ticket.
+  preparedAt DateTime?
 
   @@index([orderId])
   /// `topProducts` + `categoryRevenue` group/join by menuItemId.

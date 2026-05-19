@@ -351,23 +351,52 @@ function TicketCard({
         </Badge>
       </header>
 
-      <ul className="mt-2.5 space-y-1 text-[13px]">
-        {ticket.items.map((i) => (
-          <li key={i.id} className="flex items-start gap-2">
-            <span className="font-medium tabular-nums text-muted-foreground">
-              ×{i.quantity}
-            </span>
-            <div className="min-w-0">
-              <p className="truncate">{i.name}</p>
-              {i.modifiers && i.modifiers.length > 0 ? (
-                <p className="text-[11px] text-muted-foreground">
-                  {i.modifiers.join(" · ")}
+      {(() => {
+        // Split into "still to make" vs "already prepared" so the
+        // cook's attention lands on actual outstanding work after
+        // the cashier reopens a ticket by adding new items. Fresh
+        // items render on top, normal weight; already-prepared items
+        // sit underneath, struck-through and dimmed.
+        const fresh = ticket.items.filter((i) => !i.preparedAt);
+        const done = ticket.items.filter((i) => !!i.preparedAt);
+        return (
+          <>
+            <ul className="mt-2.5 space-y-1 text-[13px]">
+              {fresh.map((i) => (
+                <li key={i.id} className="flex items-start gap-2">
+                  <span className="font-medium tabular-nums text-muted-foreground">
+                    ×{i.quantity}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="truncate">{i.name}</p>
+                    {i.modifiers && i.modifiers.length > 0 ? (
+                      <p className="text-[11px] text-muted-foreground">
+                        {i.modifiers.join(" · ")}
+                      </p>
+                    ) : null}
+                  </div>
+                </li>
+              ))}
+            </ul>
+
+            {done.length > 0 ? (
+              <>
+                <p className="mt-2 text-[10px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
+                  Already done · {done.length}
                 </p>
-              ) : null}
-            </div>
-          </li>
-        ))}
-      </ul>
+                <ul className="mt-1 space-y-0.5 text-[12px] text-muted-foreground line-through">
+                  {done.map((i) => (
+                    <li key={i.id} className="flex items-start gap-2">
+                      <span className="tabular-nums">×{i.quantity}</span>
+                      <span className="truncate">{i.name}</span>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            ) : null}
+          </>
+        );
+      })()}
 
       {ticket.notes ? (
         <p className="mt-2 rounded-md border border-warning/20 bg-warning/10 px-2 py-1.5 text-[11.5px] text-foreground/85">

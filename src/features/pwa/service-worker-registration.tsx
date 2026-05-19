@@ -3,22 +3,44 @@
 import * as React from "react";
 
 /**
- * Registers the service worker on mount.
+ * Registers the service worker on mount — in production only.
  *
- * Mounted once from the root layout. We register on `load` (not on
- * mount) so the SW install doesn't compete with the initial page's
- * hydration + first paint — the user feels the app, *then* the SW
- * boots in the background.
+ * In `next dev` Turbopack mints fresh chunk URLs as files change, but
+ * the SW's cache-first strategy on `/_next/static/*` would happily
+ * serve last session's module against this session's bundle —
+ * resulting in `module factory is not available` errors and silent
+ * HMR breakage. So:
  *
- * In dev (`next dev`) we deliberately keep the SW registered so the
- * install + activate flow can be tested end-to-end. If you need to
- * iterate the page chunks rapidly and the SW is getting in the way,
- * unregister from DevTools → Application → Service Workers.
+ *   • prod: register `sw.js` on `window.load` (after first paint).
+ *   • dev:  proactively unregister any SW that a previous prod-style
+ *           run (or an earlier dev build before this guard existed)
+ *           may have left behind, and skip registration entirely.
+ *
+ * The unregister sweep is idempotent + cheap so it's safe to run
+ * every dev mount.
  */
 export function ServiceWorkerRegistration() {
   React.useEffect(() => {
     if (typeof window === "undefined") return;
     if (!("serviceWorker" in navigator)) return;
+
+    if (process.env.NODE_ENV !== "production") {
+      navigator.serviceWorker
+        .getRegistrations()
+        .then((regs) => {
+          for (const reg of regs) reg.unregister().catch(() => {});
+        })
+        .catch(() => {});
+      // Also blow away any caches the SW left behind so a stale
+      // chunk doesn't survive the unregister-and-reload cycle.
+      if (typeof caches !== "undefined") {
+        caches
+          .keys()
+          .then((keys) => Promise.all(keys.map((k) => caches.delete(k))))
+          .catch(() => {});
+      }
+      return;
+    }
 
     const register = () => {
       navigator.serviceWorker

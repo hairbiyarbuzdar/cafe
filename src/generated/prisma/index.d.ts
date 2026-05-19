@@ -22375,6 +22375,7 @@ export namespace Prisma {
     quantity: number | null
     unitPrice: Decimal | null
     note: string | null
+    preparedAt: Date | null
   }
 
   export type OrderItemMaxAggregateOutputType = {
@@ -22385,6 +22386,7 @@ export namespace Prisma {
     quantity: number | null
     unitPrice: Decimal | null
     note: string | null
+    preparedAt: Date | null
   }
 
   export type OrderItemCountAggregateOutputType = {
@@ -22396,6 +22398,7 @@ export namespace Prisma {
     unitPrice: number
     modifiers: number
     note: number
+    preparedAt: number
     _all: number
   }
 
@@ -22418,6 +22421,7 @@ export namespace Prisma {
     quantity?: true
     unitPrice?: true
     note?: true
+    preparedAt?: true
   }
 
   export type OrderItemMaxAggregateInputType = {
@@ -22428,6 +22432,7 @@ export namespace Prisma {
     quantity?: true
     unitPrice?: true
     note?: true
+    preparedAt?: true
   }
 
   export type OrderItemCountAggregateInputType = {
@@ -22439,6 +22444,7 @@ export namespace Prisma {
     unitPrice?: true
     modifiers?: true
     note?: true
+    preparedAt?: true
     _all?: true
   }
 
@@ -22537,6 +22543,7 @@ export namespace Prisma {
     unitPrice: Decimal
     modifiers: JsonValue | null
     note: string | null
+    preparedAt: Date | null
     _count: OrderItemCountAggregateOutputType | null
     _avg: OrderItemAvgAggregateOutputType | null
     _sum: OrderItemSumAggregateOutputType | null
@@ -22567,6 +22574,7 @@ export namespace Prisma {
     unitPrice?: boolean
     modifiers?: boolean
     note?: boolean
+    preparedAt?: boolean
     order?: boolean | OrderDefaultArgs<ExtArgs>
     menuItem?: boolean | MenuItemDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["orderItem"]>
@@ -22580,6 +22588,7 @@ export namespace Prisma {
     unitPrice?: boolean
     modifiers?: boolean
     note?: boolean
+    preparedAt?: boolean
     order?: boolean | OrderDefaultArgs<ExtArgs>
     menuItem?: boolean | MenuItemDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["orderItem"]>
@@ -22593,6 +22602,7 @@ export namespace Prisma {
     unitPrice?: boolean
     modifiers?: boolean
     note?: boolean
+    preparedAt?: boolean
     order?: boolean | OrderDefaultArgs<ExtArgs>
     menuItem?: boolean | MenuItemDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["orderItem"]>
@@ -22606,9 +22616,10 @@ export namespace Prisma {
     unitPrice?: boolean
     modifiers?: boolean
     note?: boolean
+    preparedAt?: boolean
   }
 
-  export type OrderItemOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "orderId" | "menuItemId" | "name" | "quantity" | "unitPrice" | "modifiers" | "note", ExtArgs["result"]["orderItem"]>
+  export type OrderItemOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "orderId" | "menuItemId" | "name" | "quantity" | "unitPrice" | "modifiers" | "note" | "preparedAt", ExtArgs["result"]["orderItem"]>
   export type OrderItemInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     order?: boolean | OrderDefaultArgs<ExtArgs>
     menuItem?: boolean | MenuItemDefaultArgs<ExtArgs>
@@ -22641,6 +22652,14 @@ export namespace Prisma {
       unitPrice: Prisma.Decimal
       modifiers: Prisma.JsonValue | null
       note: string | null
+      /**
+       * Stamped when this line item is finished by the kitchen — i.e.
+       * when the parent ticket first transitions to `ready`. Items
+       * inserted later (via `addItemsToHeldOrderAction`) land with
+       * `preparedAt: null` so the cook can distinguish fresh additions
+       * from already-completed work on a reopened ticket.
+       */
+      preparedAt: Date | null
     }, ExtArgs["result"]["orderItem"]>
     composites: {}
   }
@@ -23074,6 +23093,7 @@ export namespace Prisma {
     readonly unitPrice: FieldRef<"OrderItem", 'Decimal'>
     readonly modifiers: FieldRef<"OrderItem", 'Json'>
     readonly note: FieldRef<"OrderItem", 'String'>
+    readonly preparedAt: FieldRef<"OrderItem", 'DateTime'>
   }
     
 
@@ -32719,7 +32739,8 @@ export namespace Prisma {
     quantity: 'quantity',
     unitPrice: 'unitPrice',
     modifiers: 'modifiers',
-    note: 'note'
+    note: 'note',
+    preparedAt: 'preparedAt'
   };
 
   export type OrderItemScalarFieldEnum = (typeof OrderItemScalarFieldEnum)[keyof typeof OrderItemScalarFieldEnum]
@@ -34386,6 +34407,7 @@ export namespace Prisma {
     unitPrice?: DecimalFilter<"OrderItem"> | Decimal | DecimalJsLike | number | string
     modifiers?: JsonNullableFilter<"OrderItem">
     note?: StringNullableFilter<"OrderItem"> | string | null
+    preparedAt?: DateTimeNullableFilter<"OrderItem"> | Date | string | null
     order?: XOR<OrderScalarRelationFilter, OrderWhereInput>
     menuItem?: XOR<MenuItemScalarRelationFilter, MenuItemWhereInput>
   }
@@ -34399,6 +34421,7 @@ export namespace Prisma {
     unitPrice?: SortOrder
     modifiers?: SortOrderInput | SortOrder
     note?: SortOrderInput | SortOrder
+    preparedAt?: SortOrderInput | SortOrder
     order?: OrderOrderByWithRelationInput
     menuItem?: MenuItemOrderByWithRelationInput
   }
@@ -34415,6 +34438,7 @@ export namespace Prisma {
     unitPrice?: DecimalFilter<"OrderItem"> | Decimal | DecimalJsLike | number | string
     modifiers?: JsonNullableFilter<"OrderItem">
     note?: StringNullableFilter<"OrderItem"> | string | null
+    preparedAt?: DateTimeNullableFilter<"OrderItem"> | Date | string | null
     order?: XOR<OrderScalarRelationFilter, OrderWhereInput>
     menuItem?: XOR<MenuItemScalarRelationFilter, MenuItemWhereInput>
   }, "id">
@@ -34428,6 +34452,7 @@ export namespace Prisma {
     unitPrice?: SortOrder
     modifiers?: SortOrderInput | SortOrder
     note?: SortOrderInput | SortOrder
+    preparedAt?: SortOrderInput | SortOrder
     _count?: OrderItemCountOrderByAggregateInput
     _avg?: OrderItemAvgOrderByAggregateInput
     _max?: OrderItemMaxOrderByAggregateInput
@@ -34447,6 +34472,7 @@ export namespace Prisma {
     unitPrice?: DecimalWithAggregatesFilter<"OrderItem"> | Decimal | DecimalJsLike | number | string
     modifiers?: JsonNullableWithAggregatesFilter<"OrderItem">
     note?: StringNullableWithAggregatesFilter<"OrderItem"> | string | null
+    preparedAt?: DateTimeNullableWithAggregatesFilter<"OrderItem"> | Date | string | null
   }
 
   export type KitchenTicketWhereInput = {
@@ -36508,6 +36534,7 @@ export namespace Prisma {
     unitPrice: Decimal | DecimalJsLike | number | string
     modifiers?: NullableJsonNullValueInput | InputJsonValue
     note?: string | null
+    preparedAt?: Date | string | null
     order: OrderCreateNestedOneWithoutItemsInput
     menuItem: MenuItemCreateNestedOneWithoutOrderItemsInput
   }
@@ -36521,6 +36548,7 @@ export namespace Prisma {
     unitPrice: Decimal | DecimalJsLike | number | string
     modifiers?: NullableJsonNullValueInput | InputJsonValue
     note?: string | null
+    preparedAt?: Date | string | null
   }
 
   export type OrderItemUpdateInput = {
@@ -36530,6 +36558,7 @@ export namespace Prisma {
     unitPrice?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     modifiers?: NullableJsonNullValueInput | InputJsonValue
     note?: NullableStringFieldUpdateOperationsInput | string | null
+    preparedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     order?: OrderUpdateOneRequiredWithoutItemsNestedInput
     menuItem?: MenuItemUpdateOneRequiredWithoutOrderItemsNestedInput
   }
@@ -36543,6 +36572,7 @@ export namespace Prisma {
     unitPrice?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     modifiers?: NullableJsonNullValueInput | InputJsonValue
     note?: NullableStringFieldUpdateOperationsInput | string | null
+    preparedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type OrderItemCreateManyInput = {
@@ -36554,6 +36584,7 @@ export namespace Prisma {
     unitPrice: Decimal | DecimalJsLike | number | string
     modifiers?: NullableJsonNullValueInput | InputJsonValue
     note?: string | null
+    preparedAt?: Date | string | null
   }
 
   export type OrderItemUpdateManyMutationInput = {
@@ -36563,6 +36594,7 @@ export namespace Prisma {
     unitPrice?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     modifiers?: NullableJsonNullValueInput | InputJsonValue
     note?: NullableStringFieldUpdateOperationsInput | string | null
+    preparedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type OrderItemUncheckedUpdateManyInput = {
@@ -36574,6 +36606,7 @@ export namespace Prisma {
     unitPrice?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     modifiers?: NullableJsonNullValueInput | InputJsonValue
     note?: NullableStringFieldUpdateOperationsInput | string | null
+    preparedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type KitchenTicketCreateInput = {
@@ -38626,6 +38659,7 @@ export namespace Prisma {
     unitPrice?: SortOrder
     modifiers?: SortOrder
     note?: SortOrder
+    preparedAt?: SortOrder
   }
 
   export type OrderItemAvgOrderByAggregateInput = {
@@ -38641,6 +38675,7 @@ export namespace Prisma {
     quantity?: SortOrder
     unitPrice?: SortOrder
     note?: SortOrder
+    preparedAt?: SortOrder
   }
 
   export type OrderItemMinOrderByAggregateInput = {
@@ -38651,6 +38686,7 @@ export namespace Prisma {
     quantity?: SortOrder
     unitPrice?: SortOrder
     note?: SortOrder
+    preparedAt?: SortOrder
   }
 
   export type OrderItemSumOrderByAggregateInput = {
@@ -41977,6 +42013,7 @@ export namespace Prisma {
     unitPrice: Decimal | DecimalJsLike | number | string
     modifiers?: NullableJsonNullValueInput | InputJsonValue
     note?: string | null
+    preparedAt?: Date | string | null
     order: OrderCreateNestedOneWithoutItemsInput
   }
 
@@ -41988,6 +42025,7 @@ export namespace Prisma {
     unitPrice: Decimal | DecimalJsLike | number | string
     modifiers?: NullableJsonNullValueInput | InputJsonValue
     note?: string | null
+    preparedAt?: Date | string | null
   }
 
   export type OrderItemCreateOrConnectWithoutMenuItemInput = {
@@ -42115,6 +42153,7 @@ export namespace Prisma {
     unitPrice?: DecimalFilter<"OrderItem"> | Decimal | DecimalJsLike | number | string
     modifiers?: JsonNullableFilter<"OrderItem">
     note?: StringNullableFilter<"OrderItem"> | string | null
+    preparedAt?: DateTimeNullableFilter<"OrderItem"> | Date | string | null
   }
 
   export type InventoryItemCreateWithoutSupplierInput = {
@@ -42807,6 +42846,7 @@ export namespace Prisma {
     unitPrice: Decimal | DecimalJsLike | number | string
     modifiers?: NullableJsonNullValueInput | InputJsonValue
     note?: string | null
+    preparedAt?: Date | string | null
     menuItem: MenuItemCreateNestedOneWithoutOrderItemsInput
   }
 
@@ -42818,6 +42858,7 @@ export namespace Prisma {
     unitPrice: Decimal | DecimalJsLike | number | string
     modifiers?: NullableJsonNullValueInput | InputJsonValue
     note?: string | null
+    preparedAt?: Date | string | null
   }
 
   export type OrderItemCreateOrConnectWithoutOrderInput = {
@@ -44322,6 +44363,7 @@ export namespace Prisma {
     unitPrice: Decimal | DecimalJsLike | number | string
     modifiers?: NullableJsonNullValueInput | InputJsonValue
     note?: string | null
+    preparedAt?: Date | string | null
   }
 
   export type RecipeIngredientUpdateWithoutMenuItemInput = {
@@ -44352,6 +44394,7 @@ export namespace Prisma {
     unitPrice?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     modifiers?: NullableJsonNullValueInput | InputJsonValue
     note?: NullableStringFieldUpdateOperationsInput | string | null
+    preparedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     order?: OrderUpdateOneRequiredWithoutItemsNestedInput
   }
 
@@ -44363,6 +44406,7 @@ export namespace Prisma {
     unitPrice?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     modifiers?: NullableJsonNullValueInput | InputJsonValue
     note?: NullableStringFieldUpdateOperationsInput | string | null
+    preparedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type OrderItemUncheckedUpdateManyWithoutMenuItemInput = {
@@ -44373,6 +44417,7 @@ export namespace Prisma {
     unitPrice?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     modifiers?: NullableJsonNullValueInput | InputJsonValue
     note?: NullableStringFieldUpdateOperationsInput | string | null
+    preparedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type InventoryItemCreateManySupplierInput = {
@@ -44636,6 +44681,7 @@ export namespace Prisma {
     unitPrice: Decimal | DecimalJsLike | number | string
     modifiers?: NullableJsonNullValueInput | InputJsonValue
     note?: string | null
+    preparedAt?: Date | string | null
   }
 
   export type KitchenTicketCreateManyOrderInput = {
@@ -44698,6 +44744,7 @@ export namespace Prisma {
     unitPrice?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     modifiers?: NullableJsonNullValueInput | InputJsonValue
     note?: NullableStringFieldUpdateOperationsInput | string | null
+    preparedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     menuItem?: MenuItemUpdateOneRequiredWithoutOrderItemsNestedInput
   }
 
@@ -44709,6 +44756,7 @@ export namespace Prisma {
     unitPrice?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     modifiers?: NullableJsonNullValueInput | InputJsonValue
     note?: NullableStringFieldUpdateOperationsInput | string | null
+    preparedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type OrderItemUncheckedUpdateManyWithoutOrderInput = {
@@ -44719,6 +44767,7 @@ export namespace Prisma {
     unitPrice?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     modifiers?: NullableJsonNullValueInput | InputJsonValue
     note?: NullableStringFieldUpdateOperationsInput | string | null
+    preparedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type KitchenTicketUpdateWithoutOrderInput = {

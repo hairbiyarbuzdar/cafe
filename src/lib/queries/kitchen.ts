@@ -48,6 +48,7 @@ export async function listActiveKitchenTickets(): Promise<KitchenTicket[]> {
           ? (i.modifiers as string[])
           : undefined,
         note: i.note ?? undefined,
+        preparedAt: i.preparedAt ? i.preparedAt.toISOString() : undefined,
       }));
 
     return {

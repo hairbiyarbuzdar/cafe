@@ -167,6 +167,10 @@ export type KitchenTicketItem = {
   quantity: number;
   modifiers?: string[];
   note?: string;
+  /** ISO timestamp stamped when the parent ticket first reached
+   * `ready`. Items added to a reopened ticket are `undefined` so the
+   * cook can see which work is still pending vs already completed. */
+  preparedAt?: string;
 };
 
 export type KitchenTicket = {

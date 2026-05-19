@@ -69,6 +69,29 @@ export async function setKitchenTicketStatusAction(
       data: { status },
     });
 
+    // First transition into `ready` stamps every OrderItem at this
+    // station as completed. We only stamp items that haven't been
+    // stamped already, so a ready → preparing → ready bounce doesn't
+    // overwrite the original prep time, and any items added after the
+    // ticket was reopened (preparedAt: null) flip from "fresh" to
+    // "done" together with their peers.
+    if (status === "ready") {
+      const itemsToStamp = await prisma.orderItem.findMany({
+        where: {
+          orderId,
+          preparedAt: null,
+          menuItem: { stationId },
+        },
+        select: { id: true },
+      });
+      if (itemsToStamp.length > 0) {
+        await prisma.orderItem.updateMany({
+          where: { id: { in: itemsToStamp.map((i) => i.id) } },
+          data: { preparedAt: new Date() },
+        });
+      }
+    }
+
     // Mirror to the parent order's status if all of its tickets agree.
     const siblings = await prisma.kitchenTicket.findMany({
       where: { orderId },
