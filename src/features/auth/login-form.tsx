@@ -24,8 +24,8 @@ export function LoginForm({ demoUsers }: { demoUsers: SessionUser[] }) {
 
   const setUser = useAuth((s) => s.setUser);
 
-  const [email, setEmail] = React.useState("elena@brewline.co");
-  const [password, setPassword] = React.useState("brewline");
+  const [email, setEmail] = React.useState("");
+  const [password, setPassword] = React.useState("");
   const [showPassword, setShowPassword] = React.useState(false);
   const [submitting, setSubmitting] = React.useState(false);
 
