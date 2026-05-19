@@ -14,6 +14,7 @@ import {
   listLowStock,
   listSuppliers,
 } from "@/lib/queries/inventory";
+import { listPaymentChannels } from "@/lib/queries/payment-channels";
 import { formatCurrency } from "@/lib/utils";
 
 export const metadata = { title: "Inventory" };
@@ -21,13 +22,15 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export default async function InventoryPage() {
-  const [summary, items, suppliers, lowStock, trend] = await Promise.all([
-    inventorySummary(),
-    listInventory(),
-    listSuppliers(),
-    listLowStock(6),
-    stockTrend7d(),
-  ]);
+  const [summary, items, suppliers, lowStock, trend, paymentChannels] =
+    await Promise.all([
+      inventorySummary(),
+      listInventory(),
+      listSuppliers(),
+      listLowStock(6),
+      stockTrend7d(),
+      listPaymentChannels(),
+    ]);
 
   const knownCategories = Array.from(
     new Set(items.map((i) => i.category)),
@@ -47,6 +50,7 @@ export default async function InventoryPage() {
             <NewInventoryItemButton
               suppliers={suppliers}
               knownCategories={knownCategories}
+              paymentChannels={paymentChannels}
             />
           </>
         }
@@ -76,9 +80,13 @@ export default async function InventoryPage() {
         <LowStockAlerts items={lowStock} suppliers={suppliers} />
       </section>
 
-      <InventoryTable items={items} suppliers={suppliers} />
+      <InventoryTable
+        items={items}
+        suppliers={suppliers}
+        paymentChannels={paymentChannels}
+      />
 
-      <SuppliersGrid suppliers={suppliers} />
+      <SuppliersGrid suppliers={suppliers} paymentChannels={paymentChannels} />
     </>
   );
 }

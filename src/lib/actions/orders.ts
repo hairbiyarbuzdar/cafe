@@ -530,6 +530,11 @@ export async function cancelHeldOrderAction(
 export type PayOrderInput = {
   orderId: string;
   payment: PaymentMethod;
+  /** Which payment channel to credit. When set we both stamp it on
+   *  the order (audit trail) and increment its `currentBalance` in
+   *  the same transaction so the Settings → Payment methods totals
+   *  stay truthful. */
+  paymentChannelId?: string | null;
   tip?: number;
 };
 
@@ -602,16 +607,40 @@ export async function payOrderAction(
   const tax = toNumber(order.tax);
   const total = round2(subtotal - discount + tax + tipAmount);
 
+  // Resolve the channel up-front so a wrong / archived id bails out
+  // before we touch the order — otherwise the cashier sees a paid
+  // order with no money landed against any channel.
+  let paymentChannelId: string | null = null;
+  if (input.paymentChannelId) {
+    const channel = await prisma.paymentChannel.findUnique({
+      where: { id: input.paymentChannelId },
+      select: { id: true, archived: true, kind: true },
+    });
+    if (!channel || channel.archived) {
+      return { ok: false, error: "Selected payment method isn't active" };
+    }
+    if (channel.kind !== input.payment) {
+      return {
+        ok: false,
+        error: "Payment method doesn't match the selected channel's kind",
+      };
+    }
+    paymentChannelId = channel.id;
+  }
+
   try {
-    // Same transaction: stamp the order paid AND free the seats it
-    // occupied. occupancy is clamped to 0 via `Math.max` in raw SQL
-    // so an out-of-band manual reset earlier in the day can't push
-    // us negative.
+    // Single transaction: stamp the order paid, free the seats it
+    // occupied, and credit the payment channel. occupancy is clamped
+    // to 0 via `Math.max` in raw SQL so an out-of-band manual reset
+    // earlier in the day can't push us negative. The channel credit
+    // here is what makes Settings → Payment methods balances actually
+    // reflect what the cashier has taken in.
     await prisma.$transaction(async (tx) => {
       await tx.order.update({
         where: { id: order.id },
         data: {
           payment: input.payment,
+          paymentChannelId,
           paidAt: new Date(),
           tip: tipAmount > 0 ? tipAmount : null,
           total,
@@ -621,11 +650,18 @@ export async function payOrderAction(
       if (order.tableId && order.guests > 0) {
         await tx.$executeRaw`UPDATE "Table" SET "occupancy" = GREATEST(0, "occupancy" - ${order.guests}) WHERE "id" = ${order.tableId}`;
       }
+      if (paymentChannelId && total > 0) {
+        await tx.paymentChannel.update({
+          where: { id: paymentChannelId },
+          data: { currentBalance: { increment: total } },
+        });
+      }
     });
 
     revalidatePath("/orders");
     revalidatePath("/kitchen");
     revalidatePath("/dashboard");
+    revalidatePath("/settings");
     if (order.tableId) revalidatePath("/pos");
 
     publish({ type: "order.paid", orderId: order.id });

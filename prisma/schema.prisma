@@ -140,6 +140,13 @@ model PaymentChannel {
   updatedAt      DateTime           @updatedAt
   outgoing       PaymentTransfer[]  @relation("transferFrom")
   incoming       PaymentTransfer[]  @relation("transferTo")
+  /// Orders whose payment was captured into this channel (cash in).
+  orders         Order[]
+  /// Inventory restocks / new-item purchases paid out of this channel
+  /// (cash out).
+  inventoryMovements InventoryMovement[]
+  /// After-the-fact supplier-due payments paid out of this channel.
+  supplierPayments SupplierPayment[]
 }
 
 /// A money movement from one channel to another. The
@@ -225,8 +232,15 @@ model Supplier {
   contact        String?
   email          String?
   phone          String?
+  /// Street / building address used on POs and receipts. Optional so
+  /// historical suppliers without it stay valid.
+  address        String?
   rating         Float           @default(0)
   inventoryItems InventoryItem[]
+  /// Every inventory restock + initial-purchase movement that named
+  /// this supplier. Drives the supplier ledger UI.
+  movements      InventoryMovement[]
+  payments       SupplierPayment[]
   createdAt      DateTime        @default(now())
 }
 
@@ -268,6 +282,30 @@ model InventoryMovement {
   delta           Decimal       @db.Decimal(12, 3) // negative for consumption, positive for restock
   reason          String
   orderId         String?
+  /// Source of funds when this movement carried a real-money cost
+  /// (restocks paid for in cash / card / wallet). Null on consumption
+  /// movements (orders deducting recipe ingredients) and on zero-cost
+  /// restocks (opening balance, free samples). Used by reports +
+  /// audit trail to reconcile a channel's balance against actual
+  /// inflows/outflows.
+  paymentChannelId String?
+  paymentChannel   PaymentChannel? @relation(fields: [paymentChannelId], references: [id])
+  /// Total cost of the movement at the time it was recorded
+  /// (qty * unitCost). Lets us audit cash flow per channel without
+  /// re-joining InventoryItem.costPerUnit (which can change after
+  /// the fact).
+  amount          Decimal?      @db.Decimal(14, 2)
+  /// How much of `amount` was actually settled at the time of the
+  /// movement. 0..amount. `amount - paidAmount` is the outstanding
+  /// balance owed to the supplier, which can later be cleared via
+  /// SupplierPayment rows.
+  paidAmount      Decimal?      @db.Decimal(14, 2)
+  /// Snapshot of the supplier the restock was sourced from at the
+  /// time of the movement — denormalised so the supplier ledger
+  /// stays accurate even if the inventory item later gets reassigned
+  /// to a different supplier.
+  supplierId      String?
+  supplier        Supplier?     @relation(fields: [supplierId], references: [id])
   createdAt       DateTime      @default(now())
 
   @@index([inventoryItemId])
@@ -275,6 +313,29 @@ model InventoryMovement {
   /// `stockTrend7d` filters by `createdAt >= X AND delta < 0`. Single-
   /// column index on createdAt is plenty — the delta predicate prunes
   /// a small remainder after the date scan.
+  @@index([createdAt])
+  @@index([paymentChannelId])
+  @@index([supplierId])
+}
+
+/// An after-the-fact payment cleared against a supplier's outstanding
+/// balance — i.e. the operator owed the supplier X from earlier
+/// restocks and is now settling some or all of it. The supplier's
+/// running outstanding balance is computed as
+///   sum(InventoryMovement.amount) - sum(InventoryMovement.paidAmount)
+///     - sum(SupplierPayment.amount).
+model SupplierPayment {
+  id               String          @id @default(cuid())
+  supplierId       String
+  supplier         Supplier        @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  paymentChannelId String
+  paymentChannel   PaymentChannel  @relation(fields: [paymentChannelId], references: [id])
+  amount           Decimal         @db.Decimal(14, 2)
+  note             String?
+  createdAt        DateTime        @default(now())
+
+  @@index([supplierId])
+  @@index([paymentChannelId])
   @@index([createdAt])
 }
 
@@ -336,6 +397,12 @@ model Order {
   /// before the operator collects payment. `payment` and `paidAt` are
   /// both set in the same step via `payOrderAction`.
   payment       PaymentMethod?
+  /// Specific payment channel the cashier collected into. Lets the
+  /// app credit that channel's `currentBalance` atomically with the
+  /// pay action, so the Settings → Payment methods balances stay
+  /// truthful instead of drifting against actual orders.
+  paymentChannelId String?
+  paymentChannel   PaymentChannel? @relation(fields: [paymentChannelId], references: [id])
   paidAt        DateTime?
   notes         String?
   /// BRA-issued fiscal invoice number. Populated after successful
@@ -357,6 +424,7 @@ model Order {
   /// reports KPIs sequentially scan the whole Order table on every
   /// page load.
   @@index([paidAt])
+  @@index([paymentChannelId])
 }
 
 model OrderItem {

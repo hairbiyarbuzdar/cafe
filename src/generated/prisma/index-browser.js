@@ -235,6 +235,7 @@ exports.Prisma.SupplierScalarFieldEnum = {
   contact: 'contact',
   email: 'email',
   phone: 'phone',
+  address: 'address',
   rating: 'rating',
   createdAt: 'createdAt'
 };
@@ -269,6 +270,19 @@ exports.Prisma.InventoryMovementScalarFieldEnum = {
   delta: 'delta',
   reason: 'reason',
   orderId: 'orderId',
+  paymentChannelId: 'paymentChannelId',
+  amount: 'amount',
+  paidAmount: 'paidAmount',
+  supplierId: 'supplierId',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.SupplierPaymentScalarFieldEnum = {
+  id: 'id',
+  supplierId: 'supplierId',
+  paymentChannelId: 'paymentChannelId',
+  amount: 'amount',
+  note: 'note',
   createdAt: 'createdAt'
 };
 
@@ -299,6 +313,7 @@ exports.Prisma.OrderScalarFieldEnum = {
   discount: 'discount',
   total: 'total',
   payment: 'payment',
+  paymentChannelId: 'paymentChannelId',
   paidAt: 'paidAt',
   notes: 'notes',
   fiscalInvoiceNumber: 'fiscalInvoiceNumber',
@@ -529,6 +544,7 @@ exports.Prisma.ModelName = {
   InventoryItem: 'InventoryItem',
   RecipeIngredient: 'RecipeIngredient',
   InventoryMovement: 'InventoryMovement',
+  SupplierPayment: 'SupplierPayment',
   Table: 'Table',
   Order: 'Order',
   OrderItem: 'OrderItem',

@@ -40,9 +40,11 @@ const CATS = [
 export function InventoryTable({
   items,
   suppliers,
+  paymentChannels = [],
 }: {
   items: InventoryItem[];
   suppliers: Supplier[];
+  paymentChannels?: import("@/lib/queries/payment-channels").PaymentChannel[];
 }) {
   const [search, setSearch] = React.useState("");
   const [category, setCategory] = React.useState("All");
@@ -93,7 +95,10 @@ export function InventoryTable({
             <SlidersHorizontal className="size-4" />
             Columns
           </Button>
-          <ReceiveStockDialog suppliers={suppliers} />
+          <ReceiveStockDialog
+            suppliers={suppliers}
+            paymentChannels={paymentChannels}
+          />
         </div>
       </div>
 

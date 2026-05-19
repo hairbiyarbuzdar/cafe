@@ -93,6 +93,7 @@ export function TakePaymentDialog({
       const result = await payOrderAction({
         orderId: order.id,
         payment: selectedChannel.kind,
+        paymentChannelId: selectedChannel.id,
         tip: tipNum > 0 ? tipNum : undefined,
       });
       if (!result.ok) {
