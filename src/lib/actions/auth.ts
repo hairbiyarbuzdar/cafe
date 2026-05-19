@@ -205,6 +205,20 @@ export async function writeSessionCookie(user: SessionUser) {
     sameSite: "lax",
     path: "/",
     maxAge: SESSION_MAX_AGE,
-    secure: process.env.NODE_ENV === "production",
+    secure: shouldUseSecureCookies(),
   });
+}
+
+/**
+ * The session cookie defaults to `secure: true` in production so the
+ * cookie is only ever sent over HTTPS. That's the correct posture for
+ * cloud deployments — but a café running on a LAN over plain HTTP
+ * (`http://192.168.x.x:3000`) would have every login silently dropped
+ * because the browser refuses to attach a `secure` cookie to an HTTP
+ * request. Setting `BREWLINE_INSECURE_COOKIES=1` flips this off for
+ * the on-prem LAN scenario. Keep it OFF for any HTTPS deployment.
+ */
+function shouldUseSecureCookies(): boolean {
+  if (process.env.BREWLINE_INSECURE_COOKIES === "1") return false;
+  return process.env.NODE_ENV === "production";
 }
