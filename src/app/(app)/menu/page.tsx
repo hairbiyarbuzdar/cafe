@@ -7,6 +7,7 @@ import {
   Plus,
   Search,
   Sparkles,
+  Tag,
   Trash2,
   Utensils,
   X,
@@ -42,6 +43,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { PageHeader } from "@/components/layouts/page-header";
+import { CategoriesManager } from "@/features/menu/categories-manager";
 import { MenuFormSheet } from "@/features/menu/menu-form-sheet";
 import { StationsManager } from "@/features/menu/stations-manager";
 import { StationBadge } from "@/features/menu/station-badge";
@@ -77,6 +79,7 @@ export default function MenuPage() {
   const [formOpen, setFormOpen] = React.useState(false);
   const [editing, setEditing] = React.useState<MenuItem | null>(null);
   const [stationsOpen, setStationsOpen] = React.useState(false);
+  const [categoriesOpen, setCategoriesOpen] = React.useState(false);
   const [selected, setSelected] = React.useState<Set<string>>(new Set());
   const [confirmOpen, setConfirmOpen] = React.useState(false);
 
@@ -199,6 +202,15 @@ export default function MenuPage() {
         description="The sellable products shown on the POS — pricing, categories, station routing, and recipes all live here."
         actions={
           <>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-9 rounded-md text-[12.5px]"
+              onClick={() => setCategoriesOpen(true)}
+            >
+              <Tag className="size-4" />
+              Categories
+            </Button>
             <Button
               variant="outline"
               size="sm"
@@ -468,6 +480,7 @@ export default function MenuPage() {
 
       <MenuFormSheet open={formOpen} onOpenChange={setFormOpen} item={editing} />
       <StationsManager open={stationsOpen} onOpenChange={setStationsOpen} />
+      <CategoriesManager open={categoriesOpen} onOpenChange={setCategoriesOpen} />
 
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <DialogContent className="max-w-[420px] gap-4 rounded-lg p-0">

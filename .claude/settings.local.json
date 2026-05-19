@@ -16,7 +16,9 @@
       "Bash(curl -s -o nul -w \"%{http_code}\\\\n\" http://localhost:3000/unauthorized)",
       "Bash(curl -s -o /tmp/login_response.html -w \"HTTP %{http_code}\\\\n\" http://localhost:3000/login)",
       "Read(//tmp/**)",
-      "Bash(tasklist /FI \"PID eq 12696\")"
+      "Bash(tasklist /FI \"PID eq 12696\")",
+      "Bash(curl -s -o nul -w \"/login: %{http_code} -> %{redirect_url}\\\\n\" -L --max-redirs 0 http://localhost:3000/login)",
+      "Bash(curl -s -o nul -w \"/onboarding: %{http_code}\\\\n\" http://localhost:3000/onboarding)"
     ]
   }
 }

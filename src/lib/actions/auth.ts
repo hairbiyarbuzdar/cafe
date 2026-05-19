@@ -80,6 +80,51 @@ export async function signOutAction(): Promise<void> {
   store.delete(SESSION_COOKIE);
 }
 
+export type OnboardingInput = {
+  ownerName: string;
+  ownerEmail: string;
+  password: string;
+};
+
+/**
+ * First-run setup. Refuses to run once any user exists so an
+ * existing workspace can't be replaced by hitting /onboarding by
+ * accident — re-run `npm run db:wipe` first if you really want to
+ * start over. Always provisions the owner as admin.
+ */
+export async function completeOnboardingAction(
+  input: OnboardingInput,
+): Promise<AuthActionResult> {
+  const name = input.ownerName.trim();
+  const email = input.ownerEmail.trim().toLowerCase();
+  const password = input.password;
+
+  if (name.length < 2) return { ok: false, error: "Owner name is required" };
+  if (!/^\S+@\S+\.\S+$/.test(email)) {
+    return { ok: false, error: "Owner email looks invalid" };
+  }
+  if (password.length < 6) {
+    return { ok: false, error: "Password must be at least 6 characters" };
+  }
+
+  const existing = await prisma.user.count();
+  if (existing > 0) {
+    return {
+      ok: false,
+      error: "A workspace already exists. Sign in or run `npm run db:wipe` to reset.",
+    };
+  }
+
+  const passwordHash = await bcrypt.hash(password, 10);
+  const user = await prisma.user.create({
+    data: { name, email, passwordHash, role: "admin" },
+    select: { id: true, name: true, email: true, role: true, avatar: true },
+  });
+
+  await writeSessionCookie(user.id, user.role);
+  return { ok: true, user };
+}
+
 async function writeSessionCookie(userId: string, role: Role) {
   const store = await cookies();
   store.set({

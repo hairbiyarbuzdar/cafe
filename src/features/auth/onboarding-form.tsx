@@ -18,7 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { BRAND } from "@/constants/nav";
-import { demoSignInAction } from "@/lib/actions/auth";
+import { completeOnboardingAction } from "@/lib/actions/auth";
 import { useAuth } from "@/store/auth-store";
 import { cn } from "@/lib/utils";
 
@@ -57,9 +57,11 @@ export function OnboardingForm() {
     e.preventDefault();
     setSubmitting(true);
     try {
-      // Onboarding writes to the DB in a future iteration; for the
-      // demo we drop the operator into the seeded admin account.
-      const result = await demoSignInAction("usr_elena");
+      const result = await completeOnboardingAction({
+        ownerName: ownerName,
+        ownerEmail: ownerEmail,
+        password,
+      });
       if (!result.ok) {
         toast.error("Could not provision workspace", { description: result.error });
         return;
