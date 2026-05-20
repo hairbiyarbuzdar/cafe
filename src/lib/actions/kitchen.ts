@@ -132,7 +132,7 @@ export async function setKitchenTicketStatusAction(
     revalidatePath("/kitchen");
     revalidatePath("/orders");
 
-    publish({ type: "ticket.status", orderId, stationId, status });
+    await publish({ type: "ticket.status", orderId, stationId, status });
 
     return { ok: true };
   } catch (err) {

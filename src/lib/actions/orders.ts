@@ -218,7 +218,7 @@ export async function placeOrderAction(
     revalidatePath("/dashboard");
     if (isDineIn) revalidatePath("/pos");
 
-    publish({
+    await publish({
       type: "order.placed",
       orderId: order.id,
       orderNumber: order.number,
@@ -388,7 +388,7 @@ export async function addItemsToHeldOrderAction(
     revalidatePath("/kitchen");
     revalidatePath("/inventory");
 
-    publish({ type: "order.updated", orderId: order.id });
+    await publish({ type: "order.updated", orderId: order.id });
 
     const addedQty = priced.lines.reduce((s, p) => s + p.line.quantity, 0);
     await logActivity({
@@ -504,7 +504,7 @@ export async function cancelHeldOrderAction(
     revalidatePath("/inventory");
     if (order.tableId) revalidatePath("/pos");
 
-    publish({ type: "order.cancelled", orderId: order.id });
+    await publish({ type: "order.cancelled", orderId: order.id });
 
     await logActivity({
       type: "order",
@@ -664,7 +664,7 @@ export async function payOrderAction(
     revalidatePath("/settings");
     if (order.tableId) revalidatePath("/pos");
 
-    publish({ type: "order.paid", orderId: order.id });
+    await publish({ type: "order.paid", orderId: order.id });
 
     await logActivity({
       type: "order",

@@ -1,4 +1,4 @@
-// Brewline — database schema
+// Cafe Management System — database schema
 //
 // One canonical model per domain entity; the client- and server-
 // side stores are thin caches on top of these tables. See

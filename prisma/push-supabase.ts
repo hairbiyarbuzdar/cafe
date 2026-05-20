@@ -46,7 +46,6 @@ if (!url) {
 }
 
 function log(msg: string) {
-  // eslint-disable-next-line no-console
   console.log(msg);
 }
 
@@ -85,14 +84,14 @@ function buildDropSql(tables: string[], enums: string[]): string {
   return stmts.join("\n");
 }
 
-async function main() {
+async function main(dbUrl: string) {
   const ddl = renderSchemaSql();
   const { tables, enums } = parseObjects(ddl);
   if (!tables.length) {
     throw new Error("No CREATE TABLE statements found in generated DDL.");
   }
 
-  const conn = pgConnectionConfig(url);
+  const conn = pgConnectionConfig(dbUrl);
   const client = new Client(
     typeof conn === "string"
       ? { connectionString: conn, connectionTimeoutMillis: 15000 }
@@ -134,8 +133,7 @@ async function main() {
   log("✓ Done.");
 }
 
-main().catch((err) => {
-  // eslint-disable-next-line no-console
+main(url).catch((err) => {
   console.error(`\n✗ ${err instanceof Error ? err.message : err}`);
   process.exit(1);
 });

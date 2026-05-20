@@ -6,6 +6,10 @@ import type { RealtimeEvent } from "@/lib/realtime/events";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+// On Vercel each SSE stream is a serverless invocation; cap it at the
+// function limit (Vercel clamps to the plan max) and let the browser's
+// EventSource auto-reconnect. Harmless on a long-running VPS/LAN host.
+export const maxDuration = 60;
 
 const HEARTBEAT_MS = 25_000;
 
