@@ -32,22 +32,13 @@ import {
   type ShadowStation,
 } from "@/lib/offline/queue";
 import type { KitchenTicketItem } from "@/types";
-import { useCart } from "@/store/cart-store";
+import { cartSubtotal, useCart } from "@/store/cart-store";
 import { useMenu } from "@/store/menu-store";
 import { useOfflineOrders } from "@/store/offline-orders-store";
 import { useStations } from "@/store/stations-store";
 import { useTables } from "@/store/tables-store";
 import { useWorkspace } from "@/store/workspace-store";
 import { formatCurrency } from "@/lib/utils";
-
-type Props = {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  total: number;
-  subtotal: number;
-  tax: number;
-  discount: number;
-};
 
 type Status = "review" | "processing" | "success";
 
@@ -65,14 +56,7 @@ type SuccessInfo = {
  * Payment happens later, from the Order Detail drawer's "Take payment"
  * button (or the cancellation flow if the customer changes their mind).
  */
-export function CheckoutDialog({
-  open,
-  onOpenChange,
-  total,
-  subtotal,
-  tax,
-  discount,
-}: Props) {
+export function CheckoutDialog() {
   const router = useRouter();
   const {
     items,
@@ -86,7 +70,20 @@ export function CheckoutDialog({
     attachedOrderNumber,
     clear,
     detach,
+    checkoutOpen,
+    setCheckoutOpen,
   } = useCart();
+
+  // Totals are derived from the cart store rather than passed in as
+  // props: the dialog is rendered at the page root (not inside the
+  // cart panel), so it owns the same computation the panel does.
+  const open = checkoutOpen;
+  const subtotal = cartSubtotal(items);
+  const discount = subtotal * (discountPct / 100);
+  const taxable = subtotal - discount;
+  const tax = taxable * taxRate;
+  const total = taxable + tax;
+
   const tables = useTables((s) => s.tables);
   const table = tables.find((t) => t.id === tableId)?.name;
   const menuItems = useMenu((s) => s.items);
@@ -345,7 +342,7 @@ export function CheckoutDialog({
       clear();
       detach();
     }
-    onOpenChange(false);
+    setCheckoutOpen(false);
   }
 
   return (

@@ -22,7 +22,6 @@ import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
-import { CheckoutDialog } from "@/features/pos/checkout-dialog";
 import { PayHeldOrdersPicker } from "@/features/pos/pay-held-orders-picker";
 import { TablePicker } from "@/features/pos/table-picker";
 import type { HeldOrderSummary } from "@/lib/queries/orders";
@@ -66,12 +65,11 @@ export function CartPanel({
   const remove = useCart((s) => s.remove);
   const clear = useCart((s) => s.clear);
   const detach = useCart((s) => s.detach);
+  const setCheckoutOpen = useCart((s) => s.setCheckoutOpen);
 
   const tables = useTables((s) => s.tables);
   const selectTable = useTables((s) => s.selectTable);
   const selectedTable = tables.find((t) => t.id === tableId);
-
-  const [checkoutOpen, setCheckoutOpen] = React.useState(false);
 
   const isAttach = Boolean(attachedOrderId);
   const subtotal = cartSubtotal(items);
@@ -337,15 +335,6 @@ export function CartPanel({
           />
         </div>
       </div>
-
-      <CheckoutDialog
-        open={checkoutOpen}
-        onOpenChange={setCheckoutOpen}
-        total={total}
-        subtotal={subtotal}
-        tax={tax}
-        discount={discount}
-      />
     </aside>
   );
 }

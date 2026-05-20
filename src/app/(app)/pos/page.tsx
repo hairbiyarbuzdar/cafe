@@ -1,4 +1,5 @@
 import { CartPanel } from "@/features/pos/cart-panel";
+import { CheckoutDialog } from "@/features/pos/checkout-dialog";
 import { MobileCartTrigger } from "@/features/pos/mobile-cart-trigger";
 import { ProductGrid } from "@/features/pos/product-grid";
 import { LiveRefresh } from "@/features/realtime/live-refresh";
@@ -27,6 +28,10 @@ export default async function PosPage() {
         heldOrders={heldOrders}
         paymentChannels={paymentChannels}
       />
+      {/* Rendered at the page root (not inside CartPanel) so it survives
+          the mobile cart Sheet closing when checkout opens. Driven by
+          `checkoutOpen` in the cart store. */}
+      <CheckoutDialog />
       <LiveRefresh
         on={[
           "order.placed",

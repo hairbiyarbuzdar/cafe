@@ -27,6 +27,15 @@ type CartState = {
    */
   attachedOrderId: string | null;
   attachedOrderNumber: string | null;
+  /**
+   * Whether the place-order (checkout) dialog is open. Lives in the
+   * store rather than in `CartPanel` so the dialog can be rendered at
+   * the page root — on mobile the cart sits inside a Sheet that closes
+   * when checkout opens, and a dialog mounted inside that Sheet would be
+   * unmounted (flash-and-vanish) the moment the Sheet closes.
+   */
+  checkoutOpen: boolean;
+  setCheckoutOpen: (open: boolean) => void;
   add: (item: MenuItem, quantity?: number, modifiers?: ProductModifier[]) => void;
   increment: (productId: string) => void;
   decrement: (productId: string) => void;
@@ -55,6 +64,9 @@ export const useCart = create<CartState>((set) => ({
   taxLabel: "Tax",
   attachedOrderId: null,
   attachedOrderNumber: null,
+  checkoutOpen: false,
+
+  setCheckoutOpen: (checkoutOpen) => set({ checkoutOpen }),
 
   add: (item, quantity = 1, modifiers = []) =>
     set((state) => {
