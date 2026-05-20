@@ -345,7 +345,7 @@ export function CheckoutDialog({
     }
 
     const paid = Boolean(onlineResult?.paid);
-    const cod = isDelivery && !payNow && !isAttach && Boolean(onlineResult);
+    const cod = isDelivery && !payNow && !isAttach;
 
     setSuccess({
       orderNumber: resolvedOrderNumber,
@@ -402,7 +402,10 @@ export function CheckoutDialog({
 
       const toPrint: ReceiptPayload[] = [];
 
-      if (paid && selectedChannel) {
+      // Customer receipt: prepaid → a payment receipt; COD → a delivery
+      // bill that travels with the order showing the cash due. Dine-in
+      // held gets none here — its receipt prints when payment is taken.
+      if (paid || cod) {
         const lineItems: ReceiptLineItem[] = items.map((ci) => ({
           quantity: ci.quantity,
           name: ci.name,
@@ -419,10 +422,18 @@ export function CheckoutDialog({
           totals.push({ label: "Discount", amount: -discount, muted: true });
         }
         if (tax > 0) totals.push({ label: "Tax", amount: tax, muted: true });
-        totals.push({ label: "Total", amount: total, bold: true });
+        totals.push({
+          label: cod ? "Cash due on delivery" : "Total",
+          amount: total,
+          bold: true,
+        });
 
-        const paymentData: PaymentReceiptData = {
-          header: { workspace: wsHeader, kind: "Payment receipt", printedAt: placedAt },
+        const receiptData: PaymentReceiptData = {
+          header: {
+            workspace: wsHeader,
+            kind: cod ? "Cash on Delivery" : "Payment receipt",
+            printedAt: placedAt,
+          },
           orderNumber: resolvedOrderNumber,
           receiptNumber:
             onlineResult?.receiptNumber ??
@@ -434,14 +445,16 @@ export function CheckoutDialog({
           customer: null,
           items: lineItems,
           totals,
-          payment: {
-            method: selectedChannel.kind,
-            channelName: selectedChannel.name,
-          },
+          // COD is unpaid at placement — leave `payment` null so the
+          // receipt reads as a bill (no "Paid via …" line).
+          payment:
+            paid && selectedChannel
+              ? { method: selectedChannel.kind, channelName: selectedChannel.name }
+              : null,
           fiscalInvoiceNumber: onlineResult?.fiscalInvoiceNumber ?? null,
           notes: note?.trim() || null,
         };
-        toPrint.push({ kind: "payment", data: paymentData });
+        toPrint.push({ kind: "payment", data: receiptData });
       }
 
       if (stations.length > 0) {
@@ -746,7 +759,7 @@ export function CheckoutDialog({
       title="Order receipts"
       description={
         receipts.length > 1
-          ? `Payment receipt + kitchen tickets (${receipts.length}).`
+          ? `Customer receipt + kitchen tickets (${receipts.length}).`
           : "Print to the printer or download as a PDF."
       }
       receipts={receipts}
