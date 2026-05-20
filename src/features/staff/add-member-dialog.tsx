@@ -66,7 +66,12 @@ export function AddMemberDialog({ trigger }: { trigger?: React.ReactNode }) {
           "Assign a role and password from Settings → Team & permissions to grant access.",
       });
       setOpen(false);
-      router.refresh();
+      // Defer the refresh until after Radix has unwound the modal (focus
+      // return + resetting the inert / pointer-events / aria-hidden it put
+      // on the rest of the page). Refreshing in the same tick as the close
+      // intermittently leaves the page — including this trigger button —
+      // blanked or non-interactive.
+      requestAnimationFrame(() => router.refresh());
     } finally {
       setSubmitting(false);
     }

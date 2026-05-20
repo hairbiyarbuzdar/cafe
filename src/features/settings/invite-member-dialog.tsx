@@ -103,7 +103,12 @@ export function InviteMemberDialog({
         description: `${result.user.roleName ?? selectedRole.name} · ${result.user.email}`,
       });
       setOpen(false);
-      router.refresh();
+      // Defer the refresh until after Radix has unwound the modal (focus
+      // return + resetting the inert / pointer-events / aria-hidden it put
+      // on the rest of the page). Refreshing in the same tick as the close
+      // intermittently leaves the page — including the trigger button —
+      // blanked or non-interactive.
+      requestAnimationFrame(() => router.refresh());
     } finally {
       setSubmitting(false);
     }
