@@ -141,6 +141,9 @@ exports.Prisma.UserScalarFieldEnum = {
   avatar: 'avatar',
   defaultRoute: 'defaultRoute',
   monthlySalary: 'monthlySalary',
+  overtimeRate: 'overtimeRate',
+  standardWorkingDays: 'standardWorkingDays',
+  active: 'active',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -167,6 +170,38 @@ exports.Prisma.PendingMemberScalarFieldEnum = {
   name: 'name',
   email: 'email',
   phone: 'phone',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.SalaryPaymentScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  month: 'month',
+  paymentDate: 'paymentDate',
+  absentDays: 'absentDays',
+  netPaid: 'netPaid',
+  paymentChannelId: 'paymentChannelId',
+  notes: 'notes',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.StaffAdvanceScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  month: 'month',
+  amount: 'amount',
+  date: 'date',
+  paymentChannelId: 'paymentChannelId',
+  notes: 'notes',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.StaffOvertimeScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  month: 'month',
+  hours: 'hours',
+  rate: 'rate',
   createdAt: 'createdAt'
 };
 
@@ -556,6 +591,9 @@ exports.Prisma.ModelName = {
   Session: 'Session',
   PushSubscription: 'PushSubscription',
   PendingMember: 'PendingMember',
+  SalaryPayment: 'SalaryPayment',
+  StaffAdvance: 'StaffAdvance',
+  StaffOvertime: 'StaffOvertime',
   PaymentChannel: 'PaymentChannel',
   PaymentTransfer: 'PaymentTransfer',
   KitchenStation: 'KitchenStation',

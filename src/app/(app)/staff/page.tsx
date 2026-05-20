@@ -1,112 +1,47 @@
-import { Plus, Users } from "lucide-react";
-
-import { Button } from "@/components/ui/button";
-import { PageHeader } from "@/components/layouts/page-header";
-import { AddMemberDialog } from "@/features/staff/add-member-dialog";
-import { AttendanceChart } from "@/features/staff/attendance-chart";
-import { ManageRolesDialog } from "@/features/staff/manage-roles-dialog";
-import { ScheduleGrid } from "@/features/staff/schedule-grid";
-import { StaffCards } from "@/features/staff/staff-cards";
+import { PayrollShell } from "@/features/payroll/payroll-shell";
+import { listPaymentChannels } from "@/lib/queries/payment-channels";
+import { listPayroll } from "@/lib/queries/payroll";
 import { listRoles } from "@/lib/queries/roles";
-import {
-  attendance7d,
-  listThisWeekSchedule,
-} from "@/lib/queries/schedule";
-import { listPendingMembers, listPublicUsers } from "@/lib/queries/users";
 import { ensureBuiltInRoles } from "@/lib/roles-seed";
 
-export const metadata = { title: "Staff" };
+export const metadata = { title: "Staff Payroll" };
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export default async function StaffPage() {
+export default async function StaffPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ month?: string; year?: string }>;
+}) {
   await ensureBuiltInRoles();
-  const [members, pending, shifts, attendance, roles] = await Promise.all([
-    listPublicUsers(),
-    listPendingMembers(),
-    listThisWeekSchedule(),
-    attendance7d(),
+  const sp = await searchParams;
+  const now = new Date();
+
+  let year = Number.parseInt(sp.year ?? "", 10);
+  if (!Number.isInteger(year) || year < 2000 || year > 2100) {
+    year = now.getFullYear();
+  }
+  let monthNum = Number.parseInt(sp.month ?? "", 10);
+  if (!Number.isInteger(monthNum) || monthNum < 1 || monthNum > 12) {
+    monthNum = now.getMonth() + 1;
+  }
+  const month = `${year}-${String(monthNum).padStart(2, "0")}`;
+
+  const [roster, channels, roles] = await Promise.all([
+    listPayroll(month),
+    listPaymentChannels(),
     listRoles(),
   ]);
-  const totalSeats = members.length + pending.length;
 
   return (
-    <>
-      <PageHeader
-        title="Staff"
-        description="Manage your team, build schedules, and track attendance."
-        actions={
-          <AddMemberDialog
-            trigger={
-              <Button size="sm" className="h-8 rounded-md text-[12.5px]">
-                <Plus className="size-3.5" />
-                Add member
-              </Button>
-            }
-          />
-        }
-      />
-
-      <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <Stat
-          label="Active team"
-          value={`${members.length}`}
-          hint={`${totalSeats} total ${totalSeats === 1 ? "seat" : "seats"}`}
-        />
-        <Stat
-          label="Awaiting invite"
-          value={`${pending.length}`}
-          hint="not yet auth-capable"
-        />
-        <Stat
-          label="Shifts this week"
-          value={`${shifts.length}`}
-          hint={shifts.length === 0 ? "Nothing scheduled" : "across the team"}
-        />
-      </section>
-
-      <section className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          <ScheduleGrid members={members} shifts={shifts} />
-        </div>
-        <AttendanceChart data={attendance} />
-      </section>
-
-      <div className="flex items-center justify-between pt-2">
-        <h2 className="text-[14px] font-semibold tracking-tight text-foreground">
-          Team members
-        </h2>
-        <ManageRolesDialog users={members} roles={roles} />
-      </div>
-
-      <StaffCards members={members} pending={pending} />
-    </>
-  );
-}
-
-function Stat({
-  label,
-  value,
-  hint,
-}: {
-  label: string;
-  value: string;
-  hint: string;
-}) {
-  return (
-    <div className="flex items-start justify-between rounded-lg border bg-card p-4 shadow-elevated">
-      <div>
-        <p className="text-[11.5px] font-medium uppercase tracking-[0.05em] text-muted-foreground">
-          {label}
-        </p>
-        <p className="mt-1.5 text-[20px] font-semibold tabular-nums text-foreground">
-          {value}
-        </p>
-        <p className="mt-0.5 text-[11.5px] text-muted-foreground">{hint}</p>
-      </div>
-      <span className="flex size-9 items-center justify-center rounded-md bg-primary/10 text-primary">
-        <Users className="size-4" />
-      </span>
-    </div>
+    <PayrollShell
+      month={month}
+      year={year}
+      monthNum={monthNum}
+      rows={roster.rows}
+      stats={roster.stats}
+      channels={channels}
+      roles={roles.map((r) => ({ id: r.id, name: r.name }))}
+    />
   );
 }
