@@ -1,6 +1,6 @@
 /* eslint-disable no-console */
 /**
- * Brewline seed.
+ * Cafe Management System seed.
  *
  * Idempotent — safe to run repeatedly. Wipes the working tables in
  * dependency order, then re-inserts a representative dataset that

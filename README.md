@@ -1,4 +1,4 @@
-# Brewline
+# Cafe Management System
 
 Café point-of-sale and back-office, built on Next.js 16 + Prisma 7 +
 Postgres.
@@ -25,7 +25,7 @@ npm run dev
 ```
 
 The login page lists the four seeded demo accounts — all share password
-`brewline`. The seed creates 4 users, 6 suppliers, 29 inventory items,
+`Cafe Management System`. The seed creates 4 users, 6 suppliers, 29 inventory items,
 6 stations, 8 categories, 65 menu items, 12 historical orders, 15
 shifts, and 21 attendance rows.
 
@@ -63,7 +63,7 @@ shifts, and 21 attendance rows.
 
 ## BRA fiscal-device integration
 
-Brewline can push each POS invoice to the **Balochistan Revenue
+Cafe Management System can push each POS invoice to the **Balochistan Revenue
 Authority** per PRAL's "Technical Specification for Data Sharing
 through Software Fiscal Device with BRA" (v1.0). Both delivery paths
 the spec describes are supported:

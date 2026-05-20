@@ -225,7 +225,7 @@ export async function placeOrderAction(
     });
 
     // Ping every device whose role can see /kitchen so the kitchen
-    // tablet wakes the screen on a new order even if Brewline's tab
+    // tablet wakes the screen on a new order even if Cafe Management System's tab
     // isn't focused. Fire-and-forget so push latency doesn't sit on
     // the cashier's response path.
     void userIdsWithPermission("kitchen.view").then((userIds) =>

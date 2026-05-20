@@ -1,5 +1,5 @@
 /**
- * Brewline service worker — app-shell cache.
+ * Cafe Management System service worker — app-shell cache.
  *
  * Strategy:
  *   • Navigation requests (HTML) → network-first, fall back to a

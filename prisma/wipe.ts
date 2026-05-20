@@ -1,6 +1,6 @@
 /* eslint-disable no-console */
 /**
- * Brewline wipe.
+ * Cafe Management System wipe.
  *
  * Empties every data table in dependency order, leaving the schema
  * intact. After this, /login auto-redirects to /onboarding so the

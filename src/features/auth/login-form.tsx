@@ -199,7 +199,7 @@ export function LoginForm({ demoUsers }: { demoUsers: SessionUser[] }) {
         </form>
 
         <div className="border-t border-border/70 px-6 py-4 text-center text-[12px] text-muted-foreground md:px-7">
-          New to Brewline?{" "}
+          New to Cafe Management System?{" "}
           <Link
             href="/onboarding"
             className="font-medium text-foreground underline-offset-4 hover:underline"
