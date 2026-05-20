@@ -14,6 +14,7 @@
     "db:down": "docker compose down",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
+    "db:push:supabase": "tsx prisma/push-supabase.ts",
     "db:migrate": "prisma migrate dev",
     "db:seed": "tsx prisma/seed.ts",
     "db:wipe": "tsx prisma/wipe.ts",

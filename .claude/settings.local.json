@@ -24,7 +24,11 @@
       "Bash(curl -s -o nul -w \"/: %{http_code}\\\\n\" http://localhost:3000/)",
       "Bash(curl -s -o nul -w \"/dashboard: %{http_code}\\\\n\" http://localhost:3000/dashboard)",
       "Bash(curl -s -o nul -w \"/: %{http_code}\\\\n/onboarding: \" http://localhost:3000/)",
-      "Bash(curl -s -o nul -w \"%{http_code}\\\\n/dashboard: \" http://localhost:3000/onboarding)"
+      "Bash(curl -s -o nul -w \"%{http_code}\\\\n/dashboard: \" http://localhost:3000/onboarding)",
+      "Bash(node -e \"const p=require\\('./package.json'\\); console.log\\(JSON.stringify\\(p.scripts,null,2\\)\\); console.log\\('---DEPS---'\\); console.log\\(Object.keys\\(p.dependencies||{}\\).filter\\(d=>/prisma|pg|postgres|supabase/i.test\\(d\\)\\).map\\(d=>d+': '+p.dependencies[d]\\).join\\('\\\\n'\\)\\); console.log\\(Object.keys\\(p.devDependencies||{}\\).filter\\(d=>/prisma|pg|postgres|supabase/i.test\\(d\\)\\).map\\(d=>d+': '+p.devDependencies[d]\\).join\\('\\\\n'\\)\\);\")",
+      "Bash(xargs grep -l \"directUrl\\\\|defineConfig\\\\|datasource\")",
+      "Bash(node -e ' *)",
+      "Bash(echo \"EXIT=$?\")"
     ]
   }
 }

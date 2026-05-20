@@ -10,10 +10,11 @@
  *   npm run db:seed
  */
 
-import { PrismaPg } from "@prisma/adapter-pg";
 import bcrypt from "bcryptjs";
 
 import { PrismaClient } from "../src/generated/prisma";
+import { createPgAdapter } from "../src/lib/db-adapter";
+import { resolveDatabaseUrl } from "../src/lib/db-url";
 import { CATEGORIES } from "./seed-data/categories";
 import { INVENTORY, SUPPLIERS } from "./seed-data/inventory";
 import { MENU_ITEMS } from "./seed-data/menu";
@@ -36,12 +37,12 @@ try {
   // .env optional in CI / hosted runs
 }
 
-const databaseUrl = process.env.DATABASE_URL;
+const databaseUrl = resolveDatabaseUrl();
 if (!databaseUrl) {
   throw new Error("DATABASE_URL is required to seed");
 }
 
-const prisma = new PrismaClient({ adapter: new PrismaPg(databaseUrl) });
+const prisma = new PrismaClient({ adapter: createPgAdapter(databaseUrl) });
 
 async function main() {
   console.log("→ Wiping working tables");

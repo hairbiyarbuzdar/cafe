@@ -9,9 +9,9 @@
  *   npm run db:wipe
  */
 
-import { PrismaPg } from "@prisma/adapter-pg";
-
 import { PrismaClient } from "../src/generated/prisma";
+import { createPgAdapter } from "../src/lib/db-adapter";
+import { resolveDatabaseUrl } from "../src/lib/db-url";
 
 try {
   process.loadEnvFile(".env");
@@ -19,12 +19,12 @@ try {
   // .env optional
 }
 
-const databaseUrl = process.env.DATABASE_URL;
+const databaseUrl = resolveDatabaseUrl();
 if (!databaseUrl) {
   throw new Error("DATABASE_URL is required to wipe");
 }
 
-const prisma = new PrismaClient({ adapter: new PrismaPg(databaseUrl) });
+const prisma = new PrismaClient({ adapter: createPgAdapter(databaseUrl) });
 
 async function main() {
   console.log("→ Wiping every data table");
