@@ -100,6 +100,15 @@ export type PlaceOrderInput = {
   taxRate: number;
   customerName?: string;
   customerPhone?: string;
+  /** When set, capture payment in the same transaction as placement
+   * (takeaway / delivery pay-now). The order is stamped paid but stays
+   * in the kitchen pipeline (status `pending`) — it's completed later
+   * via `completeOrderAction` (the hand-off), not by payment. Omit for
+   * held orders (dine-in, delivery COD). */
+  prepay?: {
+    payment: PaymentMethod;
+    paymentChannelId: string;
+  };
 };
 
 export type PlaceOrderResult =
@@ -108,6 +117,11 @@ export type PlaceOrderResult =
       orderId: string;
       orderNumber: string;
       total: number;
+      /** True when payment was captured at placement (prepaid). Drives
+       * the payment-receipt print on the client. */
+      paid?: boolean;
+      receiptNumber?: string;
+      fiscalInvoiceNumber?: string;
     }
   | { ok: false; error: string };
 
@@ -162,6 +176,30 @@ export async function placeOrderAction(
   const tax = round2((subtotal - discount) * input.taxRate);
   const total = round2(subtotal - discount + tax);
 
+  // Prepayment (takeaway / delivery pay-now): validate the channel up
+  // front so a bad / archived one bails before we create the order.
+  const prepay = input.prepay;
+  let prepayChannelId: string | null = null;
+  if (prepay) {
+    if (!PAYMENT_METHODS.includes(prepay.payment)) {
+      return { ok: false, error: "Invalid payment method" };
+    }
+    const channel = await prisma.paymentChannel.findUnique({
+      where: { id: prepay.paymentChannelId },
+      select: { id: true, archived: true, kind: true },
+    });
+    if (!channel || channel.archived) {
+      return { ok: false, error: "Selected payment method isn't active" };
+    }
+    if (channel.kind !== prepay.payment) {
+      return {
+        ok: false,
+        error: "Payment method doesn't match the selected channel",
+      };
+    }
+    prepayChannelId = channel.id;
+  }
+
   const ingredientDelta = collectIngredientDelta(priced.lines);
   const stationIds = Array.from(new Set(priced.lines.map((p) => p.stationId)));
   const orderNumber = await nextOrderNumber();
@@ -183,8 +221,9 @@ export async function placeOrderAction(
           tip: null,
           discount: discount > 0 ? discount : null,
           total,
-          payment: null,
-          paidAt: null,
+          payment: prepay ? prepay.payment : null,
+          paymentChannelId: prepayChannelId,
+          paidAt: prepay ? new Date() : null,
           notes: input.note?.trim() || null,
           items: { create: priced.lines.map(toOrderItemCreate) },
           tickets: {
@@ -209,6 +248,14 @@ export async function placeOrderAction(
         sign: -1,
         reason: `Placed via order ${orderNumber}`,
       });
+      // Prepaid: credit the channel in the same transaction so Settings →
+      // Payment methods balances stay truthful, exactly like payOrderAction.
+      if (prepayChannelId && total > 0) {
+        await tx.paymentChannel.update({
+          where: { id: prepayChannelId },
+          data: { currentBalance: { increment: total } },
+        });
+      }
       return created;
     });
 
@@ -247,11 +294,33 @@ export async function placeOrderAction(
       orderId: order.id,
     });
 
+    // Prepaid orders: mirror payOrderAction's after-effects — broadcast
+    // the paid state, log it, and fire BRA fiscalization (best-effort).
+    let fiscalInvoiceNumber: string | undefined;
+    if (prepay) {
+      await publish({ type: "order.paid", orderId: order.id });
+      await logActivity({
+        type: "order",
+        title: `Order ${order.number} paid`,
+        description: `${prepay.payment} · Rs. ${total.toLocaleString()} · prepaid at placement`,
+        orderId: order.id,
+        metadata: { payment: prepay.payment, total, prepaid: true },
+      });
+      try {
+        fiscalInvoiceNumber = (await maybeSubmitToBra(order.id)) ?? undefined;
+      } catch {
+        // swallow; logged inside maybeSubmitToBra
+      }
+    }
+
     return {
       ok: true,
       orderId: order.id,
       orderNumber: order.number,
       total,
+      paid: prepay ? true : undefined,
+      receiptNumber: prepay ? receiptNumberFor(order.number) : undefined,
+      fiscalInvoiceNumber,
     };
   } catch (err) {
     console.error("placeOrderAction failed", err);
@@ -698,6 +767,82 @@ export async function payOrderAction(
     return {
       ok: false,
       error: err instanceof Error ? err.message : "Failed to pay",
+    };
+  }
+}
+
+// ──────────────────────────────────────────────────────────────
+// Hand off a prepaid order (mark picked up / delivered)
+// ──────────────────────────────────────────────────────────────
+
+export type CompleteOrderResult =
+  | { ok: true }
+  | { ok: false; error: string };
+
+/**
+ * Close out a prepaid order once the customer has it — "Mark picked up"
+ * (takeaway) / "Mark delivered" (delivery). Payment was already captured
+ * at placement, so this only advances the order to `completed` so it
+ * leaves the active kitchen / orders lists. Unpaid orders must go through
+ * `payOrderAction` instead (which both collects payment and completes).
+ */
+export async function completeOrderAction(
+  orderId: string,
+): Promise<CompleteOrderResult> {
+  if (!orderId) return { ok: false, error: "Missing order id" };
+  const order = await prisma.order.findUnique({
+    where: { id: orderId },
+    select: {
+      id: true,
+      number: true,
+      status: true,
+      paidAt: true,
+      tableId: true,
+      guests: true,
+    },
+  });
+  if (!order) return { ok: false, error: "Order not found" };
+  if (order.status === "cancelled" || order.status === "refunded") {
+    return { ok: false, error: "Order is no longer active" };
+  }
+  if (order.status === "completed") return { ok: true };
+  if (!order.paidAt) {
+    return {
+      ok: false,
+      error: "Order isn't paid yet — collect payment to complete it.",
+    };
+  }
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      await tx.order.update({
+        where: { id: order.id },
+        data: { status: "completed" },
+      });
+      // Defensive: prepaid orders are takeaway/delivery (no table), but
+      // free any seats just in case so occupancy can't leak.
+      if (order.tableId && order.guests > 0) {
+        await tx.$executeRaw`UPDATE "Table" SET "occupancy" = GREATEST(0, "occupancy" - ${order.guests}) WHERE "id" = ${order.tableId}`;
+      }
+    });
+
+    revalidatePath("/orders");
+    revalidatePath("/kitchen");
+    revalidatePath("/dashboard");
+
+    await publish({ type: "order.updated", orderId: order.id });
+    await logActivity({
+      type: "order",
+      title: `Order ${order.number} handed off`,
+      description: "Marked picked up / delivered",
+      orderId: order.id,
+    });
+    return { ok: true };
+  } catch (err) {
+    console.error("completeOrderAction failed", err);
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "Failed to complete order",
     };
   }
 }

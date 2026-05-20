@@ -2,7 +2,16 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Check, Loader2, ReceiptText, Send } from "lucide-react";
+import {
+  Check,
+  CreditCard,
+  Loader2,
+  ReceiptText,
+  Send,
+  Smartphone,
+  Wallet,
+  Wifi,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -18,6 +27,7 @@ import { Separator } from "@/components/ui/separator";
 import { ReceiptPreviewDialog, type ReceiptPayload } from "@/features/receipts/receipt-preview-dialog";
 import type {
   KitchenTicketData,
+  PaymentReceiptData,
   ReceiptLineItem,
 } from "@/features/receipts/receipt-models";
 import {
@@ -31,14 +41,16 @@ import {
   generateLocalOrderNumber,
   type ShadowStation,
 } from "@/lib/offline/queue";
-import type { KitchenTicketItem } from "@/types";
+import { tryAutoPrintReceipts } from "@/lib/print/print-receipts";
+import type { PaymentChannel } from "@/lib/queries/payment-channels";
+import type { KitchenTicketItem, PaymentMethod } from "@/types";
 import { cartSubtotal, useCart } from "@/store/cart-store";
 import { useMenu } from "@/store/menu-store";
 import { useOfflineOrders } from "@/store/offline-orders-store";
 import { useStations } from "@/store/stations-store";
 import { useTables } from "@/store/tables-store";
 import { useWorkspace } from "@/store/workspace-store";
-import { formatCurrency } from "@/lib/utils";
+import { cn, formatCurrency } from "@/lib/utils";
 
 type Status = "review" | "processing" | "success";
 
@@ -46,17 +58,37 @@ type SuccessInfo = {
   orderNumber: string;
   total: number;
   appended: boolean;
+  /** Payment was captured at placement (takeaway / delivery pay-now). */
+  paid: boolean;
+  /** Delivery order placed unpaid — cash collected on delivery. */
+  cod: boolean;
+};
+
+const KIND_ICON: Record<PaymentMethod, typeof Wallet> = {
+  card: CreditCard,
+  cash: Wallet,
+  wallet: Smartphone,
+  online: Wifi,
 };
 
 /**
- * Renamed from "checkout" in spirit — this dialog confirms placement
- * of a held order (no payment captured). When the cart is attached to
- * an existing held order, it appends the new items instead.
+ * Confirms placement of an order. Behaviour depends on the cart channel:
  *
- * Payment happens later, from the Order Detail drawer's "Take payment"
- * button (or the cancellation flow if the customer changes their mind).
+ *   - dine-in            → held, unpaid (payment collected later).
+ *   - takeaway           → place + capture payment now, print receipt.
+ *   - delivery (COD)     → held, unpaid; cash collected on delivery.
+ *   - delivery (pay now) → place + capture payment with a non-cash
+ *                          method (cash is COD's job), print receipt.
+ *
+ * Kitchen tickets (one per routed station) print on every placement.
+ * When the cart is attached to an existing held order it appends items
+ * instead and never takes payment here.
  */
-export function CheckoutDialog() {
+export function CheckoutDialog({
+  channels = [],
+}: {
+  channels?: PaymentChannel[];
+}) {
   const router = useRouter();
   const {
     items,
@@ -93,6 +125,10 @@ export function CheckoutDialog() {
   const [success, setSuccess] = React.useState<SuccessInfo | null>(null);
   const [receiptOpen, setReceiptOpen] = React.useState(false);
   const [receipts, setReceipts] = React.useState<ReceiptPayload[]>([]);
+  const [deliveryMode, setDeliveryMode] = React.useState<"cod" | "paynow">(
+    "cod",
+  );
+  const [payChannelId, setPayChannelId] = React.useState<string>("");
 
   React.useEffect(() => {
     if (open) {
@@ -102,8 +138,56 @@ export function CheckoutDialog() {
   }, [open]);
 
   const isAttach = Boolean(attachedOrderId);
+  const isTakeaway = channel === "takeaway";
+  const isDelivery = channel === "delivery";
+
+  const activeChannels = React.useMemo(
+    () => channels.filter((c) => !c.archived),
+    [channels],
+  );
+  const nonCashChannels = React.useMemo(
+    () => activeChannels.filter((c) => c.kind !== "cash"),
+    [activeChannels],
+  );
+
+  // Which methods are offered, by channel: takeaway → all; delivery
+  // pay-now → non-cash only (cash-on-delivery is the COD path).
+  const channelOptions = isAttach
+    ? []
+    : isTakeaway
+      ? activeChannels
+      : isDelivery && deliveryMode === "paynow"
+        ? nonCashChannels
+        : [];
+
+  // Default the highlighted method to the first option without an
+  // effect (avoids a setState-in-effect): an explicit pick wins, else
+  // fall back to the first available method.
+  const selectedChannel =
+    channelOptions.find((c) => c.id === payChannelId) ??
+    channelOptions[0] ??
+    null;
+
+  const payNow =
+    !isAttach && (isTakeaway || (isDelivery && deliveryMode === "paynow"));
 
   async function submit() {
+    if (payNow && !selectedChannel) {
+      toast.error("Pick a payment method");
+      return;
+    }
+    if (
+      payNow &&
+      typeof navigator !== "undefined" &&
+      !navigator.onLine
+    ) {
+      toast.error("Taking payment needs internet", {
+        description:
+          "Use Cash on delivery, or place a held order and collect payment later.",
+      });
+      return;
+    }
+
     setStatus("processing");
 
     const payload = items.map((i) => ({
@@ -119,6 +203,14 @@ export function CheckoutDialog() {
       note,
       discountPct,
       taxRate,
+      ...(payNow && selectedChannel
+        ? {
+            prepay: {
+              payment: selectedChannel.kind,
+              paymentChannelId: selectedChannel.id,
+            },
+          }
+        : {}),
     };
 
     // Append-to-held requires the server (we don't know the real
@@ -133,8 +225,14 @@ export function CheckoutDialog() {
       return;
     }
 
-    let onlineResult: { ok: true; orderNumber: string; total: number } | null = null;
-    let appended = isAttach;
+    let onlineResult: {
+      orderNumber: string;
+      total: number;
+      paid: boolean;
+      receiptNumber?: string;
+      fiscalInvoiceNumber?: string;
+    } | null = null;
+    const appended = isAttach;
     let usedOfflineFallback = false;
 
     try {
@@ -149,16 +247,18 @@ export function CheckoutDialog() {
         return;
       }
       onlineResult = {
-        ok: true,
         orderNumber: result.orderNumber,
         total: result.total,
+        paid: Boolean(result.paid),
+        receiptNumber: result.receiptNumber,
+        fiscalInvoiceNumber: result.fiscalInvoiceNumber,
       };
     } catch (err) {
       // navigator.onLine can lie (captive portal, flaky wifi). If the
-      // network actually failed mid-flight and this is a new order,
-      // drop into the offline queue. For attach mode we already
-      // returned above.
-      if (!isAttach && isLikelyNetworkError(err)) {
+      // network actually failed mid-flight and this is a new held order,
+      // drop into the offline queue. Prepaid orders can't go offline
+      // (no payment capture), so they error out instead.
+      if (!isAttach && !payNow && isLikelyNetworkError(err)) {
         usedOfflineFallback = true;
       } else {
         toast.error(isAttach ? "Couldn't add items" : "Couldn't place order", {
@@ -244,45 +344,53 @@ export function CheckoutDialog() {
       });
     }
 
+    const paid = Boolean(onlineResult?.paid);
+    const cod = isDelivery && !payNow && !isAttach && Boolean(onlineResult);
+
     setSuccess({
       orderNumber: resolvedOrderNumber,
       total: resolvedTotal,
       appended,
+      paid,
+      cod,
     });
     setStatus("success");
     if (onlineResult) {
-      toast.success(
-        isAttach
-          ? `Items added to ${resolvedOrderNumber}`
-          : `Order ${resolvedOrderNumber} sent to kitchen`,
-        {
-          description: `Running total ${formatCurrency(resolvedTotal)} · payment due at pickup`,
-        },
-      );
+      if (paid) {
+        toast.success(`Order ${resolvedOrderNumber} placed & paid`, {
+          description: `${formatCurrency(resolvedTotal)} charged${
+            selectedChannel ? ` · ${selectedChannel.name}` : ""
+          }`,
+        });
+      } else {
+        toast.success(
+          isAttach
+            ? `Items added to ${resolvedOrderNumber}`
+            : `Order ${resolvedOrderNumber} sent to kitchen`,
+          {
+            description: cod
+              ? "Cash on delivery — collect when delivered"
+              : `Running total ${formatCurrency(resolvedTotal)} · payment due at pickup`,
+          },
+        );
+      }
     }
 
-    // Auto-build kitchen tickets per routed station so the cashier
-    // can immediately print/send them to the kitchen printer(s).
-    // Offline orders still build tickets — the cashier can print
-    // them locally so the kitchen has paper while waiting for sync.
-    if (workspace && stations.length > 0) {
-      const stationById = new Map(stations.map((s) => [s.id, s]));
-      const byStation = new Map<string, ReceiptLineItem[]>();
-      for (const ci of items) {
-        const menu = menuItems.find((m) => m.id === ci.productId);
-        if (!menu) continue;
-        const list = byStation.get(menu.stationId) ?? [];
-        list.push({
-          quantity: ci.quantity,
-          name: ci.name,
-          amount: ci.unitPrice * ci.quantity,
-          modifiers:
-            ci.modifiers.length > 0
-              ? ci.modifiers.map((m) => m.name)
-              : undefined,
-        });
-        byStation.set(menu.stationId, list);
-      }
+    // Build receipts: a payment receipt for prepaid orders, plus one
+    // kitchen ticket per routed station. Auto-print to a paired thermal
+    // printer if one is connected; otherwise fall back to the preview
+    // modal (OS print / PDF / dev with no printer). Pairing a printer
+    // activates auto-print with no further code change.
+    if (workspace) {
+      const wsHeader = {
+        name: workspace.name,
+        city: workspace.city,
+        addressLine: workspace.addressLine,
+        taxId: workspace.taxId,
+        legalEntity: workspace.legalEntity,
+        receiptFooter: workspace.receiptFooter,
+        receiptWidth: workspace.receiptWidth,
+      };
       const placedAt = new Intl.DateTimeFormat("en-GB", {
         timeZone: workspace.timezone || undefined,
         day: "2-digit",
@@ -291,20 +399,74 @@ export function CheckoutDialog() {
         minute: "2-digit",
         hour12: true,
       }).format(new Date());
-      const tickets: ReceiptPayload[] = Array.from(byStation.entries()).map(
-        ([stationId, lineItems]) => {
+
+      const toPrint: ReceiptPayload[] = [];
+
+      if (paid && selectedChannel) {
+        const lineItems: ReceiptLineItem[] = items.map((ci) => ({
+          quantity: ci.quantity,
+          name: ci.name,
+          amount: ci.unitPrice * ci.quantity,
+          modifiers:
+            ci.modifiers.length > 0
+              ? ci.modifiers.map((m) => m.name)
+              : undefined,
+        }));
+        const totals: PaymentReceiptData["totals"] = [
+          { label: "Subtotal", amount: subtotal, muted: true },
+        ];
+        if (discount > 0) {
+          totals.push({ label: "Discount", amount: -discount, muted: true });
+        }
+        if (tax > 0) totals.push({ label: "Tax", amount: tax, muted: true });
+        totals.push({ label: "Total", amount: total, bold: true });
+
+        const paymentData: PaymentReceiptData = {
+          header: { workspace: wsHeader, kind: "Payment receipt", printedAt: placedAt },
+          orderNumber: resolvedOrderNumber,
+          receiptNumber:
+            onlineResult?.receiptNumber ??
+            `BR-${resolvedOrderNumber.replace(/^#/, "")}`,
+          channel,
+          table: table ?? null,
+          guests: undefined,
+          staff: null,
+          customer: null,
+          items: lineItems,
+          totals,
+          payment: {
+            method: selectedChannel.kind,
+            channelName: selectedChannel.name,
+          },
+          fiscalInvoiceNumber: onlineResult?.fiscalInvoiceNumber ?? null,
+          notes: note?.trim() || null,
+        };
+        toPrint.push({ kind: "payment", data: paymentData });
+      }
+
+      if (stations.length > 0) {
+        const stationById = new Map(stations.map((s) => [s.id, s]));
+        const byStation = new Map<string, ReceiptLineItem[]>();
+        for (const ci of items) {
+          const menu = menuItems.find((m) => m.id === ci.productId);
+          if (!menu) continue;
+          const list = byStation.get(menu.stationId) ?? [];
+          list.push({
+            quantity: ci.quantity,
+            name: ci.name,
+            amount: ci.unitPrice * ci.quantity,
+            modifiers:
+              ci.modifiers.length > 0
+                ? ci.modifiers.map((m) => m.name)
+                : undefined,
+          });
+          byStation.set(menu.stationId, list);
+        }
+        for (const [stationId, lineItems] of byStation.entries()) {
           const stationName = stationById.get(stationId)?.name ?? "Kitchen";
           const data: KitchenTicketData = {
             header: {
-              workspace: {
-                name: workspace.name,
-                city: workspace.city,
-                addressLine: workspace.addressLine,
-                taxId: workspace.taxId,
-                legalEntity: workspace.legalEntity,
-                receiptFooter: workspace.receiptFooter,
-                receiptWidth: workspace.receiptWidth,
-              },
+              workspace: wsHeader,
               kind: `Kitchen · ${stationName}`,
               printedAt: placedAt,
             },
@@ -317,17 +479,36 @@ export function CheckoutDialog() {
             placedAt,
             notes: note?.trim() || null,
           };
-          return { kind: "kitchen", data };
-        },
-      );
-      setReceipts(tickets);
-      if (tickets.length > 0) setReceiptOpen(true);
+          toPrint.push({ kind: "kitchen", data });
+        }
+      }
+
+      if (toPrint.length > 0) {
+        try {
+          const printed = await tryAutoPrintReceipts(toPrint);
+          if (printed) {
+            toast.success(
+              toPrint.length > 1
+                ? `${toPrint.length} receipts sent to printer`
+                : "Receipt sent to printer",
+            );
+          } else {
+            setReceipts(toPrint);
+            setReceiptOpen(true);
+          }
+        } catch (err) {
+          toast.error("Couldn't reach the printer", {
+            description: err instanceof Error ? err.message : "Print failed",
+          });
+          setReceipts(toPrint);
+          setReceiptOpen(true);
+        }
+      }
     }
 
-    // router.refresh() picks up the new held order from the server.
-    // Offline orders don't exist server-side yet, so a refresh would
-    // be a no-op — skip it; the OfflineReplay component will refresh
-    // when the queue drains.
+    // router.refresh() picks up the new order from the server. Offline
+    // orders don't exist server-side yet, so a refresh would be a no-op
+    // — skip it; OfflineReplay refreshes when the queue drains.
     if (onlineResult) router.refresh();
   }
 
@@ -342,8 +523,29 @@ export function CheckoutDialog() {
       clear();
       detach();
     }
+    setDeliveryMode("cod");
+    setPayChannelId("");
     setCheckoutOpen(false);
   }
+
+  const totalLabel = payNow
+    ? "Total (charged now)"
+    : isDelivery
+      ? "Total (cash on delivery)"
+      : "Total (due on pickup)";
+
+  const confirmLabel = isAttach
+    ? "Add to order"
+    : payNow
+      ? `Place & charge ${formatCurrency(total)}`
+      : isDelivery
+        ? "Place · COD"
+        : "Send to kitchen";
+
+  const showPaymentPicker = payNow;
+  const showDeliveryToggle = isDelivery && !isAttach;
+  const disableConfirm =
+    status === "processing" || (payNow && !selectedChannel);
 
   return (
     <>
@@ -352,17 +554,29 @@ export function CheckoutDialog() {
         <DialogHeader className="px-5 pt-5">
           <DialogTitle className="text-[15px] font-semibold tracking-tight">
             {status === "success"
-              ? isAttach
-                ? "Items added"
-                : "Order on hold"
+              ? success?.paid
+                ? "Paid"
+                : isAttach
+                  ? "Items added"
+                  : success?.cod
+                    ? "Order placed · COD"
+                    : "Order on hold"
               : isAttach
                 ? `Add to ${attachedOrderNumber ?? "held order"}`
                 : "Place order"}
           </DialogTitle>
           <DialogDescription className="text-[12.5px]">
             {status === "success"
-              ? "Kitchen has the ticket. Collect payment from the order detail drawer when the customer's ready."
-              : `Send to kitchen — payment collected later. ${channel}${table ? ` · ${table}` : ""}.`}
+              ? success?.paid
+                ? "Payment captured. Kitchen has the ticket — hand it over once it's ready."
+                : success?.cod
+                  ? "Kitchen has the ticket. Collect cash when the order is delivered."
+                  : "Kitchen has the ticket. Collect payment from the order detail drawer when ready."
+              : payNow
+                ? `Send to kitchen and charge now · ${channel}${table ? ` · ${table}` : ""}.`
+                : isDelivery
+                  ? `Send to kitchen · cash on delivery · ${channel}.`
+                  : `Send to kitchen — payment collected later. ${channel}${table ? ` · ${table}` : ""}.`}
           </DialogDescription>
         </DialogHeader>
 
@@ -375,15 +589,24 @@ export function CheckoutDialog() {
               {formatCurrency(success.total)}
             </p>
             <p className="text-[12px] text-muted-foreground">
-              {success.appended ? "Added to" : "Held as"} order {success.orderNumber}
+              {success.appended
+                ? "Added to"
+                : success.paid
+                  ? "Paid · order"
+                  : "Held as order"}{" "}
+              {success.orderNumber}
             </p>
             <p className="text-[11.5px] text-muted-foreground">
-              Payment due at pickup / served
+              {success.paid
+                ? "Payment captured"
+                : success.cod
+                  ? "Cash on delivery — collect when delivered"
+                  : "Payment due at pickup / served"}
             </p>
           </div>
         ) : (
           <div className="space-y-3 px-5 py-2">
-            <ul className="max-h-[180px] space-y-1.5 overflow-y-auto pr-1 text-[12.5px]">
+            <ul className="max-h-[160px] space-y-1.5 overflow-y-auto pr-1 text-[12.5px]">
               {items.map((i) => (
                 <li key={i.productId} className="flex justify-between">
                   <span className="truncate text-foreground">
@@ -403,8 +626,73 @@ export function CheckoutDialog() {
               ) : null}
               <Row label="Tax" value={formatCurrency(tax)} muted />
               <Separator className="my-1" />
-              <Row label="Total (due on pickup)" value={formatCurrency(total)} bold />
+              <Row label={totalLabel} value={formatCurrency(total)} bold />
             </dl>
+
+            {showDeliveryToggle ? (
+              <div className="grid grid-cols-2 gap-1.5">
+                {(["cod", "paynow"] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => setDeliveryMode(mode)}
+                    aria-pressed={deliveryMode === mode}
+                    className={cn(
+                      "rounded-md border px-2 py-1.5 text-[12px] font-medium transition",
+                      deliveryMode === mode
+                        ? "border-primary/50 bg-primary/10 text-primary"
+                        : "border-border bg-card text-muted-foreground hover:bg-muted",
+                    )}
+                  >
+                    {mode === "cod" ? "Cash on delivery" : "Pay now"}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+
+            {showPaymentPicker ? (
+              channelOptions.length === 0 ? (
+                <p className="rounded-md border border-dashed bg-muted/30 px-3 py-2.5 text-center text-[12px] text-muted-foreground">
+                  No {isDelivery ? "non-cash " : ""}payment methods configured.
+                  Add one in Settings → Payment methods.
+                </p>
+              ) : (
+                <div
+                  className={cn(
+                    "grid gap-1.5",
+                    channelOptions.length <= 2
+                      ? "grid-cols-2"
+                      : channelOptions.length === 3
+                        ? "grid-cols-3"
+                        : "grid-cols-2 sm:grid-cols-4",
+                  )}
+                >
+                  {channelOptions.map((c) => {
+                    const Icon = KIND_ICON[c.kind];
+                    const active = selectedChannel?.id === c.id;
+                    return (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => setPayChannelId(c.id)}
+                        aria-pressed={active}
+                        className={cn(
+                          "flex flex-col items-center gap-1 rounded-md border bg-card px-1.5 py-2 text-[11.5px] font-medium transition",
+                          active
+                            ? "border-primary/50 bg-primary/10 text-primary"
+                            : "text-muted-foreground hover:bg-muted",
+                        )}
+                      >
+                        <Icon className="size-3.5" />
+                        <span className="line-clamp-1 px-0.5 text-center">
+                          {c.name}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )
+            ) : null}
           </div>
         )}
 
@@ -432,17 +720,17 @@ export function CheckoutDialog() {
                 size="sm"
                 className="h-9 rounded-md text-[12.5px]"
                 onClick={submit}
-                disabled={status === "processing"}
+                disabled={disableConfirm}
               >
                 {status === "processing" ? (
                   <>
                     <Loader2 className="size-3.5 animate-spin" />
-                    {isAttach ? "Adding…" : "Placing…"}
+                    {payNow ? "Charging…" : isAttach ? "Adding…" : "Placing…"}
                   </>
                 ) : (
                   <>
                     <ReceiptText className="size-3.5" />
-                    {isAttach ? "Add to order" : "Send to kitchen"}
+                    {confirmLabel}
                   </>
                 )}
               </Button>
@@ -455,11 +743,11 @@ export function CheckoutDialog() {
     <ReceiptPreviewDialog
       open={receiptOpen}
       onOpenChange={setReceiptOpen}
-      title="Kitchen tickets"
+      title="Order receipts"
       description={
         receipts.length > 1
-          ? `One ticket per routed station (${receipts.length}).`
-          : "Print to the kitchen printer or download as a PDF."
+          ? `Payment receipt + kitchen tickets (${receipts.length}).`
+          : "Print to the printer or download as a PDF."
       }
       receipts={receipts}
     />

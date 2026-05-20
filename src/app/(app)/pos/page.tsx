@@ -31,7 +31,7 @@ export default async function PosPage() {
       {/* Rendered at the page root (not inside CartPanel) so it survives
           the mobile cart Sheet closing when checkout opens. Driven by
           `checkoutOpen` in the cart store. */}
-      <CheckoutDialog />
+      <CheckoutDialog channels={paymentChannels} />
       <LiveRefresh
         on={[
           "order.placed",

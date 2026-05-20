@@ -45,6 +45,7 @@ import {
   type ReceiptPayload,
 } from "@/features/receipts/receipt-preview-dialog";
 import { submitInvoiceToBraAction } from "@/lib/actions/fiscal";
+import { completeOrderAction } from "@/lib/actions/orders";
 import type { PaymentChannel } from "@/lib/queries/payment-channels";
 import { useCart } from "@/store/cart-store";
 import { useWorkspace } from "@/store/workspace-store";
@@ -311,6 +312,7 @@ function OrderDrawerFooter({
   const [payOpen, setPayOpen] = React.useState(false);
   const [cancelOpen, setCancelOpen] = React.useState(false);
   const [reprintOpen, setReprintOpen] = React.useState(false);
+  const [completing, setCompleting] = React.useState(false);
   const reprintPayload = React.useMemo<ReceiptPayload[]>(() => {
     if (!workspace) return [];
     const data = buildPaymentReceipt({
@@ -330,6 +332,34 @@ function OrderDrawerFooter({
     });
     onClose();
     router.push("/pos");
+  }
+
+  // Prepaid but not yet handed over: paid at placement (takeaway /
+  // delivery pay-now) and still in the kitchen pipeline. Needs the
+  // "Mark picked up / delivered" hand-off, not Take Payment.
+  const awaitingHandoff =
+    !held &&
+    !!order.paidAt &&
+    order.status !== "completed" &&
+    order.status !== "cancelled" &&
+    order.status !== "refunded";
+
+  async function handleComplete() {
+    setCompleting(true);
+    try {
+      const res = await completeOrderAction(order.id);
+      if (!res.ok) {
+        toast.error("Couldn't complete order", { description: res.error });
+        return;
+      }
+      toast.success(
+        `${order.number} ${order.channel === "delivery" ? "delivered" : "picked up"}`,
+      );
+      router.refresh();
+      onClose();
+    } finally {
+      setCompleting(false);
+    }
   }
 
   if (held) {
@@ -378,6 +408,52 @@ function OrderDrawerFooter({
           order={order}
           open={cancelOpen}
           onOpenChange={setCancelOpen}
+        />
+      </div>
+    );
+  }
+
+  // Prepaid, still in the kitchen — hand-off completes it (no payment
+  // step, that already happened at placement).
+  if (awaitingHandoff) {
+    const isDelivery = order.channel === "delivery";
+    return (
+      <div className="sticky bottom-0 z-10 grid shrink-0 grid-cols-2 gap-2 border-t bg-surface-1 px-5 pt-3 pb-[calc(12px+env(safe-area-inset-bottom))]">
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-9 rounded-md text-[12px]"
+          onClick={() => setReprintOpen(true)}
+          disabled={!workspace}
+        >
+          <Printer className="size-3.5" />
+          Receipt
+        </Button>
+        <Button
+          size="sm"
+          className="h-9 rounded-md text-[12px]"
+          onClick={handleComplete}
+          disabled={completing || order.status !== "ready"}
+          title={
+            order.status === "ready"
+              ? undefined
+              : `Kitchen still has the order in ${order.status}. Hand off once every ticket is marked ready.`
+          }
+        >
+          {completing ? (
+            <Loader2 className="size-3.5 animate-spin" />
+          ) : (
+            <Check className="size-3.5" />
+          )}
+          {isDelivery ? "Mark delivered" : "Mark picked up"}
+        </Button>
+
+        <ReceiptPreviewDialog
+          open={reprintOpen}
+          onOpenChange={setReprintOpen}
+          title={`Receipt · ${order.number}`}
+          description="Reprint to thermal, OS print, or download a PDF copy."
+          receipts={reprintPayload}
         />
       </div>
     );
