@@ -19,6 +19,7 @@ import {
   Smartphone,
   Trash2,
   TriangleAlert,
+  UserRound,
   Utensils,
   Wallet,
 } from "lucide-react";
@@ -109,6 +110,12 @@ export function OrderDetailDrawer({
                       <span className="inline-flex items-center gap-1 rounded-md border bg-card px-1.5 py-0.5 text-[10.5px] text-muted-foreground">
                         <Utensils className="size-3" />
                         {order.table}
+                      </span>
+                    ) : null}
+                    {order.assignedStaff ? (
+                      <span className="inline-flex items-center gap-1 rounded-md border bg-card px-1.5 py-0.5 text-[10.5px] text-muted-foreground">
+                        <UserRound className="size-3" />
+                        {order.assignedStaff}
                       </span>
                     ) : null}
                     <span className="text-muted-foreground">·</span>

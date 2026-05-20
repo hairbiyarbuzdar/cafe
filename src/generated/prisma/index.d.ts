@@ -3529,6 +3529,8 @@ export namespace Prisma {
   export type UserCountOutputType = {
     sessions: number
     orders: number
+    assignedOrders: number
+    waitedTables: number
     shifts: number
     attendance: number
     pushSubscriptions: number
@@ -3537,6 +3539,8 @@ export namespace Prisma {
   export type UserCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     sessions?: boolean | UserCountOutputTypeCountSessionsArgs
     orders?: boolean | UserCountOutputTypeCountOrdersArgs
+    assignedOrders?: boolean | UserCountOutputTypeCountAssignedOrdersArgs
+    waitedTables?: boolean | UserCountOutputTypeCountWaitedTablesArgs
     shifts?: boolean | UserCountOutputTypeCountShiftsArgs
     attendance?: boolean | UserCountOutputTypeCountAttendanceArgs
     pushSubscriptions?: boolean | UserCountOutputTypeCountPushSubscriptionsArgs
@@ -3565,6 +3569,20 @@ export namespace Prisma {
    */
   export type UserCountOutputTypeCountOrdersArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: OrderWhereInput
+  }
+
+  /**
+   * UserCountOutputType without action
+   */
+  export type UserCountOutputTypeCountAssignedOrdersArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: OrderWhereInput
+  }
+
+  /**
+   * UserCountOutputType without action
+   */
+  export type UserCountOutputTypeCountWaitedTablesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: TableWhereInput
   }
 
   /**
@@ -5359,6 +5377,8 @@ export namespace Prisma {
     roleRef?: boolean | RoleDefaultArgs<ExtArgs>
     sessions?: boolean | User$sessionsArgs<ExtArgs>
     orders?: boolean | User$ordersArgs<ExtArgs>
+    assignedOrders?: boolean | User$assignedOrdersArgs<ExtArgs>
+    waitedTables?: boolean | User$waitedTablesArgs<ExtArgs>
     shifts?: boolean | User$shiftsArgs<ExtArgs>
     attendance?: boolean | User$attendanceArgs<ExtArgs>
     pushSubscriptions?: boolean | User$pushSubscriptionsArgs<ExtArgs>
@@ -5414,6 +5434,8 @@ export namespace Prisma {
     roleRef?: boolean | RoleDefaultArgs<ExtArgs>
     sessions?: boolean | User$sessionsArgs<ExtArgs>
     orders?: boolean | User$ordersArgs<ExtArgs>
+    assignedOrders?: boolean | User$assignedOrdersArgs<ExtArgs>
+    waitedTables?: boolean | User$waitedTablesArgs<ExtArgs>
     shifts?: boolean | User$shiftsArgs<ExtArgs>
     attendance?: boolean | User$attendanceArgs<ExtArgs>
     pushSubscriptions?: boolean | User$pushSubscriptionsArgs<ExtArgs>
@@ -5432,6 +5454,15 @@ export namespace Prisma {
       roleRef: Prisma.$RolePayload<ExtArgs>
       sessions: Prisma.$SessionPayload<ExtArgs>[]
       orders: Prisma.$OrderPayload<ExtArgs>[]
+      /**
+       * Orders this user is the assigned waiter (dine-in) or rider
+       * (delivery) for — distinct from `orders`, which is who rang it up.
+       */
+      assignedOrders: Prisma.$OrderPayload<ExtArgs>[]
+      /**
+       * Tables this user is the default waiter for.
+       */
+      waitedTables: Prisma.$TablePayload<ExtArgs>[]
       shifts: Prisma.$ShiftPayload<ExtArgs>[]
       attendance: Prisma.$AttendancePayload<ExtArgs>[]
       pushSubscriptions: Prisma.$PushSubscriptionPayload<ExtArgs>[]
@@ -5856,6 +5887,8 @@ export namespace Prisma {
     roleRef<T extends RoleDefaultArgs<ExtArgs> = {}>(args?: Subset<T, RoleDefaultArgs<ExtArgs>>): Prisma__RoleClient<$Result.GetResult<Prisma.$RolePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
     sessions<T extends User$sessionsArgs<ExtArgs> = {}>(args?: Subset<T, User$sessionsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$SessionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     orders<T extends User$ordersArgs<ExtArgs> = {}>(args?: Subset<T, User$ordersArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$OrderPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    assignedOrders<T extends User$assignedOrdersArgs<ExtArgs> = {}>(args?: Subset<T, User$assignedOrdersArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$OrderPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    waitedTables<T extends User$waitedTablesArgs<ExtArgs> = {}>(args?: Subset<T, User$waitedTablesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$TablePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     shifts<T extends User$shiftsArgs<ExtArgs> = {}>(args?: Subset<T, User$shiftsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ShiftPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     attendance<T extends User$attendanceArgs<ExtArgs> = {}>(args?: Subset<T, User$attendanceArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AttendancePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     pushSubscriptions<T extends User$pushSubscriptionsArgs<ExtArgs> = {}>(args?: Subset<T, User$pushSubscriptionsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PushSubscriptionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
@@ -6345,6 +6378,54 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: OrderScalarFieldEnum | OrderScalarFieldEnum[]
+  }
+
+  /**
+   * User.assignedOrders
+   */
+  export type User$assignedOrdersArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Order
+     */
+    select?: OrderSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Order
+     */
+    omit?: OrderOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: OrderInclude<ExtArgs> | null
+    where?: OrderWhereInput
+    orderBy?: OrderOrderByWithRelationInput | OrderOrderByWithRelationInput[]
+    cursor?: OrderWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: OrderScalarFieldEnum | OrderScalarFieldEnum[]
+  }
+
+  /**
+   * User.waitedTables
+   */
+  export type User$waitedTablesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Table
+     */
+    select?: TableSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Table
+     */
+    omit?: TableOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TableInclude<ExtArgs> | null
+    where?: TableWhereInput
+    orderBy?: TableOrderByWithRelationInput | TableOrderByWithRelationInput[]
+    cursor?: TableWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: TableScalarFieldEnum | TableScalarFieldEnum[]
   }
 
   /**
@@ -23767,6 +23848,7 @@ export namespace Prisma {
     name: string | null
     capacity: number | null
     occupancy: number | null
+    waiterId: string | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -23776,6 +23858,7 @@ export namespace Prisma {
     name: string | null
     capacity: number | null
     occupancy: number | null
+    waiterId: string | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -23785,6 +23868,7 @@ export namespace Prisma {
     name: number
     capacity: number
     occupancy: number
+    waiterId: number
     createdAt: number
     updatedAt: number
     _all: number
@@ -23806,6 +23890,7 @@ export namespace Prisma {
     name?: true
     capacity?: true
     occupancy?: true
+    waiterId?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -23815,6 +23900,7 @@ export namespace Prisma {
     name?: true
     capacity?: true
     occupancy?: true
+    waiterId?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -23824,6 +23910,7 @@ export namespace Prisma {
     name?: true
     capacity?: true
     occupancy?: true
+    waiterId?: true
     createdAt?: true
     updatedAt?: true
     _all?: true
@@ -23920,6 +24007,7 @@ export namespace Prisma {
     name: string
     capacity: number
     occupancy: number
+    waiterId: string | null
     createdAt: Date
     updatedAt: Date
     _count: TableCountAggregateOutputType | null
@@ -23948,8 +24036,10 @@ export namespace Prisma {
     name?: boolean
     capacity?: boolean
     occupancy?: boolean
+    waiterId?: boolean
     createdAt?: boolean
     updatedAt?: boolean
+    waiter?: boolean | Table$waiterArgs<ExtArgs>
     orders?: boolean | Table$ordersArgs<ExtArgs>
     _count?: boolean | TableCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["table"]>
@@ -23959,8 +24049,10 @@ export namespace Prisma {
     name?: boolean
     capacity?: boolean
     occupancy?: boolean
+    waiterId?: boolean
     createdAt?: boolean
     updatedAt?: boolean
+    waiter?: boolean | Table$waiterArgs<ExtArgs>
   }, ExtArgs["result"]["table"]>
 
   export type TableSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -23968,8 +24060,10 @@ export namespace Prisma {
     name?: boolean
     capacity?: boolean
     occupancy?: boolean
+    waiterId?: boolean
     createdAt?: boolean
     updatedAt?: boolean
+    waiter?: boolean | Table$waiterArgs<ExtArgs>
   }, ExtArgs["result"]["table"]>
 
   export type TableSelectScalar = {
@@ -23977,21 +24071,28 @@ export namespace Prisma {
     name?: boolean
     capacity?: boolean
     occupancy?: boolean
+    waiterId?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
 
-  export type TableOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "capacity" | "occupancy" | "createdAt" | "updatedAt", ExtArgs["result"]["table"]>
+  export type TableOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "capacity" | "occupancy" | "waiterId" | "createdAt" | "updatedAt", ExtArgs["result"]["table"]>
   export type TableInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    waiter?: boolean | Table$waiterArgs<ExtArgs>
     orders?: boolean | Table$ordersArgs<ExtArgs>
     _count?: boolean | TableCountOutputTypeDefaultArgs<ExtArgs>
   }
-  export type TableIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
-  export type TableIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
+  export type TableIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    waiter?: boolean | Table$waiterArgs<ExtArgs>
+  }
+  export type TableIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    waiter?: boolean | Table$waiterArgs<ExtArgs>
+  }
 
   export type $TablePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "Table"
     objects: {
+      waiter: Prisma.$UserPayload<ExtArgs> | null
       orders: Prisma.$OrderPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
@@ -23999,6 +24100,11 @@ export namespace Prisma {
       name: string
       capacity: number
       occupancy: number
+      /**
+       * Default waiter for this table. Pre-selected (but changeable) in the
+       * POS place-order modal when this table is the order's seat.
+       */
+      waiterId: string | null
       createdAt: Date
       updatedAt: Date
     }, ExtArgs["result"]["table"]>
@@ -24395,6 +24501,7 @@ export namespace Prisma {
    */
   export interface Prisma__TableClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
+    waiter<T extends Table$waiterArgs<ExtArgs> = {}>(args?: Subset<T, Table$waiterArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
     orders<T extends Table$ordersArgs<ExtArgs> = {}>(args?: Subset<T, Table$ordersArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$OrderPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
@@ -24429,6 +24536,7 @@ export namespace Prisma {
     readonly name: FieldRef<"Table", 'String'>
     readonly capacity: FieldRef<"Table", 'Int'>
     readonly occupancy: FieldRef<"Table", 'Int'>
+    readonly waiterId: FieldRef<"Table", 'String'>
     readonly createdAt: FieldRef<"Table", 'DateTime'>
     readonly updatedAt: FieldRef<"Table", 'DateTime'>
   }
@@ -24685,6 +24793,10 @@ export namespace Prisma {
      */
     data: TableCreateManyInput | TableCreateManyInput[]
     skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TableIncludeCreateManyAndReturn<ExtArgs> | null
   }
 
   /**
@@ -24755,6 +24867,10 @@ export namespace Prisma {
      * Limit how many Tables to update.
      */
     limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TableIncludeUpdateManyAndReturn<ExtArgs> | null
   }
 
   /**
@@ -24821,6 +24937,25 @@ export namespace Prisma {
      * Limit how many Tables to delete.
      */
     limit?: number
+  }
+
+  /**
+   * Table.waiter
+   */
+  export type Table$waiterArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the User
+     */
+    select?: UserSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the User
+     */
+    omit?: UserOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: UserInclude<ExtArgs> | null
+    where?: UserWhereInput
   }
 
   /**
@@ -24910,6 +25045,7 @@ export namespace Prisma {
     tableId: string | null
     guests: number | null
     staffId: string | null
+    assignedStaffId: string | null
     subtotal: Decimal | null
     tax: Decimal | null
     tip: Decimal | null
@@ -24939,6 +25075,7 @@ export namespace Prisma {
     tableId: string | null
     guests: number | null
     staffId: string | null
+    assignedStaffId: string | null
     subtotal: Decimal | null
     tax: Decimal | null
     tip: Decimal | null
@@ -24968,6 +25105,7 @@ export namespace Prisma {
     tableId: number
     guests: number
     staffId: number
+    assignedStaffId: number
     subtotal: number
     tax: number
     tip: number
@@ -25019,6 +25157,7 @@ export namespace Prisma {
     tableId?: true
     guests?: true
     staffId?: true
+    assignedStaffId?: true
     subtotal?: true
     tax?: true
     tip?: true
@@ -25048,6 +25187,7 @@ export namespace Prisma {
     tableId?: true
     guests?: true
     staffId?: true
+    assignedStaffId?: true
     subtotal?: true
     tax?: true
     tip?: true
@@ -25077,6 +25217,7 @@ export namespace Prisma {
     tableId?: true
     guests?: true
     staffId?: true
+    assignedStaffId?: true
     subtotal?: true
     tax?: true
     tip?: true
@@ -25193,6 +25334,7 @@ export namespace Prisma {
     tableId: string | null
     guests: number
     staffId: string | null
+    assignedStaffId: string | null
     subtotal: Decimal
     tax: Decimal
     tip: Decimal | null
@@ -25241,6 +25383,7 @@ export namespace Prisma {
     tableId?: boolean
     guests?: boolean
     staffId?: boolean
+    assignedStaffId?: boolean
     subtotal?: boolean
     tax?: boolean
     tip?: boolean
@@ -25258,6 +25401,7 @@ export namespace Prisma {
     updatedAt?: boolean
     table?: boolean | Order$tableArgs<ExtArgs>
     staff?: boolean | Order$staffArgs<ExtArgs>
+    assignedStaff?: boolean | Order$assignedStaffArgs<ExtArgs>
     paymentChannel?: boolean | Order$paymentChannelArgs<ExtArgs>
     fiscalSubmissions?: boolean | Order$fiscalSubmissionsArgs<ExtArgs>
     items?: boolean | Order$itemsArgs<ExtArgs>
@@ -25277,6 +25421,7 @@ export namespace Prisma {
     tableId?: boolean
     guests?: boolean
     staffId?: boolean
+    assignedStaffId?: boolean
     subtotal?: boolean
     tax?: boolean
     tip?: boolean
@@ -25294,6 +25439,7 @@ export namespace Prisma {
     updatedAt?: boolean
     table?: boolean | Order$tableArgs<ExtArgs>
     staff?: boolean | Order$staffArgs<ExtArgs>
+    assignedStaff?: boolean | Order$assignedStaffArgs<ExtArgs>
     paymentChannel?: boolean | Order$paymentChannelArgs<ExtArgs>
   }, ExtArgs["result"]["order"]>
 
@@ -25309,6 +25455,7 @@ export namespace Prisma {
     tableId?: boolean
     guests?: boolean
     staffId?: boolean
+    assignedStaffId?: boolean
     subtotal?: boolean
     tax?: boolean
     tip?: boolean
@@ -25326,6 +25473,7 @@ export namespace Prisma {
     updatedAt?: boolean
     table?: boolean | Order$tableArgs<ExtArgs>
     staff?: boolean | Order$staffArgs<ExtArgs>
+    assignedStaff?: boolean | Order$assignedStaffArgs<ExtArgs>
     paymentChannel?: boolean | Order$paymentChannelArgs<ExtArgs>
   }, ExtArgs["result"]["order"]>
 
@@ -25341,6 +25489,7 @@ export namespace Prisma {
     tableId?: boolean
     guests?: boolean
     staffId?: boolean
+    assignedStaffId?: boolean
     subtotal?: boolean
     tax?: boolean
     tip?: boolean
@@ -25358,10 +25507,11 @@ export namespace Prisma {
     updatedAt?: boolean
   }
 
-  export type OrderOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "number" | "status" | "channel" | "customerName" | "customerPhone" | "buyerNtn" | "buyerCnic" | "tableId" | "guests" | "staffId" | "subtotal" | "tax" | "tip" | "discount" | "total" | "payment" | "paymentChannelId" | "paidAt" | "notes" | "fiscalInvoiceNumber" | "fiscalSubmittedAt" | "fiscalAttempts" | "fiscalLastError" | "createdAt" | "updatedAt", ExtArgs["result"]["order"]>
+  export type OrderOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "number" | "status" | "channel" | "customerName" | "customerPhone" | "buyerNtn" | "buyerCnic" | "tableId" | "guests" | "staffId" | "assignedStaffId" | "subtotal" | "tax" | "tip" | "discount" | "total" | "payment" | "paymentChannelId" | "paidAt" | "notes" | "fiscalInvoiceNumber" | "fiscalSubmittedAt" | "fiscalAttempts" | "fiscalLastError" | "createdAt" | "updatedAt", ExtArgs["result"]["order"]>
   export type OrderInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     table?: boolean | Order$tableArgs<ExtArgs>
     staff?: boolean | Order$staffArgs<ExtArgs>
+    assignedStaff?: boolean | Order$assignedStaffArgs<ExtArgs>
     paymentChannel?: boolean | Order$paymentChannelArgs<ExtArgs>
     fiscalSubmissions?: boolean | Order$fiscalSubmissionsArgs<ExtArgs>
     items?: boolean | Order$itemsArgs<ExtArgs>
@@ -25371,11 +25521,13 @@ export namespace Prisma {
   export type OrderIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     table?: boolean | Order$tableArgs<ExtArgs>
     staff?: boolean | Order$staffArgs<ExtArgs>
+    assignedStaff?: boolean | Order$assignedStaffArgs<ExtArgs>
     paymentChannel?: boolean | Order$paymentChannelArgs<ExtArgs>
   }
   export type OrderIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     table?: boolean | Order$tableArgs<ExtArgs>
     staff?: boolean | Order$staffArgs<ExtArgs>
+    assignedStaff?: boolean | Order$assignedStaffArgs<ExtArgs>
     paymentChannel?: boolean | Order$paymentChannelArgs<ExtArgs>
   }
 
@@ -25384,6 +25536,7 @@ export namespace Prisma {
     objects: {
       table: Prisma.$TablePayload<ExtArgs> | null
       staff: Prisma.$UserPayload<ExtArgs> | null
+      assignedStaff: Prisma.$UserPayload<ExtArgs> | null
       paymentChannel: Prisma.$PaymentChannelPayload<ExtArgs> | null
       fiscalSubmissions: Prisma.$FiscalSubmissionPayload<ExtArgs>[]
       items: Prisma.$OrderItemPayload<ExtArgs>[]
@@ -25410,6 +25563,12 @@ export namespace Prisma {
        */
       guests: number
       staffId: string | null
+      /**
+       * Assigned waiter (dine-in) or delivery rider (delivery). Which one
+       * depends on `channel`; the picker in the POS place-order modal sets
+       * it. Distinct from `staff` (the cashier who rang the order up).
+       */
+      assignedStaffId: string | null
       subtotal: Prisma.Decimal
       tax: Prisma.Decimal
       tip: Prisma.Decimal | null
@@ -25836,6 +25995,7 @@ export namespace Prisma {
     readonly [Symbol.toStringTag]: "PrismaPromise"
     table<T extends Order$tableArgs<ExtArgs> = {}>(args?: Subset<T, Order$tableArgs<ExtArgs>>): Prisma__TableClient<$Result.GetResult<Prisma.$TablePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
     staff<T extends Order$staffArgs<ExtArgs> = {}>(args?: Subset<T, Order$staffArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+    assignedStaff<T extends Order$assignedStaffArgs<ExtArgs> = {}>(args?: Subset<T, Order$assignedStaffArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
     paymentChannel<T extends Order$paymentChannelArgs<ExtArgs> = {}>(args?: Subset<T, Order$paymentChannelArgs<ExtArgs>>): Prisma__PaymentChannelClient<$Result.GetResult<Prisma.$PaymentChannelPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
     fiscalSubmissions<T extends Order$fiscalSubmissionsArgs<ExtArgs> = {}>(args?: Subset<T, Order$fiscalSubmissionsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$FiscalSubmissionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     items<T extends Order$itemsArgs<ExtArgs> = {}>(args?: Subset<T, Order$itemsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$OrderItemPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
@@ -25880,6 +26040,7 @@ export namespace Prisma {
     readonly tableId: FieldRef<"Order", 'String'>
     readonly guests: FieldRef<"Order", 'Int'>
     readonly staffId: FieldRef<"Order", 'String'>
+    readonly assignedStaffId: FieldRef<"Order", 'String'>
     readonly subtotal: FieldRef<"Order", 'Decimal'>
     readonly tax: FieldRef<"Order", 'Decimal'>
     readonly tip: FieldRef<"Order", 'Decimal'>
@@ -26318,6 +26479,25 @@ export namespace Prisma {
    * Order.staff
    */
   export type Order$staffArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the User
+     */
+    select?: UserSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the User
+     */
+    omit?: UserOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: UserInclude<ExtArgs> | null
+    where?: UserWhereInput
+  }
+
+  /**
+   * Order.assignedStaff
+   */
+  export type Order$assignedStaffArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
      * Select specific fields to fetch from the User
      */
@@ -36833,6 +37013,7 @@ export namespace Prisma {
     name: 'name',
     capacity: 'capacity',
     occupancy: 'occupancy',
+    waiterId: 'waiterId',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
   };
@@ -36852,6 +37033,7 @@ export namespace Prisma {
     tableId: 'tableId',
     guests: 'guests',
     staffId: 'staffId',
+    assignedStaffId: 'assignedStaffId',
     subtotal: 'subtotal',
     tax: 'tax',
     tip: 'tip',
@@ -37367,6 +37549,8 @@ export namespace Prisma {
     roleRef?: XOR<RoleScalarRelationFilter, RoleWhereInput>
     sessions?: SessionListRelationFilter
     orders?: OrderListRelationFilter
+    assignedOrders?: OrderListRelationFilter
+    waitedTables?: TableListRelationFilter
     shifts?: ShiftListRelationFilter
     attendance?: AttendanceListRelationFilter
     pushSubscriptions?: PushSubscriptionListRelationFilter
@@ -37387,6 +37571,8 @@ export namespace Prisma {
     roleRef?: RoleOrderByWithRelationInput
     sessions?: SessionOrderByRelationAggregateInput
     orders?: OrderOrderByRelationAggregateInput
+    assignedOrders?: OrderOrderByRelationAggregateInput
+    waitedTables?: TableOrderByRelationAggregateInput
     shifts?: ShiftOrderByRelationAggregateInput
     attendance?: AttendanceOrderByRelationAggregateInput
     pushSubscriptions?: PushSubscriptionOrderByRelationAggregateInput
@@ -37410,6 +37596,8 @@ export namespace Prisma {
     roleRef?: XOR<RoleScalarRelationFilter, RoleWhereInput>
     sessions?: SessionListRelationFilter
     orders?: OrderListRelationFilter
+    assignedOrders?: OrderListRelationFilter
+    waitedTables?: TableListRelationFilter
     shifts?: ShiftListRelationFilter
     attendance?: AttendanceListRelationFilter
     pushSubscriptions?: PushSubscriptionListRelationFilter
@@ -38557,8 +38745,10 @@ export namespace Prisma {
     name?: StringFilter<"Table"> | string
     capacity?: IntFilter<"Table"> | number
     occupancy?: IntFilter<"Table"> | number
+    waiterId?: StringNullableFilter<"Table"> | string | null
     createdAt?: DateTimeFilter<"Table"> | Date | string
     updatedAt?: DateTimeFilter<"Table"> | Date | string
+    waiter?: XOR<UserNullableScalarRelationFilter, UserWhereInput> | null
     orders?: OrderListRelationFilter
   }
 
@@ -38567,8 +38757,10 @@ export namespace Prisma {
     name?: SortOrder
     capacity?: SortOrder
     occupancy?: SortOrder
+    waiterId?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+    waiter?: UserOrderByWithRelationInput
     orders?: OrderOrderByRelationAggregateInput
   }
 
@@ -38580,8 +38772,10 @@ export namespace Prisma {
     NOT?: TableWhereInput | TableWhereInput[]
     capacity?: IntFilter<"Table"> | number
     occupancy?: IntFilter<"Table"> | number
+    waiterId?: StringNullableFilter<"Table"> | string | null
     createdAt?: DateTimeFilter<"Table"> | Date | string
     updatedAt?: DateTimeFilter<"Table"> | Date | string
+    waiter?: XOR<UserNullableScalarRelationFilter, UserWhereInput> | null
     orders?: OrderListRelationFilter
   }, "id" | "name">
 
@@ -38590,6 +38784,7 @@ export namespace Prisma {
     name?: SortOrder
     capacity?: SortOrder
     occupancy?: SortOrder
+    waiterId?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: TableCountOrderByAggregateInput
@@ -38607,6 +38802,7 @@ export namespace Prisma {
     name?: StringWithAggregatesFilter<"Table"> | string
     capacity?: IntWithAggregatesFilter<"Table"> | number
     occupancy?: IntWithAggregatesFilter<"Table"> | number
+    waiterId?: StringNullableWithAggregatesFilter<"Table"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"Table"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"Table"> | Date | string
   }
@@ -38626,6 +38822,7 @@ export namespace Prisma {
     tableId?: StringNullableFilter<"Order"> | string | null
     guests?: IntFilter<"Order"> | number
     staffId?: StringNullableFilter<"Order"> | string | null
+    assignedStaffId?: StringNullableFilter<"Order"> | string | null
     subtotal?: DecimalFilter<"Order"> | Decimal | DecimalJsLike | number | string
     tax?: DecimalFilter<"Order"> | Decimal | DecimalJsLike | number | string
     tip?: DecimalNullableFilter<"Order"> | Decimal | DecimalJsLike | number | string | null
@@ -38643,6 +38840,7 @@ export namespace Prisma {
     updatedAt?: DateTimeFilter<"Order"> | Date | string
     table?: XOR<TableNullableScalarRelationFilter, TableWhereInput> | null
     staff?: XOR<UserNullableScalarRelationFilter, UserWhereInput> | null
+    assignedStaff?: XOR<UserNullableScalarRelationFilter, UserWhereInput> | null
     paymentChannel?: XOR<PaymentChannelNullableScalarRelationFilter, PaymentChannelWhereInput> | null
     fiscalSubmissions?: FiscalSubmissionListRelationFilter
     items?: OrderItemListRelationFilter
@@ -38661,6 +38859,7 @@ export namespace Prisma {
     tableId?: SortOrderInput | SortOrder
     guests?: SortOrder
     staffId?: SortOrderInput | SortOrder
+    assignedStaffId?: SortOrderInput | SortOrder
     subtotal?: SortOrder
     tax?: SortOrder
     tip?: SortOrderInput | SortOrder
@@ -38678,6 +38877,7 @@ export namespace Prisma {
     updatedAt?: SortOrder
     table?: TableOrderByWithRelationInput
     staff?: UserOrderByWithRelationInput
+    assignedStaff?: UserOrderByWithRelationInput
     paymentChannel?: PaymentChannelOrderByWithRelationInput
     fiscalSubmissions?: FiscalSubmissionOrderByRelationAggregateInput
     items?: OrderItemOrderByRelationAggregateInput
@@ -38699,6 +38899,7 @@ export namespace Prisma {
     tableId?: StringNullableFilter<"Order"> | string | null
     guests?: IntFilter<"Order"> | number
     staffId?: StringNullableFilter<"Order"> | string | null
+    assignedStaffId?: StringNullableFilter<"Order"> | string | null
     subtotal?: DecimalFilter<"Order"> | Decimal | DecimalJsLike | number | string
     tax?: DecimalFilter<"Order"> | Decimal | DecimalJsLike | number | string
     tip?: DecimalNullableFilter<"Order"> | Decimal | DecimalJsLike | number | string | null
@@ -38716,6 +38917,7 @@ export namespace Prisma {
     updatedAt?: DateTimeFilter<"Order"> | Date | string
     table?: XOR<TableNullableScalarRelationFilter, TableWhereInput> | null
     staff?: XOR<UserNullableScalarRelationFilter, UserWhereInput> | null
+    assignedStaff?: XOR<UserNullableScalarRelationFilter, UserWhereInput> | null
     paymentChannel?: XOR<PaymentChannelNullableScalarRelationFilter, PaymentChannelWhereInput> | null
     fiscalSubmissions?: FiscalSubmissionListRelationFilter
     items?: OrderItemListRelationFilter
@@ -38734,6 +38936,7 @@ export namespace Prisma {
     tableId?: SortOrderInput | SortOrder
     guests?: SortOrder
     staffId?: SortOrderInput | SortOrder
+    assignedStaffId?: SortOrderInput | SortOrder
     subtotal?: SortOrder
     tax?: SortOrder
     tip?: SortOrderInput | SortOrder
@@ -38771,6 +38974,7 @@ export namespace Prisma {
     tableId?: StringNullableWithAggregatesFilter<"Order"> | string | null
     guests?: IntWithAggregatesFilter<"Order"> | number
     staffId?: StringNullableWithAggregatesFilter<"Order"> | string | null
+    assignedStaffId?: StringNullableWithAggregatesFilter<"Order"> | string | null
     subtotal?: DecimalWithAggregatesFilter<"Order"> | Decimal | DecimalJsLike | number | string
     tax?: DecimalWithAggregatesFilter<"Order"> | Decimal | DecimalJsLike | number | string
     tip?: DecimalNullableWithAggregatesFilter<"Order"> | Decimal | DecimalJsLike | number | string | null
@@ -39625,6 +39829,8 @@ export namespace Prisma {
     roleRef: RoleCreateNestedOneWithoutUsersInput
     sessions?: SessionCreateNestedManyWithoutUserInput
     orders?: OrderCreateNestedManyWithoutStaffInput
+    assignedOrders?: OrderCreateNestedManyWithoutAssignedStaffInput
+    waitedTables?: TableCreateNestedManyWithoutWaiterInput
     shifts?: ShiftCreateNestedManyWithoutUserInput
     attendance?: AttendanceCreateNestedManyWithoutUserInput
     pushSubscriptions?: PushSubscriptionCreateNestedManyWithoutUserInput
@@ -39644,6 +39850,8 @@ export namespace Prisma {
     updatedAt?: Date | string
     sessions?: SessionUncheckedCreateNestedManyWithoutUserInput
     orders?: OrderUncheckedCreateNestedManyWithoutStaffInput
+    assignedOrders?: OrderUncheckedCreateNestedManyWithoutAssignedStaffInput
+    waitedTables?: TableUncheckedCreateNestedManyWithoutWaiterInput
     shifts?: ShiftUncheckedCreateNestedManyWithoutUserInput
     attendance?: AttendanceUncheckedCreateNestedManyWithoutUserInput
     pushSubscriptions?: PushSubscriptionUncheckedCreateNestedManyWithoutUserInput
@@ -39663,6 +39871,8 @@ export namespace Prisma {
     roleRef?: RoleUpdateOneRequiredWithoutUsersNestedInput
     sessions?: SessionUpdateManyWithoutUserNestedInput
     orders?: OrderUpdateManyWithoutStaffNestedInput
+    assignedOrders?: OrderUpdateManyWithoutAssignedStaffNestedInput
+    waitedTables?: TableUpdateManyWithoutWaiterNestedInput
     shifts?: ShiftUpdateManyWithoutUserNestedInput
     attendance?: AttendanceUpdateManyWithoutUserNestedInput
     pushSubscriptions?: PushSubscriptionUpdateManyWithoutUserNestedInput
@@ -39682,6 +39892,8 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sessions?: SessionUncheckedUpdateManyWithoutUserNestedInput
     orders?: OrderUncheckedUpdateManyWithoutStaffNestedInput
+    assignedOrders?: OrderUncheckedUpdateManyWithoutAssignedStaffNestedInput
+    waitedTables?: TableUncheckedUpdateManyWithoutWaiterNestedInput
     shifts?: ShiftUncheckedUpdateManyWithoutUserNestedInput
     attendance?: AttendanceUncheckedUpdateManyWithoutUserNestedInput
     pushSubscriptions?: PushSubscriptionUncheckedUpdateManyWithoutUserNestedInput
@@ -40907,6 +41119,7 @@ export namespace Prisma {
     occupancy?: number
     createdAt?: Date | string
     updatedAt?: Date | string
+    waiter?: UserCreateNestedOneWithoutWaitedTablesInput
     orders?: OrderCreateNestedManyWithoutTableInput
   }
 
@@ -40915,6 +41128,7 @@ export namespace Prisma {
     name: string
     capacity: number
     occupancy?: number
+    waiterId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     orders?: OrderUncheckedCreateNestedManyWithoutTableInput
@@ -40927,6 +41141,7 @@ export namespace Prisma {
     occupancy?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    waiter?: UserUpdateOneWithoutWaitedTablesNestedInput
     orders?: OrderUpdateManyWithoutTableNestedInput
   }
 
@@ -40935,6 +41150,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     capacity?: IntFieldUpdateOperationsInput | number
     occupancy?: IntFieldUpdateOperationsInput | number
+    waiterId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     orders?: OrderUncheckedUpdateManyWithoutTableNestedInput
@@ -40945,6 +41161,7 @@ export namespace Prisma {
     name: string
     capacity: number
     occupancy?: number
+    waiterId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -40963,6 +41180,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     capacity?: IntFieldUpdateOperationsInput | number
     occupancy?: IntFieldUpdateOperationsInput | number
+    waiterId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -40993,6 +41211,7 @@ export namespace Prisma {
     updatedAt?: Date | string
     table?: TableCreateNestedOneWithoutOrdersInput
     staff?: UserCreateNestedOneWithoutOrdersInput
+    assignedStaff?: UserCreateNestedOneWithoutAssignedOrdersInput
     paymentChannel?: PaymentChannelCreateNestedOneWithoutOrdersInput
     fiscalSubmissions?: FiscalSubmissionCreateNestedManyWithoutOrderInput
     items?: OrderItemCreateNestedManyWithoutOrderInput
@@ -41011,6 +41230,7 @@ export namespace Prisma {
     tableId?: string | null
     guests?: number
     staffId?: string | null
+    assignedStaffId?: string | null
     subtotal: Decimal | DecimalJsLike | number | string
     tax: Decimal | DecimalJsLike | number | string
     tip?: Decimal | DecimalJsLike | number | string | null
@@ -41057,6 +41277,7 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     table?: TableUpdateOneWithoutOrdersNestedInput
     staff?: UserUpdateOneWithoutOrdersNestedInput
+    assignedStaff?: UserUpdateOneWithoutAssignedOrdersNestedInput
     paymentChannel?: PaymentChannelUpdateOneWithoutOrdersNestedInput
     fiscalSubmissions?: FiscalSubmissionUpdateManyWithoutOrderNestedInput
     items?: OrderItemUpdateManyWithoutOrderNestedInput
@@ -41075,6 +41296,7 @@ export namespace Prisma {
     tableId?: NullableStringFieldUpdateOperationsInput | string | null
     guests?: IntFieldUpdateOperationsInput | number
     staffId?: NullableStringFieldUpdateOperationsInput | string | null
+    assignedStaffId?: NullableStringFieldUpdateOperationsInput | string | null
     subtotal?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     tax?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     tip?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
@@ -41107,6 +41329,7 @@ export namespace Prisma {
     tableId?: string | null
     guests?: number
     staffId?: string | null
+    assignedStaffId?: string | null
     subtotal: Decimal | DecimalJsLike | number | string
     tax: Decimal | DecimalJsLike | number | string
     tip?: Decimal | DecimalJsLike | number | string | null
@@ -41162,6 +41385,7 @@ export namespace Prisma {
     tableId?: NullableStringFieldUpdateOperationsInput | string | null
     guests?: IntFieldUpdateOperationsInput | number
     staffId?: NullableStringFieldUpdateOperationsInput | string | null
+    assignedStaffId?: NullableStringFieldUpdateOperationsInput | string | null
     subtotal?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     tax?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     tip?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
@@ -42246,6 +42470,12 @@ export namespace Prisma {
     none?: OrderWhereInput
   }
 
+  export type TableListRelationFilter = {
+    every?: TableWhereInput
+    some?: TableWhereInput
+    none?: TableWhereInput
+  }
+
   export type ShiftListRelationFilter = {
     every?: ShiftWhereInput
     some?: ShiftWhereInput
@@ -42269,6 +42499,10 @@ export namespace Prisma {
   }
 
   export type OrderOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type TableOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -43240,11 +43474,17 @@ export namespace Prisma {
     not?: NestedIntFilter<$PrismaModel> | number
   }
 
+  export type UserNullableScalarRelationFilter = {
+    is?: UserWhereInput | null
+    isNot?: UserWhereInput | null
+  }
+
   export type TableCountOrderByAggregateInput = {
     id?: SortOrder
     name?: SortOrder
     capacity?: SortOrder
     occupancy?: SortOrder
+    waiterId?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -43259,6 +43499,7 @@ export namespace Prisma {
     name?: SortOrder
     capacity?: SortOrder
     occupancy?: SortOrder
+    waiterId?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -43268,6 +43509,7 @@ export namespace Prisma {
     name?: SortOrder
     capacity?: SortOrder
     occupancy?: SortOrder
+    waiterId?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -43312,11 +43554,6 @@ export namespace Prisma {
     isNot?: TableWhereInput | null
   }
 
-  export type UserNullableScalarRelationFilter = {
-    is?: UserWhereInput | null
-    isNot?: UserWhereInput | null
-  }
-
   export type FiscalSubmissionListRelationFilter = {
     every?: FiscalSubmissionWhereInput
     some?: FiscalSubmissionWhereInput
@@ -43339,6 +43576,7 @@ export namespace Prisma {
     tableId?: SortOrder
     guests?: SortOrder
     staffId?: SortOrder
+    assignedStaffId?: SortOrder
     subtotal?: SortOrder
     tax?: SortOrder
     tip?: SortOrder
@@ -43378,6 +43616,7 @@ export namespace Prisma {
     tableId?: SortOrder
     guests?: SortOrder
     staffId?: SortOrder
+    assignedStaffId?: SortOrder
     subtotal?: SortOrder
     tax?: SortOrder
     tip?: SortOrder
@@ -43407,6 +43646,7 @@ export namespace Prisma {
     tableId?: SortOrder
     guests?: SortOrder
     staffId?: SortOrder
+    assignedStaffId?: SortOrder
     subtotal?: SortOrder
     tax?: SortOrder
     tip?: SortOrder
@@ -44030,6 +44270,20 @@ export namespace Prisma {
     connect?: OrderWhereUniqueInput | OrderWhereUniqueInput[]
   }
 
+  export type OrderCreateNestedManyWithoutAssignedStaffInput = {
+    create?: XOR<OrderCreateWithoutAssignedStaffInput, OrderUncheckedCreateWithoutAssignedStaffInput> | OrderCreateWithoutAssignedStaffInput[] | OrderUncheckedCreateWithoutAssignedStaffInput[]
+    connectOrCreate?: OrderCreateOrConnectWithoutAssignedStaffInput | OrderCreateOrConnectWithoutAssignedStaffInput[]
+    createMany?: OrderCreateManyAssignedStaffInputEnvelope
+    connect?: OrderWhereUniqueInput | OrderWhereUniqueInput[]
+  }
+
+  export type TableCreateNestedManyWithoutWaiterInput = {
+    create?: XOR<TableCreateWithoutWaiterInput, TableUncheckedCreateWithoutWaiterInput> | TableCreateWithoutWaiterInput[] | TableUncheckedCreateWithoutWaiterInput[]
+    connectOrCreate?: TableCreateOrConnectWithoutWaiterInput | TableCreateOrConnectWithoutWaiterInput[]
+    createMany?: TableCreateManyWaiterInputEnvelope
+    connect?: TableWhereUniqueInput | TableWhereUniqueInput[]
+  }
+
   export type ShiftCreateNestedManyWithoutUserInput = {
     create?: XOR<ShiftCreateWithoutUserInput, ShiftUncheckedCreateWithoutUserInput> | ShiftCreateWithoutUserInput[] | ShiftUncheckedCreateWithoutUserInput[]
     connectOrCreate?: ShiftCreateOrConnectWithoutUserInput | ShiftCreateOrConnectWithoutUserInput[]
@@ -44063,6 +44317,20 @@ export namespace Prisma {
     connectOrCreate?: OrderCreateOrConnectWithoutStaffInput | OrderCreateOrConnectWithoutStaffInput[]
     createMany?: OrderCreateManyStaffInputEnvelope
     connect?: OrderWhereUniqueInput | OrderWhereUniqueInput[]
+  }
+
+  export type OrderUncheckedCreateNestedManyWithoutAssignedStaffInput = {
+    create?: XOR<OrderCreateWithoutAssignedStaffInput, OrderUncheckedCreateWithoutAssignedStaffInput> | OrderCreateWithoutAssignedStaffInput[] | OrderUncheckedCreateWithoutAssignedStaffInput[]
+    connectOrCreate?: OrderCreateOrConnectWithoutAssignedStaffInput | OrderCreateOrConnectWithoutAssignedStaffInput[]
+    createMany?: OrderCreateManyAssignedStaffInputEnvelope
+    connect?: OrderWhereUniqueInput | OrderWhereUniqueInput[]
+  }
+
+  export type TableUncheckedCreateNestedManyWithoutWaiterInput = {
+    create?: XOR<TableCreateWithoutWaiterInput, TableUncheckedCreateWithoutWaiterInput> | TableCreateWithoutWaiterInput[] | TableUncheckedCreateWithoutWaiterInput[]
+    connectOrCreate?: TableCreateOrConnectWithoutWaiterInput | TableCreateOrConnectWithoutWaiterInput[]
+    createMany?: TableCreateManyWaiterInputEnvelope
+    connect?: TableWhereUniqueInput | TableWhereUniqueInput[]
   }
 
   export type ShiftUncheckedCreateNestedManyWithoutUserInput = {
@@ -44128,6 +44396,34 @@ export namespace Prisma {
     update?: OrderUpdateWithWhereUniqueWithoutStaffInput | OrderUpdateWithWhereUniqueWithoutStaffInput[]
     updateMany?: OrderUpdateManyWithWhereWithoutStaffInput | OrderUpdateManyWithWhereWithoutStaffInput[]
     deleteMany?: OrderScalarWhereInput | OrderScalarWhereInput[]
+  }
+
+  export type OrderUpdateManyWithoutAssignedStaffNestedInput = {
+    create?: XOR<OrderCreateWithoutAssignedStaffInput, OrderUncheckedCreateWithoutAssignedStaffInput> | OrderCreateWithoutAssignedStaffInput[] | OrderUncheckedCreateWithoutAssignedStaffInput[]
+    connectOrCreate?: OrderCreateOrConnectWithoutAssignedStaffInput | OrderCreateOrConnectWithoutAssignedStaffInput[]
+    upsert?: OrderUpsertWithWhereUniqueWithoutAssignedStaffInput | OrderUpsertWithWhereUniqueWithoutAssignedStaffInput[]
+    createMany?: OrderCreateManyAssignedStaffInputEnvelope
+    set?: OrderWhereUniqueInput | OrderWhereUniqueInput[]
+    disconnect?: OrderWhereUniqueInput | OrderWhereUniqueInput[]
+    delete?: OrderWhereUniqueInput | OrderWhereUniqueInput[]
+    connect?: OrderWhereUniqueInput | OrderWhereUniqueInput[]
+    update?: OrderUpdateWithWhereUniqueWithoutAssignedStaffInput | OrderUpdateWithWhereUniqueWithoutAssignedStaffInput[]
+    updateMany?: OrderUpdateManyWithWhereWithoutAssignedStaffInput | OrderUpdateManyWithWhereWithoutAssignedStaffInput[]
+    deleteMany?: OrderScalarWhereInput | OrderScalarWhereInput[]
+  }
+
+  export type TableUpdateManyWithoutWaiterNestedInput = {
+    create?: XOR<TableCreateWithoutWaiterInput, TableUncheckedCreateWithoutWaiterInput> | TableCreateWithoutWaiterInput[] | TableUncheckedCreateWithoutWaiterInput[]
+    connectOrCreate?: TableCreateOrConnectWithoutWaiterInput | TableCreateOrConnectWithoutWaiterInput[]
+    upsert?: TableUpsertWithWhereUniqueWithoutWaiterInput | TableUpsertWithWhereUniqueWithoutWaiterInput[]
+    createMany?: TableCreateManyWaiterInputEnvelope
+    set?: TableWhereUniqueInput | TableWhereUniqueInput[]
+    disconnect?: TableWhereUniqueInput | TableWhereUniqueInput[]
+    delete?: TableWhereUniqueInput | TableWhereUniqueInput[]
+    connect?: TableWhereUniqueInput | TableWhereUniqueInput[]
+    update?: TableUpdateWithWhereUniqueWithoutWaiterInput | TableUpdateWithWhereUniqueWithoutWaiterInput[]
+    updateMany?: TableUpdateManyWithWhereWithoutWaiterInput | TableUpdateManyWithWhereWithoutWaiterInput[]
+    deleteMany?: TableScalarWhereInput | TableScalarWhereInput[]
   }
 
   export type ShiftUpdateManyWithoutUserNestedInput = {
@@ -44198,6 +44494,34 @@ export namespace Prisma {
     update?: OrderUpdateWithWhereUniqueWithoutStaffInput | OrderUpdateWithWhereUniqueWithoutStaffInput[]
     updateMany?: OrderUpdateManyWithWhereWithoutStaffInput | OrderUpdateManyWithWhereWithoutStaffInput[]
     deleteMany?: OrderScalarWhereInput | OrderScalarWhereInput[]
+  }
+
+  export type OrderUncheckedUpdateManyWithoutAssignedStaffNestedInput = {
+    create?: XOR<OrderCreateWithoutAssignedStaffInput, OrderUncheckedCreateWithoutAssignedStaffInput> | OrderCreateWithoutAssignedStaffInput[] | OrderUncheckedCreateWithoutAssignedStaffInput[]
+    connectOrCreate?: OrderCreateOrConnectWithoutAssignedStaffInput | OrderCreateOrConnectWithoutAssignedStaffInput[]
+    upsert?: OrderUpsertWithWhereUniqueWithoutAssignedStaffInput | OrderUpsertWithWhereUniqueWithoutAssignedStaffInput[]
+    createMany?: OrderCreateManyAssignedStaffInputEnvelope
+    set?: OrderWhereUniqueInput | OrderWhereUniqueInput[]
+    disconnect?: OrderWhereUniqueInput | OrderWhereUniqueInput[]
+    delete?: OrderWhereUniqueInput | OrderWhereUniqueInput[]
+    connect?: OrderWhereUniqueInput | OrderWhereUniqueInput[]
+    update?: OrderUpdateWithWhereUniqueWithoutAssignedStaffInput | OrderUpdateWithWhereUniqueWithoutAssignedStaffInput[]
+    updateMany?: OrderUpdateManyWithWhereWithoutAssignedStaffInput | OrderUpdateManyWithWhereWithoutAssignedStaffInput[]
+    deleteMany?: OrderScalarWhereInput | OrderScalarWhereInput[]
+  }
+
+  export type TableUncheckedUpdateManyWithoutWaiterNestedInput = {
+    create?: XOR<TableCreateWithoutWaiterInput, TableUncheckedCreateWithoutWaiterInput> | TableCreateWithoutWaiterInput[] | TableUncheckedCreateWithoutWaiterInput[]
+    connectOrCreate?: TableCreateOrConnectWithoutWaiterInput | TableCreateOrConnectWithoutWaiterInput[]
+    upsert?: TableUpsertWithWhereUniqueWithoutWaiterInput | TableUpsertWithWhereUniqueWithoutWaiterInput[]
+    createMany?: TableCreateManyWaiterInputEnvelope
+    set?: TableWhereUniqueInput | TableWhereUniqueInput[]
+    disconnect?: TableWhereUniqueInput | TableWhereUniqueInput[]
+    delete?: TableWhereUniqueInput | TableWhereUniqueInput[]
+    connect?: TableWhereUniqueInput | TableWhereUniqueInput[]
+    update?: TableUpdateWithWhereUniqueWithoutWaiterInput | TableUpdateWithWhereUniqueWithoutWaiterInput[]
+    updateMany?: TableUpdateManyWithWhereWithoutWaiterInput | TableUpdateManyWithWhereWithoutWaiterInput[]
+    deleteMany?: TableScalarWhereInput | TableScalarWhereInput[]
   }
 
   export type ShiftUncheckedUpdateManyWithoutUserNestedInput = {
@@ -45218,6 +45542,12 @@ export namespace Prisma {
     update?: XOR<XOR<PaymentChannelUpdateToOneWithWhereWithoutExpensesInput, PaymentChannelUpdateWithoutExpensesInput>, PaymentChannelUncheckedUpdateWithoutExpensesInput>
   }
 
+  export type UserCreateNestedOneWithoutWaitedTablesInput = {
+    create?: XOR<UserCreateWithoutWaitedTablesInput, UserUncheckedCreateWithoutWaitedTablesInput>
+    connectOrCreate?: UserCreateOrConnectWithoutWaitedTablesInput
+    connect?: UserWhereUniqueInput
+  }
+
   export type OrderCreateNestedManyWithoutTableInput = {
     create?: XOR<OrderCreateWithoutTableInput, OrderUncheckedCreateWithoutTableInput> | OrderCreateWithoutTableInput[] | OrderUncheckedCreateWithoutTableInput[]
     connectOrCreate?: OrderCreateOrConnectWithoutTableInput | OrderCreateOrConnectWithoutTableInput[]
@@ -45238,6 +45568,16 @@ export namespace Prisma {
     decrement?: number
     multiply?: number
     divide?: number
+  }
+
+  export type UserUpdateOneWithoutWaitedTablesNestedInput = {
+    create?: XOR<UserCreateWithoutWaitedTablesInput, UserUncheckedCreateWithoutWaitedTablesInput>
+    connectOrCreate?: UserCreateOrConnectWithoutWaitedTablesInput
+    upsert?: UserUpsertWithoutWaitedTablesInput
+    disconnect?: UserWhereInput | boolean
+    delete?: UserWhereInput | boolean
+    connect?: UserWhereUniqueInput
+    update?: XOR<XOR<UserUpdateToOneWithWhereWithoutWaitedTablesInput, UserUpdateWithoutWaitedTablesInput>, UserUncheckedUpdateWithoutWaitedTablesInput>
   }
 
   export type OrderUpdateManyWithoutTableNestedInput = {
@@ -45277,6 +45617,12 @@ export namespace Prisma {
   export type UserCreateNestedOneWithoutOrdersInput = {
     create?: XOR<UserCreateWithoutOrdersInput, UserUncheckedCreateWithoutOrdersInput>
     connectOrCreate?: UserCreateOrConnectWithoutOrdersInput
+    connect?: UserWhereUniqueInput
+  }
+
+  export type UserCreateNestedOneWithoutAssignedOrdersInput = {
+    create?: XOR<UserCreateWithoutAssignedOrdersInput, UserUncheckedCreateWithoutAssignedOrdersInput>
+    connectOrCreate?: UserCreateOrConnectWithoutAssignedOrdersInput
     connect?: UserWhereUniqueInput
   }
 
@@ -45354,6 +45700,16 @@ export namespace Prisma {
     delete?: UserWhereInput | boolean
     connect?: UserWhereUniqueInput
     update?: XOR<XOR<UserUpdateToOneWithWhereWithoutOrdersInput, UserUpdateWithoutOrdersInput>, UserUncheckedUpdateWithoutOrdersInput>
+  }
+
+  export type UserUpdateOneWithoutAssignedOrdersNestedInput = {
+    create?: XOR<UserCreateWithoutAssignedOrdersInput, UserUncheckedCreateWithoutAssignedOrdersInput>
+    connectOrCreate?: UserCreateOrConnectWithoutAssignedOrdersInput
+    upsert?: UserUpsertWithoutAssignedOrdersInput
+    disconnect?: UserWhereInput | boolean
+    delete?: UserWhereInput | boolean
+    connect?: UserWhereUniqueInput
+    update?: XOR<XOR<UserUpdateToOneWithWhereWithoutAssignedOrdersInput, UserUpdateWithoutAssignedOrdersInput>, UserUncheckedUpdateWithoutAssignedOrdersInput>
   }
 
   export type PaymentChannelUpdateOneWithoutOrdersNestedInput = {
@@ -46055,6 +46411,8 @@ export namespace Prisma {
     updatedAt?: Date | string
     sessions?: SessionCreateNestedManyWithoutUserInput
     orders?: OrderCreateNestedManyWithoutStaffInput
+    assignedOrders?: OrderCreateNestedManyWithoutAssignedStaffInput
+    waitedTables?: TableCreateNestedManyWithoutWaiterInput
     shifts?: ShiftCreateNestedManyWithoutUserInput
     attendance?: AttendanceCreateNestedManyWithoutUserInput
     pushSubscriptions?: PushSubscriptionCreateNestedManyWithoutUserInput
@@ -46073,6 +46431,8 @@ export namespace Prisma {
     updatedAt?: Date | string
     sessions?: SessionUncheckedCreateNestedManyWithoutUserInput
     orders?: OrderUncheckedCreateNestedManyWithoutStaffInput
+    assignedOrders?: OrderUncheckedCreateNestedManyWithoutAssignedStaffInput
+    waitedTables?: TableUncheckedCreateNestedManyWithoutWaiterInput
     shifts?: ShiftUncheckedCreateNestedManyWithoutUserInput
     attendance?: AttendanceUncheckedCreateNestedManyWithoutUserInput
     pushSubscriptions?: PushSubscriptionUncheckedCreateNestedManyWithoutUserInput
@@ -46195,6 +46555,7 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     table?: TableCreateNestedOneWithoutOrdersInput
+    assignedStaff?: UserCreateNestedOneWithoutAssignedOrdersInput
     paymentChannel?: PaymentChannelCreateNestedOneWithoutOrdersInput
     fiscalSubmissions?: FiscalSubmissionCreateNestedManyWithoutOrderInput
     items?: OrderItemCreateNestedManyWithoutOrderInput
@@ -46212,6 +46573,7 @@ export namespace Prisma {
     buyerCnic?: string | null
     tableId?: string | null
     guests?: number
+    assignedStaffId?: string | null
     subtotal: Decimal | DecimalJsLike | number | string
     tax: Decimal | DecimalJsLike | number | string
     tip?: Decimal | DecimalJsLike | number | string | null
@@ -46239,6 +46601,110 @@ export namespace Prisma {
 
   export type OrderCreateManyStaffInputEnvelope = {
     data: OrderCreateManyStaffInput | OrderCreateManyStaffInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type OrderCreateWithoutAssignedStaffInput = {
+    id?: string
+    number: string
+    status: $Enums.OrderStatus
+    channel: string
+    customerName?: string | null
+    customerPhone?: string | null
+    buyerNtn?: string | null
+    buyerCnic?: string | null
+    guests?: number
+    subtotal: Decimal | DecimalJsLike | number | string
+    tax: Decimal | DecimalJsLike | number | string
+    tip?: Decimal | DecimalJsLike | number | string | null
+    discount?: Decimal | DecimalJsLike | number | string | null
+    total: Decimal | DecimalJsLike | number | string
+    payment?: $Enums.PaymentMethod | null
+    paidAt?: Date | string | null
+    notes?: string | null
+    fiscalInvoiceNumber?: string | null
+    fiscalSubmittedAt?: Date | string | null
+    fiscalAttempts?: number
+    fiscalLastError?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    table?: TableCreateNestedOneWithoutOrdersInput
+    staff?: UserCreateNestedOneWithoutOrdersInput
+    paymentChannel?: PaymentChannelCreateNestedOneWithoutOrdersInput
+    fiscalSubmissions?: FiscalSubmissionCreateNestedManyWithoutOrderInput
+    items?: OrderItemCreateNestedManyWithoutOrderInput
+    tickets?: KitchenTicketCreateNestedManyWithoutOrderInput
+  }
+
+  export type OrderUncheckedCreateWithoutAssignedStaffInput = {
+    id?: string
+    number: string
+    status: $Enums.OrderStatus
+    channel: string
+    customerName?: string | null
+    customerPhone?: string | null
+    buyerNtn?: string | null
+    buyerCnic?: string | null
+    tableId?: string | null
+    guests?: number
+    staffId?: string | null
+    subtotal: Decimal | DecimalJsLike | number | string
+    tax: Decimal | DecimalJsLike | number | string
+    tip?: Decimal | DecimalJsLike | number | string | null
+    discount?: Decimal | DecimalJsLike | number | string | null
+    total: Decimal | DecimalJsLike | number | string
+    payment?: $Enums.PaymentMethod | null
+    paymentChannelId?: string | null
+    paidAt?: Date | string | null
+    notes?: string | null
+    fiscalInvoiceNumber?: string | null
+    fiscalSubmittedAt?: Date | string | null
+    fiscalAttempts?: number
+    fiscalLastError?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    fiscalSubmissions?: FiscalSubmissionUncheckedCreateNestedManyWithoutOrderInput
+    items?: OrderItemUncheckedCreateNestedManyWithoutOrderInput
+    tickets?: KitchenTicketUncheckedCreateNestedManyWithoutOrderInput
+  }
+
+  export type OrderCreateOrConnectWithoutAssignedStaffInput = {
+    where: OrderWhereUniqueInput
+    create: XOR<OrderCreateWithoutAssignedStaffInput, OrderUncheckedCreateWithoutAssignedStaffInput>
+  }
+
+  export type OrderCreateManyAssignedStaffInputEnvelope = {
+    data: OrderCreateManyAssignedStaffInput | OrderCreateManyAssignedStaffInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type TableCreateWithoutWaiterInput = {
+    id?: string
+    name: string
+    capacity: number
+    occupancy?: number
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    orders?: OrderCreateNestedManyWithoutTableInput
+  }
+
+  export type TableUncheckedCreateWithoutWaiterInput = {
+    id?: string
+    name: string
+    capacity: number
+    occupancy?: number
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    orders?: OrderUncheckedCreateNestedManyWithoutTableInput
+  }
+
+  export type TableCreateOrConnectWithoutWaiterInput = {
+    where: TableWhereUniqueInput
+    create: XOR<TableCreateWithoutWaiterInput, TableUncheckedCreateWithoutWaiterInput>
+  }
+
+  export type TableCreateManyWaiterInputEnvelope = {
+    data: TableCreateManyWaiterInput | TableCreateManyWaiterInput[]
     skipDuplicates?: boolean
   }
 
@@ -46418,6 +46884,7 @@ export namespace Prisma {
     tableId?: StringNullableFilter<"Order"> | string | null
     guests?: IntFilter<"Order"> | number
     staffId?: StringNullableFilter<"Order"> | string | null
+    assignedStaffId?: StringNullableFilter<"Order"> | string | null
     subtotal?: DecimalFilter<"Order"> | Decimal | DecimalJsLike | number | string
     tax?: DecimalFilter<"Order"> | Decimal | DecimalJsLike | number | string
     tip?: DecimalNullableFilter<"Order"> | Decimal | DecimalJsLike | number | string | null
@@ -46433,6 +46900,51 @@ export namespace Prisma {
     fiscalLastError?: StringNullableFilter<"Order"> | string | null
     createdAt?: DateTimeFilter<"Order"> | Date | string
     updatedAt?: DateTimeFilter<"Order"> | Date | string
+  }
+
+  export type OrderUpsertWithWhereUniqueWithoutAssignedStaffInput = {
+    where: OrderWhereUniqueInput
+    update: XOR<OrderUpdateWithoutAssignedStaffInput, OrderUncheckedUpdateWithoutAssignedStaffInput>
+    create: XOR<OrderCreateWithoutAssignedStaffInput, OrderUncheckedCreateWithoutAssignedStaffInput>
+  }
+
+  export type OrderUpdateWithWhereUniqueWithoutAssignedStaffInput = {
+    where: OrderWhereUniqueInput
+    data: XOR<OrderUpdateWithoutAssignedStaffInput, OrderUncheckedUpdateWithoutAssignedStaffInput>
+  }
+
+  export type OrderUpdateManyWithWhereWithoutAssignedStaffInput = {
+    where: OrderScalarWhereInput
+    data: XOR<OrderUpdateManyMutationInput, OrderUncheckedUpdateManyWithoutAssignedStaffInput>
+  }
+
+  export type TableUpsertWithWhereUniqueWithoutWaiterInput = {
+    where: TableWhereUniqueInput
+    update: XOR<TableUpdateWithoutWaiterInput, TableUncheckedUpdateWithoutWaiterInput>
+    create: XOR<TableCreateWithoutWaiterInput, TableUncheckedCreateWithoutWaiterInput>
+  }
+
+  export type TableUpdateWithWhereUniqueWithoutWaiterInput = {
+    where: TableWhereUniqueInput
+    data: XOR<TableUpdateWithoutWaiterInput, TableUncheckedUpdateWithoutWaiterInput>
+  }
+
+  export type TableUpdateManyWithWhereWithoutWaiterInput = {
+    where: TableScalarWhereInput
+    data: XOR<TableUpdateManyMutationInput, TableUncheckedUpdateManyWithoutWaiterInput>
+  }
+
+  export type TableScalarWhereInput = {
+    AND?: TableScalarWhereInput | TableScalarWhereInput[]
+    OR?: TableScalarWhereInput[]
+    NOT?: TableScalarWhereInput | TableScalarWhereInput[]
+    id?: StringFilter<"Table"> | string
+    name?: StringFilter<"Table"> | string
+    capacity?: IntFilter<"Table"> | number
+    occupancy?: IntFilter<"Table"> | number
+    waiterId?: StringNullableFilter<"Table"> | string | null
+    createdAt?: DateTimeFilter<"Table"> | Date | string
+    updatedAt?: DateTimeFilter<"Table"> | Date | string
   }
 
   export type ShiftUpsertWithWhereUniqueWithoutUserInput = {
@@ -46536,6 +47048,8 @@ export namespace Prisma {
     updatedAt?: Date | string
     roleRef: RoleCreateNestedOneWithoutUsersInput
     orders?: OrderCreateNestedManyWithoutStaffInput
+    assignedOrders?: OrderCreateNestedManyWithoutAssignedStaffInput
+    waitedTables?: TableCreateNestedManyWithoutWaiterInput
     shifts?: ShiftCreateNestedManyWithoutUserInput
     attendance?: AttendanceCreateNestedManyWithoutUserInput
     pushSubscriptions?: PushSubscriptionCreateNestedManyWithoutUserInput
@@ -46554,6 +47068,8 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     orders?: OrderUncheckedCreateNestedManyWithoutStaffInput
+    assignedOrders?: OrderUncheckedCreateNestedManyWithoutAssignedStaffInput
+    waitedTables?: TableUncheckedCreateNestedManyWithoutWaiterInput
     shifts?: ShiftUncheckedCreateNestedManyWithoutUserInput
     attendance?: AttendanceUncheckedCreateNestedManyWithoutUserInput
     pushSubscriptions?: PushSubscriptionUncheckedCreateNestedManyWithoutUserInput
@@ -46588,6 +47104,8 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     roleRef?: RoleUpdateOneRequiredWithoutUsersNestedInput
     orders?: OrderUpdateManyWithoutStaffNestedInput
+    assignedOrders?: OrderUpdateManyWithoutAssignedStaffNestedInput
+    waitedTables?: TableUpdateManyWithoutWaiterNestedInput
     shifts?: ShiftUpdateManyWithoutUserNestedInput
     attendance?: AttendanceUpdateManyWithoutUserNestedInput
     pushSubscriptions?: PushSubscriptionUpdateManyWithoutUserNestedInput
@@ -46606,6 +47124,8 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     orders?: OrderUncheckedUpdateManyWithoutStaffNestedInput
+    assignedOrders?: OrderUncheckedUpdateManyWithoutAssignedStaffNestedInput
+    waitedTables?: TableUncheckedUpdateManyWithoutWaiterNestedInput
     shifts?: ShiftUncheckedUpdateManyWithoutUserNestedInput
     attendance?: AttendanceUncheckedUpdateManyWithoutUserNestedInput
     pushSubscriptions?: PushSubscriptionUncheckedUpdateManyWithoutUserNestedInput
@@ -46625,6 +47145,8 @@ export namespace Prisma {
     roleRef: RoleCreateNestedOneWithoutUsersInput
     sessions?: SessionCreateNestedManyWithoutUserInput
     orders?: OrderCreateNestedManyWithoutStaffInput
+    assignedOrders?: OrderCreateNestedManyWithoutAssignedStaffInput
+    waitedTables?: TableCreateNestedManyWithoutWaiterInput
     shifts?: ShiftCreateNestedManyWithoutUserInput
     attendance?: AttendanceCreateNestedManyWithoutUserInput
   }
@@ -46643,6 +47165,8 @@ export namespace Prisma {
     updatedAt?: Date | string
     sessions?: SessionUncheckedCreateNestedManyWithoutUserInput
     orders?: OrderUncheckedCreateNestedManyWithoutStaffInput
+    assignedOrders?: OrderUncheckedCreateNestedManyWithoutAssignedStaffInput
+    waitedTables?: TableUncheckedCreateNestedManyWithoutWaiterInput
     shifts?: ShiftUncheckedCreateNestedManyWithoutUserInput
     attendance?: AttendanceUncheckedCreateNestedManyWithoutUserInput
   }
@@ -46677,6 +47201,8 @@ export namespace Prisma {
     roleRef?: RoleUpdateOneRequiredWithoutUsersNestedInput
     sessions?: SessionUpdateManyWithoutUserNestedInput
     orders?: OrderUpdateManyWithoutStaffNestedInput
+    assignedOrders?: OrderUpdateManyWithoutAssignedStaffNestedInput
+    waitedTables?: TableUpdateManyWithoutWaiterNestedInput
     shifts?: ShiftUpdateManyWithoutUserNestedInput
     attendance?: AttendanceUpdateManyWithoutUserNestedInput
   }
@@ -46695,6 +47221,8 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sessions?: SessionUncheckedUpdateManyWithoutUserNestedInput
     orders?: OrderUncheckedUpdateManyWithoutStaffNestedInput
+    assignedOrders?: OrderUncheckedUpdateManyWithoutAssignedStaffNestedInput
+    waitedTables?: TableUncheckedUpdateManyWithoutWaiterNestedInput
     shifts?: ShiftUncheckedUpdateManyWithoutUserNestedInput
     attendance?: AttendanceUncheckedUpdateManyWithoutUserNestedInput
   }
@@ -46781,6 +47309,7 @@ export namespace Prisma {
     updatedAt?: Date | string
     table?: TableCreateNestedOneWithoutOrdersInput
     staff?: UserCreateNestedOneWithoutOrdersInput
+    assignedStaff?: UserCreateNestedOneWithoutAssignedOrdersInput
     fiscalSubmissions?: FiscalSubmissionCreateNestedManyWithoutOrderInput
     items?: OrderItemCreateNestedManyWithoutOrderInput
     tickets?: KitchenTicketCreateNestedManyWithoutOrderInput
@@ -46798,6 +47327,7 @@ export namespace Prisma {
     tableId?: string | null
     guests?: number
     staffId?: string | null
+    assignedStaffId?: string | null
     subtotal: Decimal | DecimalJsLike | number | string
     tax: Decimal | DecimalJsLike | number | string
     tip?: Decimal | DecimalJsLike | number | string | null
@@ -48740,6 +49270,51 @@ export namespace Prisma {
     supplierPayments?: SupplierPaymentUncheckedUpdateManyWithoutPaymentChannelNestedInput
   }
 
+  export type UserCreateWithoutWaitedTablesInput = {
+    id?: string
+    name: string
+    email: string
+    phone?: string | null
+    passwordHash: string
+    avatar?: string | null
+    defaultRoute?: string | null
+    monthlySalary?: Decimal | DecimalJsLike | number | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    roleRef: RoleCreateNestedOneWithoutUsersInput
+    sessions?: SessionCreateNestedManyWithoutUserInput
+    orders?: OrderCreateNestedManyWithoutStaffInput
+    assignedOrders?: OrderCreateNestedManyWithoutAssignedStaffInput
+    shifts?: ShiftCreateNestedManyWithoutUserInput
+    attendance?: AttendanceCreateNestedManyWithoutUserInput
+    pushSubscriptions?: PushSubscriptionCreateNestedManyWithoutUserInput
+  }
+
+  export type UserUncheckedCreateWithoutWaitedTablesInput = {
+    id?: string
+    name: string
+    email: string
+    phone?: string | null
+    passwordHash: string
+    role: string
+    avatar?: string | null
+    defaultRoute?: string | null
+    monthlySalary?: Decimal | DecimalJsLike | number | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    sessions?: SessionUncheckedCreateNestedManyWithoutUserInput
+    orders?: OrderUncheckedCreateNestedManyWithoutStaffInput
+    assignedOrders?: OrderUncheckedCreateNestedManyWithoutAssignedStaffInput
+    shifts?: ShiftUncheckedCreateNestedManyWithoutUserInput
+    attendance?: AttendanceUncheckedCreateNestedManyWithoutUserInput
+    pushSubscriptions?: PushSubscriptionUncheckedCreateNestedManyWithoutUserInput
+  }
+
+  export type UserCreateOrConnectWithoutWaitedTablesInput = {
+    where: UserWhereUniqueInput
+    create: XOR<UserCreateWithoutWaitedTablesInput, UserUncheckedCreateWithoutWaitedTablesInput>
+  }
+
   export type OrderCreateWithoutTableInput = {
     id?: string
     number: string
@@ -48765,6 +49340,7 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     staff?: UserCreateNestedOneWithoutOrdersInput
+    assignedStaff?: UserCreateNestedOneWithoutAssignedOrdersInput
     paymentChannel?: PaymentChannelCreateNestedOneWithoutOrdersInput
     fiscalSubmissions?: FiscalSubmissionCreateNestedManyWithoutOrderInput
     items?: OrderItemCreateNestedManyWithoutOrderInput
@@ -48782,6 +49358,7 @@ export namespace Prisma {
     buyerCnic?: string | null
     guests?: number
     staffId?: string | null
+    assignedStaffId?: string | null
     subtotal: Decimal | DecimalJsLike | number | string
     tax: Decimal | DecimalJsLike | number | string
     tip?: Decimal | DecimalJsLike | number | string | null
@@ -48812,6 +49389,57 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type UserUpsertWithoutWaitedTablesInput = {
+    update: XOR<UserUpdateWithoutWaitedTablesInput, UserUncheckedUpdateWithoutWaitedTablesInput>
+    create: XOR<UserCreateWithoutWaitedTablesInput, UserUncheckedCreateWithoutWaitedTablesInput>
+    where?: UserWhereInput
+  }
+
+  export type UserUpdateToOneWithWhereWithoutWaitedTablesInput = {
+    where?: UserWhereInput
+    data: XOR<UserUpdateWithoutWaitedTablesInput, UserUncheckedUpdateWithoutWaitedTablesInput>
+  }
+
+  export type UserUpdateWithoutWaitedTablesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    phone?: NullableStringFieldUpdateOperationsInput | string | null
+    passwordHash?: StringFieldUpdateOperationsInput | string
+    avatar?: NullableStringFieldUpdateOperationsInput | string | null
+    defaultRoute?: NullableStringFieldUpdateOperationsInput | string | null
+    monthlySalary?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    roleRef?: RoleUpdateOneRequiredWithoutUsersNestedInput
+    sessions?: SessionUpdateManyWithoutUserNestedInput
+    orders?: OrderUpdateManyWithoutStaffNestedInput
+    assignedOrders?: OrderUpdateManyWithoutAssignedStaffNestedInput
+    shifts?: ShiftUpdateManyWithoutUserNestedInput
+    attendance?: AttendanceUpdateManyWithoutUserNestedInput
+    pushSubscriptions?: PushSubscriptionUpdateManyWithoutUserNestedInput
+  }
+
+  export type UserUncheckedUpdateWithoutWaitedTablesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    phone?: NullableStringFieldUpdateOperationsInput | string | null
+    passwordHash?: StringFieldUpdateOperationsInput | string
+    role?: StringFieldUpdateOperationsInput | string
+    avatar?: NullableStringFieldUpdateOperationsInput | string | null
+    defaultRoute?: NullableStringFieldUpdateOperationsInput | string | null
+    monthlySalary?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    sessions?: SessionUncheckedUpdateManyWithoutUserNestedInput
+    orders?: OrderUncheckedUpdateManyWithoutStaffNestedInput
+    assignedOrders?: OrderUncheckedUpdateManyWithoutAssignedStaffNestedInput
+    shifts?: ShiftUncheckedUpdateManyWithoutUserNestedInput
+    attendance?: AttendanceUncheckedUpdateManyWithoutUserNestedInput
+    pushSubscriptions?: PushSubscriptionUncheckedUpdateManyWithoutUserNestedInput
+  }
+
   export type OrderUpsertWithWhereUniqueWithoutTableInput = {
     where: OrderWhereUniqueInput
     update: XOR<OrderUpdateWithoutTableInput, OrderUncheckedUpdateWithoutTableInput>
@@ -48835,6 +49463,7 @@ export namespace Prisma {
     occupancy?: number
     createdAt?: Date | string
     updatedAt?: Date | string
+    waiter?: UserCreateNestedOneWithoutWaitedTablesInput
   }
 
   export type TableUncheckedCreateWithoutOrdersInput = {
@@ -48842,6 +49471,7 @@ export namespace Prisma {
     name: string
     capacity: number
     occupancy?: number
+    waiterId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -48864,6 +49494,8 @@ export namespace Prisma {
     updatedAt?: Date | string
     roleRef: RoleCreateNestedOneWithoutUsersInput
     sessions?: SessionCreateNestedManyWithoutUserInput
+    assignedOrders?: OrderCreateNestedManyWithoutAssignedStaffInput
+    waitedTables?: TableCreateNestedManyWithoutWaiterInput
     shifts?: ShiftCreateNestedManyWithoutUserInput
     attendance?: AttendanceCreateNestedManyWithoutUserInput
     pushSubscriptions?: PushSubscriptionCreateNestedManyWithoutUserInput
@@ -48882,6 +49514,8 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     sessions?: SessionUncheckedCreateNestedManyWithoutUserInput
+    assignedOrders?: OrderUncheckedCreateNestedManyWithoutAssignedStaffInput
+    waitedTables?: TableUncheckedCreateNestedManyWithoutWaiterInput
     shifts?: ShiftUncheckedCreateNestedManyWithoutUserInput
     attendance?: AttendanceUncheckedCreateNestedManyWithoutUserInput
     pushSubscriptions?: PushSubscriptionUncheckedCreateNestedManyWithoutUserInput
@@ -48890,6 +49524,51 @@ export namespace Prisma {
   export type UserCreateOrConnectWithoutOrdersInput = {
     where: UserWhereUniqueInput
     create: XOR<UserCreateWithoutOrdersInput, UserUncheckedCreateWithoutOrdersInput>
+  }
+
+  export type UserCreateWithoutAssignedOrdersInput = {
+    id?: string
+    name: string
+    email: string
+    phone?: string | null
+    passwordHash: string
+    avatar?: string | null
+    defaultRoute?: string | null
+    monthlySalary?: Decimal | DecimalJsLike | number | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    roleRef: RoleCreateNestedOneWithoutUsersInput
+    sessions?: SessionCreateNestedManyWithoutUserInput
+    orders?: OrderCreateNestedManyWithoutStaffInput
+    waitedTables?: TableCreateNestedManyWithoutWaiterInput
+    shifts?: ShiftCreateNestedManyWithoutUserInput
+    attendance?: AttendanceCreateNestedManyWithoutUserInput
+    pushSubscriptions?: PushSubscriptionCreateNestedManyWithoutUserInput
+  }
+
+  export type UserUncheckedCreateWithoutAssignedOrdersInput = {
+    id?: string
+    name: string
+    email: string
+    phone?: string | null
+    passwordHash: string
+    role: string
+    avatar?: string | null
+    defaultRoute?: string | null
+    monthlySalary?: Decimal | DecimalJsLike | number | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    sessions?: SessionUncheckedCreateNestedManyWithoutUserInput
+    orders?: OrderUncheckedCreateNestedManyWithoutStaffInput
+    waitedTables?: TableUncheckedCreateNestedManyWithoutWaiterInput
+    shifts?: ShiftUncheckedCreateNestedManyWithoutUserInput
+    attendance?: AttendanceUncheckedCreateNestedManyWithoutUserInput
+    pushSubscriptions?: PushSubscriptionUncheckedCreateNestedManyWithoutUserInput
+  }
+
+  export type UserCreateOrConnectWithoutAssignedOrdersInput = {
+    where: UserWhereUniqueInput
+    create: XOR<UserCreateWithoutAssignedOrdersInput, UserUncheckedCreateWithoutAssignedOrdersInput>
   }
 
   export type PaymentChannelCreateWithoutOrdersInput = {
@@ -49047,6 +49726,7 @@ export namespace Prisma {
     occupancy?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    waiter?: UserUpdateOneWithoutWaitedTablesNestedInput
   }
 
   export type TableUncheckedUpdateWithoutOrdersInput = {
@@ -49054,6 +49734,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     capacity?: IntFieldUpdateOperationsInput | number
     occupancy?: IntFieldUpdateOperationsInput | number
+    waiterId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -49082,6 +49763,8 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     roleRef?: RoleUpdateOneRequiredWithoutUsersNestedInput
     sessions?: SessionUpdateManyWithoutUserNestedInput
+    assignedOrders?: OrderUpdateManyWithoutAssignedStaffNestedInput
+    waitedTables?: TableUpdateManyWithoutWaiterNestedInput
     shifts?: ShiftUpdateManyWithoutUserNestedInput
     attendance?: AttendanceUpdateManyWithoutUserNestedInput
     pushSubscriptions?: PushSubscriptionUpdateManyWithoutUserNestedInput
@@ -49100,6 +49783,59 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sessions?: SessionUncheckedUpdateManyWithoutUserNestedInput
+    assignedOrders?: OrderUncheckedUpdateManyWithoutAssignedStaffNestedInput
+    waitedTables?: TableUncheckedUpdateManyWithoutWaiterNestedInput
+    shifts?: ShiftUncheckedUpdateManyWithoutUserNestedInput
+    attendance?: AttendanceUncheckedUpdateManyWithoutUserNestedInput
+    pushSubscriptions?: PushSubscriptionUncheckedUpdateManyWithoutUserNestedInput
+  }
+
+  export type UserUpsertWithoutAssignedOrdersInput = {
+    update: XOR<UserUpdateWithoutAssignedOrdersInput, UserUncheckedUpdateWithoutAssignedOrdersInput>
+    create: XOR<UserCreateWithoutAssignedOrdersInput, UserUncheckedCreateWithoutAssignedOrdersInput>
+    where?: UserWhereInput
+  }
+
+  export type UserUpdateToOneWithWhereWithoutAssignedOrdersInput = {
+    where?: UserWhereInput
+    data: XOR<UserUpdateWithoutAssignedOrdersInput, UserUncheckedUpdateWithoutAssignedOrdersInput>
+  }
+
+  export type UserUpdateWithoutAssignedOrdersInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    phone?: NullableStringFieldUpdateOperationsInput | string | null
+    passwordHash?: StringFieldUpdateOperationsInput | string
+    avatar?: NullableStringFieldUpdateOperationsInput | string | null
+    defaultRoute?: NullableStringFieldUpdateOperationsInput | string | null
+    monthlySalary?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    roleRef?: RoleUpdateOneRequiredWithoutUsersNestedInput
+    sessions?: SessionUpdateManyWithoutUserNestedInput
+    orders?: OrderUpdateManyWithoutStaffNestedInput
+    waitedTables?: TableUpdateManyWithoutWaiterNestedInput
+    shifts?: ShiftUpdateManyWithoutUserNestedInput
+    attendance?: AttendanceUpdateManyWithoutUserNestedInput
+    pushSubscriptions?: PushSubscriptionUpdateManyWithoutUserNestedInput
+  }
+
+  export type UserUncheckedUpdateWithoutAssignedOrdersInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    phone?: NullableStringFieldUpdateOperationsInput | string | null
+    passwordHash?: StringFieldUpdateOperationsInput | string
+    role?: StringFieldUpdateOperationsInput | string
+    avatar?: NullableStringFieldUpdateOperationsInput | string | null
+    defaultRoute?: NullableStringFieldUpdateOperationsInput | string | null
+    monthlySalary?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    sessions?: SessionUncheckedUpdateManyWithoutUserNestedInput
+    orders?: OrderUncheckedUpdateManyWithoutStaffNestedInput
+    waitedTables?: TableUncheckedUpdateManyWithoutWaiterNestedInput
     shifts?: ShiftUncheckedUpdateManyWithoutUserNestedInput
     attendance?: AttendanceUncheckedUpdateManyWithoutUserNestedInput
     pushSubscriptions?: PushSubscriptionUncheckedUpdateManyWithoutUserNestedInput
@@ -49243,6 +49979,7 @@ export namespace Prisma {
     updatedAt?: Date | string
     table?: TableCreateNestedOneWithoutOrdersInput
     staff?: UserCreateNestedOneWithoutOrdersInput
+    assignedStaff?: UserCreateNestedOneWithoutAssignedOrdersInput
     paymentChannel?: PaymentChannelCreateNestedOneWithoutOrdersInput
     fiscalSubmissions?: FiscalSubmissionCreateNestedManyWithoutOrderInput
     tickets?: KitchenTicketCreateNestedManyWithoutOrderInput
@@ -49260,6 +49997,7 @@ export namespace Prisma {
     tableId?: string | null
     guests?: number
     staffId?: string | null
+    assignedStaffId?: string | null
     subtotal: Decimal | DecimalJsLike | number | string
     tax: Decimal | DecimalJsLike | number | string
     tip?: Decimal | DecimalJsLike | number | string | null
@@ -49366,6 +50104,7 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     table?: TableUpdateOneWithoutOrdersNestedInput
     staff?: UserUpdateOneWithoutOrdersNestedInput
+    assignedStaff?: UserUpdateOneWithoutAssignedOrdersNestedInput
     paymentChannel?: PaymentChannelUpdateOneWithoutOrdersNestedInput
     fiscalSubmissions?: FiscalSubmissionUpdateManyWithoutOrderNestedInput
     tickets?: KitchenTicketUpdateManyWithoutOrderNestedInput
@@ -49383,6 +50122,7 @@ export namespace Prisma {
     tableId?: NullableStringFieldUpdateOperationsInput | string | null
     guests?: IntFieldUpdateOperationsInput | number
     staffId?: NullableStringFieldUpdateOperationsInput | string | null
+    assignedStaffId?: NullableStringFieldUpdateOperationsInput | string | null
     subtotal?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     tax?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     tip?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
@@ -49479,6 +50219,7 @@ export namespace Prisma {
     updatedAt?: Date | string
     table?: TableCreateNestedOneWithoutOrdersInput
     staff?: UserCreateNestedOneWithoutOrdersInput
+    assignedStaff?: UserCreateNestedOneWithoutAssignedOrdersInput
     paymentChannel?: PaymentChannelCreateNestedOneWithoutOrdersInput
     fiscalSubmissions?: FiscalSubmissionCreateNestedManyWithoutOrderInput
     items?: OrderItemCreateNestedManyWithoutOrderInput
@@ -49496,6 +50237,7 @@ export namespace Prisma {
     tableId?: string | null
     guests?: number
     staffId?: string | null
+    assignedStaffId?: string | null
     subtotal: Decimal | DecimalJsLike | number | string
     tax: Decimal | DecimalJsLike | number | string
     tip?: Decimal | DecimalJsLike | number | string | null
@@ -49584,6 +50326,7 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     table?: TableUpdateOneWithoutOrdersNestedInput
     staff?: UserUpdateOneWithoutOrdersNestedInput
+    assignedStaff?: UserUpdateOneWithoutAssignedOrdersNestedInput
     paymentChannel?: PaymentChannelUpdateOneWithoutOrdersNestedInput
     fiscalSubmissions?: FiscalSubmissionUpdateManyWithoutOrderNestedInput
     items?: OrderItemUpdateManyWithoutOrderNestedInput
@@ -49601,6 +50344,7 @@ export namespace Prisma {
     tableId?: NullableStringFieldUpdateOperationsInput | string | null
     guests?: IntFieldUpdateOperationsInput | number
     staffId?: NullableStringFieldUpdateOperationsInput | string | null
+    assignedStaffId?: NullableStringFieldUpdateOperationsInput | string | null
     subtotal?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     tax?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     tip?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
@@ -49679,6 +50423,7 @@ export namespace Prisma {
     updatedAt?: Date | string
     table?: TableCreateNestedOneWithoutOrdersInput
     staff?: UserCreateNestedOneWithoutOrdersInput
+    assignedStaff?: UserCreateNestedOneWithoutAssignedOrdersInput
     paymentChannel?: PaymentChannelCreateNestedOneWithoutOrdersInput
     items?: OrderItemCreateNestedManyWithoutOrderInput
     tickets?: KitchenTicketCreateNestedManyWithoutOrderInput
@@ -49696,6 +50441,7 @@ export namespace Prisma {
     tableId?: string | null
     guests?: number
     staffId?: string | null
+    assignedStaffId?: string | null
     subtotal: Decimal | DecimalJsLike | number | string
     tax: Decimal | DecimalJsLike | number | string
     tip?: Decimal | DecimalJsLike | number | string | null
@@ -49757,6 +50503,7 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     table?: TableUpdateOneWithoutOrdersNestedInput
     staff?: UserUpdateOneWithoutOrdersNestedInput
+    assignedStaff?: UserUpdateOneWithoutAssignedOrdersNestedInput
     paymentChannel?: PaymentChannelUpdateOneWithoutOrdersNestedInput
     items?: OrderItemUpdateManyWithoutOrderNestedInput
     tickets?: KitchenTicketUpdateManyWithoutOrderNestedInput
@@ -49774,6 +50521,7 @@ export namespace Prisma {
     tableId?: NullableStringFieldUpdateOperationsInput | string | null
     guests?: IntFieldUpdateOperationsInput | number
     staffId?: NullableStringFieldUpdateOperationsInput | string | null
+    assignedStaffId?: NullableStringFieldUpdateOperationsInput | string | null
     subtotal?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     tax?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     tip?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
@@ -49807,6 +50555,8 @@ export namespace Prisma {
     roleRef: RoleCreateNestedOneWithoutUsersInput
     sessions?: SessionCreateNestedManyWithoutUserInput
     orders?: OrderCreateNestedManyWithoutStaffInput
+    assignedOrders?: OrderCreateNestedManyWithoutAssignedStaffInput
+    waitedTables?: TableCreateNestedManyWithoutWaiterInput
     attendance?: AttendanceCreateNestedManyWithoutUserInput
     pushSubscriptions?: PushSubscriptionCreateNestedManyWithoutUserInput
   }
@@ -49825,6 +50575,8 @@ export namespace Prisma {
     updatedAt?: Date | string
     sessions?: SessionUncheckedCreateNestedManyWithoutUserInput
     orders?: OrderUncheckedCreateNestedManyWithoutStaffInput
+    assignedOrders?: OrderUncheckedCreateNestedManyWithoutAssignedStaffInput
+    waitedTables?: TableUncheckedCreateNestedManyWithoutWaiterInput
     attendance?: AttendanceUncheckedCreateNestedManyWithoutUserInput
     pushSubscriptions?: PushSubscriptionUncheckedCreateNestedManyWithoutUserInput
   }
@@ -49859,6 +50611,8 @@ export namespace Prisma {
     roleRef?: RoleUpdateOneRequiredWithoutUsersNestedInput
     sessions?: SessionUpdateManyWithoutUserNestedInput
     orders?: OrderUpdateManyWithoutStaffNestedInput
+    assignedOrders?: OrderUpdateManyWithoutAssignedStaffNestedInput
+    waitedTables?: TableUpdateManyWithoutWaiterNestedInput
     attendance?: AttendanceUpdateManyWithoutUserNestedInput
     pushSubscriptions?: PushSubscriptionUpdateManyWithoutUserNestedInput
   }
@@ -49877,6 +50631,8 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sessions?: SessionUncheckedUpdateManyWithoutUserNestedInput
     orders?: OrderUncheckedUpdateManyWithoutStaffNestedInput
+    assignedOrders?: OrderUncheckedUpdateManyWithoutAssignedStaffNestedInput
+    waitedTables?: TableUncheckedUpdateManyWithoutWaiterNestedInput
     attendance?: AttendanceUncheckedUpdateManyWithoutUserNestedInput
     pushSubscriptions?: PushSubscriptionUncheckedUpdateManyWithoutUserNestedInput
   }
@@ -49895,6 +50651,8 @@ export namespace Prisma {
     roleRef: RoleCreateNestedOneWithoutUsersInput
     sessions?: SessionCreateNestedManyWithoutUserInput
     orders?: OrderCreateNestedManyWithoutStaffInput
+    assignedOrders?: OrderCreateNestedManyWithoutAssignedStaffInput
+    waitedTables?: TableCreateNestedManyWithoutWaiterInput
     shifts?: ShiftCreateNestedManyWithoutUserInput
     pushSubscriptions?: PushSubscriptionCreateNestedManyWithoutUserInput
   }
@@ -49913,6 +50671,8 @@ export namespace Prisma {
     updatedAt?: Date | string
     sessions?: SessionUncheckedCreateNestedManyWithoutUserInput
     orders?: OrderUncheckedCreateNestedManyWithoutStaffInput
+    assignedOrders?: OrderUncheckedCreateNestedManyWithoutAssignedStaffInput
+    waitedTables?: TableUncheckedCreateNestedManyWithoutWaiterInput
     shifts?: ShiftUncheckedCreateNestedManyWithoutUserInput
     pushSubscriptions?: PushSubscriptionUncheckedCreateNestedManyWithoutUserInput
   }
@@ -49947,6 +50707,8 @@ export namespace Prisma {
     roleRef?: RoleUpdateOneRequiredWithoutUsersNestedInput
     sessions?: SessionUpdateManyWithoutUserNestedInput
     orders?: OrderUpdateManyWithoutStaffNestedInput
+    assignedOrders?: OrderUpdateManyWithoutAssignedStaffNestedInput
+    waitedTables?: TableUpdateManyWithoutWaiterNestedInput
     shifts?: ShiftUpdateManyWithoutUserNestedInput
     pushSubscriptions?: PushSubscriptionUpdateManyWithoutUserNestedInput
   }
@@ -49965,6 +50727,8 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sessions?: SessionUncheckedUpdateManyWithoutUserNestedInput
     orders?: OrderUncheckedUpdateManyWithoutStaffNestedInput
+    assignedOrders?: OrderUncheckedUpdateManyWithoutAssignedStaffNestedInput
+    waitedTables?: TableUncheckedUpdateManyWithoutWaiterNestedInput
     shifts?: ShiftUncheckedUpdateManyWithoutUserNestedInput
     pushSubscriptions?: PushSubscriptionUncheckedUpdateManyWithoutUserNestedInput
   }
@@ -49995,6 +50759,8 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sessions?: SessionUpdateManyWithoutUserNestedInput
     orders?: OrderUpdateManyWithoutStaffNestedInput
+    assignedOrders?: OrderUpdateManyWithoutAssignedStaffNestedInput
+    waitedTables?: TableUpdateManyWithoutWaiterNestedInput
     shifts?: ShiftUpdateManyWithoutUserNestedInput
     attendance?: AttendanceUpdateManyWithoutUserNestedInput
     pushSubscriptions?: PushSubscriptionUpdateManyWithoutUserNestedInput
@@ -50013,6 +50779,8 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sessions?: SessionUncheckedUpdateManyWithoutUserNestedInput
     orders?: OrderUncheckedUpdateManyWithoutStaffNestedInput
+    assignedOrders?: OrderUncheckedUpdateManyWithoutAssignedStaffNestedInput
+    waitedTables?: TableUncheckedUpdateManyWithoutWaiterNestedInput
     shifts?: ShiftUncheckedUpdateManyWithoutUserNestedInput
     attendance?: AttendanceUncheckedUpdateManyWithoutUserNestedInput
     pushSubscriptions?: PushSubscriptionUncheckedUpdateManyWithoutUserNestedInput
@@ -50048,6 +50816,7 @@ export namespace Prisma {
     buyerCnic?: string | null
     tableId?: string | null
     guests?: number
+    assignedStaffId?: string | null
     subtotal: Decimal | DecimalJsLike | number | string
     tax: Decimal | DecimalJsLike | number | string
     tip?: Decimal | DecimalJsLike | number | string | null
@@ -50061,6 +50830,44 @@ export namespace Prisma {
     fiscalSubmittedAt?: Date | string | null
     fiscalAttempts?: number
     fiscalLastError?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type OrderCreateManyAssignedStaffInput = {
+    id?: string
+    number: string
+    status: $Enums.OrderStatus
+    channel: string
+    customerName?: string | null
+    customerPhone?: string | null
+    buyerNtn?: string | null
+    buyerCnic?: string | null
+    tableId?: string | null
+    guests?: number
+    staffId?: string | null
+    subtotal: Decimal | DecimalJsLike | number | string
+    tax: Decimal | DecimalJsLike | number | string
+    tip?: Decimal | DecimalJsLike | number | string | null
+    discount?: Decimal | DecimalJsLike | number | string | null
+    total: Decimal | DecimalJsLike | number | string
+    payment?: $Enums.PaymentMethod | null
+    paymentChannelId?: string | null
+    paidAt?: Date | string | null
+    notes?: string | null
+    fiscalInvoiceNumber?: string | null
+    fiscalSubmittedAt?: Date | string | null
+    fiscalAttempts?: number
+    fiscalLastError?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type TableCreateManyWaiterInput = {
+    id?: string
+    name: string
+    capacity: number
+    occupancy?: number
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -50136,6 +50943,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     table?: TableUpdateOneWithoutOrdersNestedInput
+    assignedStaff?: UserUpdateOneWithoutAssignedOrdersNestedInput
     paymentChannel?: PaymentChannelUpdateOneWithoutOrdersNestedInput
     fiscalSubmissions?: FiscalSubmissionUpdateManyWithoutOrderNestedInput
     items?: OrderItemUpdateManyWithoutOrderNestedInput
@@ -50153,6 +50961,7 @@ export namespace Prisma {
     buyerCnic?: NullableStringFieldUpdateOperationsInput | string | null
     tableId?: NullableStringFieldUpdateOperationsInput | string | null
     guests?: IntFieldUpdateOperationsInput | number
+    assignedStaffId?: NullableStringFieldUpdateOperationsInput | string | null
     subtotal?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     tax?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     tip?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
@@ -50184,6 +50993,7 @@ export namespace Prisma {
     buyerCnic?: NullableStringFieldUpdateOperationsInput | string | null
     tableId?: NullableStringFieldUpdateOperationsInput | string | null
     guests?: IntFieldUpdateOperationsInput | number
+    assignedStaffId?: NullableStringFieldUpdateOperationsInput | string | null
     subtotal?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     tax?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     tip?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
@@ -50197,6 +51007,128 @@ export namespace Prisma {
     fiscalSubmittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     fiscalAttempts?: IntFieldUpdateOperationsInput | number
     fiscalLastError?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type OrderUpdateWithoutAssignedStaffInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    number?: StringFieldUpdateOperationsInput | string
+    status?: EnumOrderStatusFieldUpdateOperationsInput | $Enums.OrderStatus
+    channel?: StringFieldUpdateOperationsInput | string
+    customerName?: NullableStringFieldUpdateOperationsInput | string | null
+    customerPhone?: NullableStringFieldUpdateOperationsInput | string | null
+    buyerNtn?: NullableStringFieldUpdateOperationsInput | string | null
+    buyerCnic?: NullableStringFieldUpdateOperationsInput | string | null
+    guests?: IntFieldUpdateOperationsInput | number
+    subtotal?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    tax?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    tip?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    discount?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    total?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    payment?: NullableEnumPaymentMethodFieldUpdateOperationsInput | $Enums.PaymentMethod | null
+    paidAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    fiscalInvoiceNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    fiscalSubmittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fiscalAttempts?: IntFieldUpdateOperationsInput | number
+    fiscalLastError?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    table?: TableUpdateOneWithoutOrdersNestedInput
+    staff?: UserUpdateOneWithoutOrdersNestedInput
+    paymentChannel?: PaymentChannelUpdateOneWithoutOrdersNestedInput
+    fiscalSubmissions?: FiscalSubmissionUpdateManyWithoutOrderNestedInput
+    items?: OrderItemUpdateManyWithoutOrderNestedInput
+    tickets?: KitchenTicketUpdateManyWithoutOrderNestedInput
+  }
+
+  export type OrderUncheckedUpdateWithoutAssignedStaffInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    number?: StringFieldUpdateOperationsInput | string
+    status?: EnumOrderStatusFieldUpdateOperationsInput | $Enums.OrderStatus
+    channel?: StringFieldUpdateOperationsInput | string
+    customerName?: NullableStringFieldUpdateOperationsInput | string | null
+    customerPhone?: NullableStringFieldUpdateOperationsInput | string | null
+    buyerNtn?: NullableStringFieldUpdateOperationsInput | string | null
+    buyerCnic?: NullableStringFieldUpdateOperationsInput | string | null
+    tableId?: NullableStringFieldUpdateOperationsInput | string | null
+    guests?: IntFieldUpdateOperationsInput | number
+    staffId?: NullableStringFieldUpdateOperationsInput | string | null
+    subtotal?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    tax?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    tip?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    discount?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    total?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    payment?: NullableEnumPaymentMethodFieldUpdateOperationsInput | $Enums.PaymentMethod | null
+    paymentChannelId?: NullableStringFieldUpdateOperationsInput | string | null
+    paidAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    fiscalInvoiceNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    fiscalSubmittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fiscalAttempts?: IntFieldUpdateOperationsInput | number
+    fiscalLastError?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    fiscalSubmissions?: FiscalSubmissionUncheckedUpdateManyWithoutOrderNestedInput
+    items?: OrderItemUncheckedUpdateManyWithoutOrderNestedInput
+    tickets?: KitchenTicketUncheckedUpdateManyWithoutOrderNestedInput
+  }
+
+  export type OrderUncheckedUpdateManyWithoutAssignedStaffInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    number?: StringFieldUpdateOperationsInput | string
+    status?: EnumOrderStatusFieldUpdateOperationsInput | $Enums.OrderStatus
+    channel?: StringFieldUpdateOperationsInput | string
+    customerName?: NullableStringFieldUpdateOperationsInput | string | null
+    customerPhone?: NullableStringFieldUpdateOperationsInput | string | null
+    buyerNtn?: NullableStringFieldUpdateOperationsInput | string | null
+    buyerCnic?: NullableStringFieldUpdateOperationsInput | string | null
+    tableId?: NullableStringFieldUpdateOperationsInput | string | null
+    guests?: IntFieldUpdateOperationsInput | number
+    staffId?: NullableStringFieldUpdateOperationsInput | string | null
+    subtotal?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    tax?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    tip?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    discount?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    total?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
+    payment?: NullableEnumPaymentMethodFieldUpdateOperationsInput | $Enums.PaymentMethod | null
+    paymentChannelId?: NullableStringFieldUpdateOperationsInput | string | null
+    paidAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    notes?: NullableStringFieldUpdateOperationsInput | string | null
+    fiscalInvoiceNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    fiscalSubmittedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fiscalAttempts?: IntFieldUpdateOperationsInput | number
+    fiscalLastError?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type TableUpdateWithoutWaiterInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    capacity?: IntFieldUpdateOperationsInput | number
+    occupancy?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    orders?: OrderUpdateManyWithoutTableNestedInput
+  }
+
+  export type TableUncheckedUpdateWithoutWaiterInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    capacity?: IntFieldUpdateOperationsInput | number
+    occupancy?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    orders?: OrderUncheckedUpdateManyWithoutTableNestedInput
+  }
+
+  export type TableUncheckedUpdateManyWithoutWaiterInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    capacity?: IntFieldUpdateOperationsInput | number
+    occupancy?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -50315,6 +51247,7 @@ export namespace Prisma {
     tableId?: string | null
     guests?: number
     staffId?: string | null
+    assignedStaffId?: string | null
     subtotal: Decimal | DecimalJsLike | number | string
     tax: Decimal | DecimalJsLike | number | string
     tip?: Decimal | DecimalJsLike | number | string | null
@@ -50440,6 +51373,7 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     table?: TableUpdateOneWithoutOrdersNestedInput
     staff?: UserUpdateOneWithoutOrdersNestedInput
+    assignedStaff?: UserUpdateOneWithoutAssignedOrdersNestedInput
     fiscalSubmissions?: FiscalSubmissionUpdateManyWithoutOrderNestedInput
     items?: OrderItemUpdateManyWithoutOrderNestedInput
     tickets?: KitchenTicketUpdateManyWithoutOrderNestedInput
@@ -50457,6 +51391,7 @@ export namespace Prisma {
     tableId?: NullableStringFieldUpdateOperationsInput | string | null
     guests?: IntFieldUpdateOperationsInput | number
     staffId?: NullableStringFieldUpdateOperationsInput | string | null
+    assignedStaffId?: NullableStringFieldUpdateOperationsInput | string | null
     subtotal?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     tax?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     tip?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
@@ -50488,6 +51423,7 @@ export namespace Prisma {
     tableId?: NullableStringFieldUpdateOperationsInput | string | null
     guests?: IntFieldUpdateOperationsInput | number
     staffId?: NullableStringFieldUpdateOperationsInput | string | null
+    assignedStaffId?: NullableStringFieldUpdateOperationsInput | string | null
     subtotal?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     tax?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     tip?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
@@ -51114,6 +52050,7 @@ export namespace Prisma {
     buyerCnic?: string | null
     guests?: number
     staffId?: string | null
+    assignedStaffId?: string | null
     subtotal: Decimal | DecimalJsLike | number | string
     tax: Decimal | DecimalJsLike | number | string
     tip?: Decimal | DecimalJsLike | number | string | null
@@ -51156,6 +52093,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     staff?: UserUpdateOneWithoutOrdersNestedInput
+    assignedStaff?: UserUpdateOneWithoutAssignedOrdersNestedInput
     paymentChannel?: PaymentChannelUpdateOneWithoutOrdersNestedInput
     fiscalSubmissions?: FiscalSubmissionUpdateManyWithoutOrderNestedInput
     items?: OrderItemUpdateManyWithoutOrderNestedInput
@@ -51173,6 +52111,7 @@ export namespace Prisma {
     buyerCnic?: NullableStringFieldUpdateOperationsInput | string | null
     guests?: IntFieldUpdateOperationsInput | number
     staffId?: NullableStringFieldUpdateOperationsInput | string | null
+    assignedStaffId?: NullableStringFieldUpdateOperationsInput | string | null
     subtotal?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     tax?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     tip?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
@@ -51204,6 +52143,7 @@ export namespace Prisma {
     buyerCnic?: NullableStringFieldUpdateOperationsInput | string | null
     guests?: IntFieldUpdateOperationsInput | number
     staffId?: NullableStringFieldUpdateOperationsInput | string | null
+    assignedStaffId?: NullableStringFieldUpdateOperationsInput | string | null
     subtotal?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     tax?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     tip?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null

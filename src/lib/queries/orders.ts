@@ -16,6 +16,7 @@ export async function listOrders(): Promise<Order[]> {
     include: {
       items: true,
       staff: { select: { name: true } },
+      assignedStaff: { select: { name: true } },
       table: { select: { name: true } },
     },
   });
@@ -49,6 +50,7 @@ export async function listOrders(): Promise<Order[]> {
     payment: o.payment ? (o.payment as PaymentMethod) : undefined,
     paidAt: o.paidAt ? o.paidAt.toISOString() : undefined,
     staff: o.staff?.name ?? ANON_STAFF,
+    assignedStaff: o.assignedStaff?.name ?? undefined,
     notes: o.notes ?? undefined,
     createdAt: o.createdAt.toISOString(),
     updatedAt: o.updatedAt.toISOString(),
@@ -151,6 +153,7 @@ export async function getOrderById(id: string): Promise<Order | null> {
     include: {
       items: true,
       staff: { select: { name: true } },
+      assignedStaff: { select: { name: true } },
       table: { select: { name: true } },
     },
   });
@@ -181,6 +184,7 @@ export async function getOrderById(id: string): Promise<Order | null> {
     payment: o.payment ? (o.payment as PaymentMethod) : undefined,
     paidAt: o.paidAt ? o.paidAt.toISOString() : undefined,
     staff: o.staff?.name ?? ANON_STAFF,
+    assignedStaff: o.assignedStaff?.name ?? undefined,
     notes: o.notes ?? undefined,
     createdAt: o.createdAt.toISOString(),
     updatedAt: o.updatedAt.toISOString(),

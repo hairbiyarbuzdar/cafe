@@ -13,6 +13,7 @@ import { listMenuCategories, listMenuItems } from "@/lib/queries/menu";
 import { listKitchenStations } from "@/lib/queries/stations";
 import { listTables } from "@/lib/queries/tables";
 import { getTaxConfig } from "@/lib/queries/tax";
+import { listAssignableStaff } from "@/lib/queries/users";
 import { getOrCreateWorkspace } from "@/lib/queries/workspace";
 import { DataHydrator } from "@/providers/data-hydrator";
 import { SessionProvider } from "@/providers/session-provider";
@@ -37,6 +38,7 @@ export default async function AppLayout({
     categories,
     inventory,
     tables,
+    staff,
     tax,
     workspace,
   ] = await Promise.all([
@@ -46,6 +48,7 @@ export default async function AppLayout({
     listMenuCategories(),
     listInventory(),
     listTables(),
+    listAssignableStaff(),
     getTaxConfig(),
     getOrCreateWorkspace(),
   ]);
@@ -60,6 +63,7 @@ export default async function AppLayout({
         categories={categories}
         inventory={inventory}
         tables={tables}
+        staff={staff}
         tax={tax}
         workspace={workspace}
       />

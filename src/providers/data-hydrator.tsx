@@ -6,12 +6,14 @@ import { useCart } from "@/store/cart-store";
 import { useCategories } from "@/store/categories-store";
 import { useInventory } from "@/store/inventory-store";
 import { useMenu } from "@/store/menu-store";
+import { useStaff } from "@/store/staff-store";
 import { useStations } from "@/store/stations-store";
 import { useTables } from "@/store/tables-store";
 import { useWorkspace } from "@/store/workspace-store";
 import type { TaxConfig } from "@/lib/queries/tax";
 import type { Workspace } from "@/lib/queries/workspace";
 import type {
+  AssignableStaff,
   Category,
   InventoryItem,
   KitchenStation,
@@ -34,6 +36,7 @@ export function DataHydrator({
   categories,
   inventory,
   tables,
+  staff,
   tax,
   workspace,
 }: {
@@ -42,6 +45,7 @@ export function DataHydrator({
   categories: Category[];
   inventory: InventoryItem[];
   tables: Table[];
+  staff: AssignableStaff[];
   tax: TaxConfig;
   workspace: Workspace;
 }) {
@@ -60,6 +64,9 @@ export function DataHydrator({
   React.useEffect(() => {
     useTables.getState().hydrate(tables);
   }, [tables]);
+  React.useEffect(() => {
+    useStaff.getState().hydrate(staff);
+  }, [staff]);
   React.useEffect(() => {
     useCart.getState().setTaxConfig(tax.rate, tax.label);
   }, [tax.rate, tax.label]);

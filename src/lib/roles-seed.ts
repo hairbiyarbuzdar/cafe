@@ -87,6 +87,24 @@ export const BUILT_IN_ROLES: BuiltInRole[] = [
     permissions: ["kitchen.view", "orders.view", "inventory.view"],
     defaultRoute: "/kitchen",
   },
+  // Assignment-only roles: no app permissions. These exist so staff can
+  // be tagged as a waiter (assigned to tables / dine-in orders) or a
+  // delivery person (assigned to delivery orders). They aren't meant to
+  // log in and operate the app.
+  {
+    id: "waiter",
+    name: "Waiter",
+    description: "Assigned to tables and dine-in orders. No app access.",
+    permissions: [],
+    defaultRoute: null,
+  },
+  {
+    id: "delivery",
+    name: "Delivery",
+    description: "Assigned to delivery orders as the rider. No app access.",
+    permissions: [],
+    defaultRoute: null,
+  },
 ];
 
 /**

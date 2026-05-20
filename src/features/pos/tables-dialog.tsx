@@ -7,6 +7,7 @@ import {
   Minus,
   Plus,
   Trash2,
+  UserRound,
   Users,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -23,14 +24,23 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import {
   createTableAction,
   removeTableAction,
   setTableOccupancyAction,
+  setTableWaiterAction,
 } from "@/lib/actions/tables";
 import { tableStatus, useTables } from "@/store/tables-store";
 import { useCart } from "@/store/cart-store";
+import { useStaff, waitersOf } from "@/store/staff-store";
 import { cn } from "@/lib/utils";
 import type { Table, TableStatus } from "@/types";
 import { useRouter } from "next/navigation";
@@ -306,6 +316,8 @@ export function TablesDialog({ open, onOpenChange }: Props) {
                       </div>
                     </div>
 
+                    <WaiterAssign table={t} />
+
                     <Separator />
 
                     <Button
@@ -332,6 +344,68 @@ export function TablesDialog({ open, onOpenChange }: Props) {
         </ScrollArea>
       </DialogContent>
     </Dialog>
+  );
+}
+
+const NO_WAITER = "__none__";
+
+/** Per-table waiter picker. Placeholder reads "+ Assign waiter" when
+ * none is set; shows the assigned name otherwise; "Unassigned" clears it. */
+function WaiterAssign({ table }: { table: Table }) {
+  const router = useRouter();
+  const staff = useStaff((s) => s.staff);
+  const waiters = React.useMemo(() => waitersOf(staff), [staff]);
+  const [busy, setBusy] = React.useState(false);
+
+  async function assign(value: string) {
+    const waiterId = value === NO_WAITER ? null : value;
+    setBusy(true);
+    try {
+      const res = await setTableWaiterAction(table.id, waiterId);
+      if (!res.ok) {
+        toast.error("Couldn't assign waiter", { description: res.error });
+        return;
+      }
+      toast.success(
+        waiterId
+          ? `Waiter assigned to ${table.name}`
+          : `Waiter cleared for ${table.name}`,
+      );
+      router.refresh();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="flex items-center gap-1.5">
+      <UserRound className="size-3.5 shrink-0 text-muted-foreground" />
+      <Select
+        value={table.waiterId ?? undefined}
+        onValueChange={assign}
+        disabled={busy}
+      >
+        <SelectTrigger size="sm" className="h-7 flex-1 rounded-md text-[12px]">
+          <SelectValue placeholder="+ Assign waiter" />
+        </SelectTrigger>
+        <SelectContent>
+          {table.waiterId ? (
+            <SelectItem value={NO_WAITER}>Unassigned</SelectItem>
+          ) : null}
+          {waiters.length === 0 ? (
+            <SelectItem value="__empty__" disabled>
+              No waiters — add staff with the Waiter role
+            </SelectItem>
+          ) : (
+            waiters.map((w) => (
+              <SelectItem key={w.id} value={w.id}>
+                {w.name}
+              </SelectItem>
+            ))
+          )}
+        </SelectContent>
+      </Select>
+    </div>
   );
 }
 

@@ -100,6 +100,9 @@ export type PlaceOrderInput = {
   taxRate: number;
   customerName?: string;
   customerPhone?: string;
+  /** Assigned waiter (dine-in) or delivery rider (delivery). Validated
+   * server-side; an unknown id is dropped rather than failing the order. */
+  assignedStaffId?: string | null;
   /** When set, capture payment in the same transaction as placement
    * (takeaway / delivery pay-now). The order is stamped paid but stays
    * in the kitchen pipeline (status `pending`) — it's completed later
@@ -200,6 +203,17 @@ export async function placeOrderAction(
     prepayChannelId = channel.id;
   }
 
+  // Resolve the assigned waiter / rider — drop an unknown id rather than
+  // failing the whole order over a stale selection.
+  let assignedStaffId: string | null = null;
+  if (input.assignedStaffId) {
+    const assignee = await prisma.user.findUnique({
+      where: { id: input.assignedStaffId },
+      select: { id: true },
+    });
+    assignedStaffId = assignee?.id ?? null;
+  }
+
   const ingredientDelta = collectIngredientDelta(priced.lines);
   const stationIds = Array.from(new Set(priced.lines.map((p) => p.stationId)));
   const orderNumber = await nextOrderNumber();
@@ -216,6 +230,7 @@ export async function placeOrderAction(
           tableId: input.tableId ?? null,
           guests: requestedGuests,
           staffId: session?.user.id ?? null,
+          assignedStaffId,
           subtotal: round2(subtotal),
           tax,
           tip: null,

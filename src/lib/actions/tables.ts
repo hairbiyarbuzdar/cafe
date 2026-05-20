@@ -104,6 +104,42 @@ export async function setTableCapacityAction(
   }
 }
 
+export async function setTableWaiterAction(
+  id: string,
+  waiterId: string | null,
+): Promise<ActionResult> {
+  if (!id) return { ok: false, error: "Missing table id" };
+  const table = await prisma.table.findUnique({
+    where: { id },
+    select: { id: true },
+  });
+  if (!table) return { ok: false, error: "Table not found" };
+
+  // Validate the waiter (if any) is a real user with the waiter role —
+  // guards against a stale id from a long-open dialog.
+  if (waiterId) {
+    const waiter = await prisma.user.findUnique({
+      where: { id: waiterId },
+      select: { role: true },
+    });
+    if (!waiter || waiter.role !== "waiter") {
+      return { ok: false, error: "Pick a valid waiter" };
+    }
+  }
+
+  try {
+    await prisma.table.update({ where: { id }, data: { waiterId } });
+    revalidatePath("/pos");
+    return { ok: true };
+  } catch (err) {
+    console.error("setTableWaiterAction failed", err);
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "Failed to assign waiter",
+    };
+  }
+}
+
 export async function setTableOccupancyAction(
   id: string,
   occupancy: number,

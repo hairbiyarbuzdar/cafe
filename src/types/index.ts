@@ -60,6 +60,8 @@ export type Order = {
   paidAt?: string;
   table?: string;
   staff: string;
+  /** Assigned waiter (dine-in) or delivery rider (delivery) name, if set. */
+  assignedStaff?: string;
   notes?: string;
   createdAt: string;
   updatedAt: string;
@@ -300,4 +302,18 @@ export type Table = {
   name: string;
   capacity: number;
   occupancy: number;
+  /** Default waiter assigned to this table (changeable). */
+  waiterId?: string | null;
+  waiterName?: string | null;
+};
+
+/**
+ * Staff assignable to orders/tables — waiters (dine-in) and delivery
+ * riders. Sourced from users whose role is "waiter" or "delivery".
+ */
+export type AssignableStaff = {
+  id: string;
+  name: string;
+  /** Role slug — "waiter" or "delivery". */
+  role: string;
 };

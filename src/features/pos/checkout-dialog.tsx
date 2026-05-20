@@ -23,6 +23,14 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { ReceiptPreviewDialog, type ReceiptPayload } from "@/features/receipts/receipt-preview-dialog";
 import type {
@@ -47,6 +55,7 @@ import type { KitchenTicketItem, PaymentMethod } from "@/types";
 import { cartSubtotal, useCart } from "@/store/cart-store";
 import { useMenu } from "@/store/menu-store";
 import { useOfflineOrders } from "@/store/offline-orders-store";
+import { ridersOf, useStaff, waitersOf } from "@/store/staff-store";
 import { useStations } from "@/store/stations-store";
 import { useTables } from "@/store/tables-store";
 import { useWorkspace } from "@/store/workspace-store";
@@ -70,6 +79,10 @@ const KIND_ICON: Record<PaymentMethod, typeof Wallet> = {
   wallet: Smartphone,
   online: Wifi,
 };
+
+// Select sentinel for "no waiter / rider" (Radix Select items can't use
+// an empty-string value).
+const NO_ASSIGNEE = "__none__";
 
 /**
  * Confirms placement of an order. Behaviour depends on the cart channel:
@@ -129,6 +142,9 @@ export function CheckoutDialog({
     "cod",
   );
   const [payChannelId, setPayChannelId] = React.useState<string>("");
+  const [assignedStaffId, setAssignedStaffId] = React.useState<string>("");
+
+  const allStaff = useStaff((s) => s.staff);
 
   React.useEffect(() => {
     if (open) {
@@ -140,6 +156,7 @@ export function CheckoutDialog({
   const isAttach = Boolean(attachedOrderId);
   const isTakeaway = channel === "takeaway";
   const isDelivery = channel === "delivery";
+  const isDineIn = channel === "dine-in";
 
   const activeChannels = React.useMemo(
     () => channels.filter((c) => !c.archived),
@@ -170,6 +187,28 @@ export function CheckoutDialog({
 
   const payNow =
     !isAttach && (isTakeaway || (isDelivery && deliveryMode === "paynow"));
+
+  // Assigned person: a waiter for dine-in (default = the table's waiter),
+  // a rider for delivery. Resolved without an effect — explicit pick wins,
+  // else the table's waiter for dine-in, and the NONE sentinel clears it.
+  const waiters = React.useMemo(() => waitersOf(allStaff), [allStaff]);
+  const riders = React.useMemo(() => ridersOf(allStaff), [allStaff]);
+  const showAssignee = !isAttach && (isDineIn || isDelivery);
+  const assigneeOptions = isDineIn ? waiters : isDelivery ? riders : [];
+  const tableWaiterId = tables.find((t) => t.id === tableId)?.waiterId ?? "";
+  const resolvedAssignedId =
+    assignedStaffId === ""
+      ? isDineIn
+        ? tableWaiterId
+        : ""
+      : assignedStaffId === NO_ASSIGNEE
+        ? ""
+        : assignedStaffId;
+  const effectiveAssignedId = assigneeOptions.some(
+    (s) => s.id === resolvedAssignedId,
+  )
+    ? resolvedAssignedId
+    : "";
 
   async function submit() {
     if (payNow && !selectedChannel) {
@@ -211,6 +250,7 @@ export function CheckoutDialog({
             },
           }
         : {}),
+      ...(showAssignee ? { assignedStaffId: effectiveAssignedId || null } : {}),
     };
 
     // Append-to-held requires the server (we don't know the real
@@ -538,6 +578,7 @@ export function CheckoutDialog({
     }
     setDeliveryMode("cod");
     setPayChannelId("");
+    setAssignedStaffId("");
     setCheckoutOpen(false);
   }
 
@@ -705,6 +746,42 @@ export function CheckoutDialog({
                   })}
                 </div>
               )
+            ) : null}
+
+            {showAssignee ? (
+              <div className="space-y-1.5">
+                <Label className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+                  {isDelivery ? "Delivery person" : "Waiter"}
+                </Label>
+                {assigneeOptions.length === 0 ? (
+                  <p className="rounded-md border border-dashed bg-muted/30 px-3 py-2 text-center text-[11.5px] text-muted-foreground">
+                    No {isDelivery ? "delivery staff" : "waiters"} yet — add a
+                    staff member with the {isDelivery ? "Delivery" : "Waiter"}{" "}
+                    role.
+                  </p>
+                ) : (
+                  <Select
+                    value={effectiveAssignedId || undefined}
+                    onValueChange={setAssignedStaffId}
+                  >
+                    <SelectTrigger className="h-9 w-full rounded-md text-[12.5px]">
+                      <SelectValue
+                        placeholder={
+                          isDelivery ? "Select delivery person" : "Select waiter"
+                        }
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={NO_ASSIGNEE}>Unassigned</SelectItem>
+                      {assigneeOptions.map((s) => (
+                        <SelectItem key={s.id} value={s.id}>
+                          {s.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
             ) : null}
           </div>
         )}

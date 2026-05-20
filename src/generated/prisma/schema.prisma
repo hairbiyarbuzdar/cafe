@@ -64,7 +64,12 @@ model User {
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
   sessions          Session[]
-  orders            Order[]
+  orders            Order[]            @relation("OrderStaff")
+  /// Orders this user is the assigned waiter (dine-in) or rider
+  /// (delivery) for — distinct from `orders`, which is who rang it up.
+  assignedOrders    Order[]            @relation("OrderAssignedStaff")
+  /// Tables this user is the default waiter for.
+  waitedTables      Table[]            @relation("TableWaiter")
   shifts            Shift[]
   attendance        Attendance[]
   pushSubscriptions PushSubscription[]
@@ -386,6 +391,10 @@ model Table {
   name      String   @unique
   capacity  Int
   occupancy Int      @default(0)
+  /// Default waiter for this table. Pre-selected (but changeable) in the
+  /// POS place-order modal when this table is the order's seat.
+  waiterId  String?
+  waiter    User?    @relation("TableWaiter", fields: [waiterId], references: [id], onDelete: SetNull)
   orders    Order[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -425,7 +434,12 @@ model Order {
   /// channels (the column is still required so totals stay simple).
   guests              Int                @default(1)
   staffId             String?
-  staff               User?              @relation(fields: [staffId], references: [id], onDelete: SetNull)
+  staff               User?              @relation("OrderStaff", fields: [staffId], references: [id], onDelete: SetNull)
+  /// Assigned waiter (dine-in) or delivery rider (delivery). Which one
+  /// depends on `channel`; the picker in the POS place-order modal sets
+  /// it. Distinct from `staff` (the cashier who rang the order up).
+  assignedStaffId     String?
+  assignedStaff       User?              @relation("OrderAssignedStaff", fields: [assignedStaffId], references: [id], onDelete: SetNull)
   subtotal            Decimal            @db.Decimal(10, 2)
   tax                 Decimal            @db.Decimal(10, 2)
   tip                 Decimal?           @db.Decimal(10, 2)

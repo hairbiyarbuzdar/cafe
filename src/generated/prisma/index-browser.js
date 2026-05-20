@@ -310,6 +310,7 @@ exports.Prisma.TableScalarFieldEnum = {
   name: 'name',
   capacity: 'capacity',
   occupancy: 'occupancy',
+  waiterId: 'waiterId',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -326,6 +327,7 @@ exports.Prisma.OrderScalarFieldEnum = {
   tableId: 'tableId',
   guests: 'guests',
   staffId: 'staffId',
+  assignedStaffId: 'assignedStaffId',
   subtotal: 'subtotal',
   tax: 'tax',
   tip: 'tip',
