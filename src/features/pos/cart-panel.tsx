@@ -1,6 +1,6 @@
 "use client";
 
-import * as React from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Bike,
   CircleX,
@@ -11,7 +11,6 @@ import {
   ShoppingBag,
   Trash2,
   Unlink,
-  UserRound,
   Utensils,
   Check, // Added for combobox
   ChevronsUpDown, // Added for combobox
@@ -20,7 +19,6 @@ import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { NumericInput } from "@/components/ui/numeric-input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 // Removed Select components as they are replaced by Popover/Command for waiter selection
@@ -32,11 +30,9 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 //   SelectValue,
 // } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { Textarea } from "@/components/ui/textarea";
 import { ReceiptPreviewDialog, type ReceiptPayload } from "@/features/receipts/receipt-preview-dialog";
 import type {
   KitchenTicketData,
-  PaymentReceiptData,
   ReceiptLineItem,
 } from "@/features/receipts/receipt-models";
 import {
@@ -119,17 +115,17 @@ export function CartPanel({
   const workspace = useWorkspace((s) => s.workspace);
 
   const allStaff = useStaff((s) => s.staff);
-  const waiters = React.useMemo(() => waitersOf(allStaff), [allStaff]);
+  const waiters = useMemo(() => waitersOf(allStaff), [allStaff]);
 
-  const [isPlacing, setIsPlacing] = React.useState(false);
-  const [assignedStaffId, setAssignedStaffId] = React.useState<string | null>(null);
-  const [openWaiterCombobox, setOpenWaiterCombobox] = React.useState(false); // State for combobox popover
+  const [isPlacing, setIsPlacing] = useState(false);
+  const [assignedStaffId, setAssignedStaffId] = useState<string | null>(null);
+  const [openWaiterCombobox, setOpenWaiterCombobox] = useState(false); // State for combobox popover
 
-  const [receiptOpen, setReceiptOpen] = React.useState(false);
-  const [receipts, setReceipts] = React.useState<ReceiptPayload[]>([]);
+  const [receiptOpen, setReceiptOpen] = useState(false);
+  const [receipts, setReceipts] = useState<ReceiptPayload[]>([]);
 
   // Sync assigned waiter from table when selection changes
-  React.useEffect(() => {
+  useEffect(() => {
     if (tableId) {
       const table = tables.find((t) => t.id === tableId);
       if (table?.waiterId) {
@@ -584,7 +580,7 @@ export function CartPanel({
             onClick={handlePlaceOrder}
           >
             {isPlacing ? (
-              "Placing..."
+              "Printing..."
             ) : (
               <>
                 <ReceiptText className="size-4" />
@@ -592,7 +588,7 @@ export function CartPanel({
                   ? `Add to ${attachedOrderNumber}`
                   : channel === "dine-in" && !tableId
                     ? "Pick a table to place order"
-                    : `Place order · ${formatCurrency(total)}`}
+                    : `Print · ${formatCurrency(total)}`}
               </>
             )}
           </Button>
@@ -604,13 +600,14 @@ export function CartPanel({
         </div>
       </div>
 
-      <ReceiptPreviewDialog
+      {/* Order Preview */}
+      {/* <ReceiptPreviewDialog
         open={receiptOpen}
         onOpenChange={setReceiptOpen}
         title="Order receipts"
         description={receipts.length > 1 ? `Kitchen tickets (${receipts.length}).` : "Print to the printer or download as a PDF."}
         receipts={receipts}
-      />
+      /> */}
     </aside>
   );
 }
