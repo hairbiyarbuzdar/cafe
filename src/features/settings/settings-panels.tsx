@@ -332,63 +332,6 @@ export function NotificationsPanel() {
       >
         <PushToggle />
       </SectionCard>
-
-      <SectionCard
-        title="Channels"
-        description="Where you receive operational alerts"
-      >
-        <ul className="space-y-2">
-          {[
-            { icon: Mail, label: "Email", value: "elena@brewline.co", on: true },
-            { icon: Smartphone, label: "Mobile push", value: "iPhone 15 Pro", on: true },
-            { icon: MessageSquare, label: "SMS", value: "+1 415 555 0109", on: false },
-            { icon: Hash, label: "Slack workspace", value: "#brewline-ops", on: true },
-          ].map((c) => {
-            const Icon = c.icon;
-            return (
-              <li
-                key={c.label}
-                className="flex items-center justify-between rounded-md border bg-card px-3 py-2.5"
-              >
-                <div className="flex items-center gap-3">
-                  <span className="flex size-7 items-center justify-center rounded-md bg-secondary text-secondary-foreground">
-                    <Icon className="size-3.5" />
-                  </span>
-                  <div>
-                    <p className="text-[13px] font-medium">{c.label}</p>
-                    <p className="text-[11.5px] text-muted-foreground">{c.value}</p>
-                  </div>
-                </div>
-                <Switch defaultChecked={c.on} />
-              </li>
-            );
-          })}
-        </ul>
-      </SectionCard>
-
-      <SectionCard
-        title="Alert preferences"
-        description="Choose which events should trigger a notification"
-      >
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-          {[
-            "New online order",
-            "Low stock threshold",
-            "Daily settlement summary",
-            "Failed payment",
-            "Refund issued",
-            "Shift no-show",
-          ].map((label, i) => (
-            <label
-              key={label}
-              className="flex items-center justify-between rounded-md border bg-card px-3 py-2.5 text-[13px]"
-            >
-              {label}
-              <Switch defaultChecked={i % 2 === 0} />
-            </label>
-          ))}
-        </div>
-      </SectionCard>
     </div>
   );
 }
