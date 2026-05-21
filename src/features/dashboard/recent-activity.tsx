@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import {
   Activity,
   Coffee,
@@ -31,20 +32,53 @@ const TINT: Record<ActivityEvent["type"], string> = {
   system: "bg-secondary text-secondary-foreground",
 };
 
+const RANGES = ["Today", "Yesterday", "7d", "30d"] as const;
+type Range = (typeof RANGES)[number];
+
 export function RecentActivity({ events }: { events: ActivityEvent[] }) {
-  const pg = usePagination(events);
+  const [range, setRange] = React.useState<Range>("Today");
+
+  const filteredEvents = React.useMemo(() => {
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const startOfYesterday = startOfToday - 24 * 60 * 60 * 1000;
+    const sevenDaysAgo = startOfToday - 7 * 24 * 60 * 60 * 1000;
+    const thirtyDaysAgo = startOfToday - 30 * 24 * 60 * 60 * 1000;
+
+    return events.filter((e) => {
+      const t = new Date(e.timestamp).getTime();
+      if (range === "Today") return t >= startOfToday;
+      if (range === "Yesterday") return t >= startOfYesterday && t < startOfToday;
+      if (range === "7d") return t >= sevenDaysAgo;
+      if (range === "30d") return t >= thirtyDaysAgo;
+      return true;
+    });
+  }, [events, range]);
+
+  const pg = usePagination(filteredEvents);
+
   return (
     <SectionCard
       title="Recent activity"
       description="Live operational events"
       action={
-        <Button variant="ghost" size="xs" className="text-[11.5px]">
-          View all
-        </Button>
+        <div className="inline-flex rounded-md border bg-card p-0.5">
+          {RANGES.map((r) => (
+            <Button
+              key={r}
+              size="xs"
+              variant={range === r ? "secondary" : "ghost"}
+              onClick={() => setRange(r)}
+              className="h-6 rounded px-2 text-[11px] font-medium"
+            >
+              {r}
+            </Button>
+          ))}
+        </div>
       }
       contentClassName="p-0"
     >
-      {events.length === 0 ? (
+      {filteredEvents.length === 0 ? (
         <p className="px-4 py-8 text-center text-[12.5px] text-muted-foreground md:px-5">
           Nothing here yet — events show up as orders, stock, and staff
           changes happen.
@@ -91,7 +125,7 @@ export function RecentActivity({ events }: { events: ActivityEvent[] }) {
           );
         })}
       </ul>
-      {events.length > 0 ? (
+      {filteredEvents.length > 0 ? (
         <TablePagination
           page={pg.page}
           pageCount={pg.pageCount}
