@@ -1,10 +1,11 @@
-import { Calendar, Download, Filter } from "lucide-react";
+import { Calendar, Download } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/layouts/page-header";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { ChannelMix } from "@/features/dashboard/channel-mix";
+import { DashboardFilter } from "@/features/dashboard/dashboard-filter";
 import { HourlyOrders } from "@/features/dashboard/hourly-orders";
 import { QuickActions } from "@/features/dashboard/quick-actions";
 import { RecentActivity } from "@/features/dashboard/recent-activity";
@@ -46,15 +47,32 @@ function format12h(value: string | null): string | null {
   return `${h12}:${minute} ${ampm}`;
 }
 
-export default async function DashboardPage() {
+function parseDate(value?: string): Date | undefined {
+  if (!value) return undefined;
+  const d = new Date(value + "T00:00:00");
+  return Number.isNaN(d.getTime()) ? undefined : d;
+}
+
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ from?: string; to?: string; channel?: string }>;
+}) {
+  const sp = await searchParams;
+  const filter = {
+    from: parseDate(sp.from),
+    to: parseDate(sp.to),
+    channel: sp.channel,
+  };
+
   const [kpis, revenue, channels, hourly, top, activity, workspace, user] =
     await Promise.all([
-      todaysKpis(),
-      revenue14d(),
-      channelMix(),
-      hourlyOrdersToday(),
-      topProducts(7),
-      listRecentActivity(12),
+      todaysKpis(filter),
+      revenue14d(filter),
+      channelMix(filter),
+      hourlyOrdersToday(filter),
+      topProducts(7, filter),
+      listRecentActivity(50),
       getOrCreateWorkspace(),
       getCurrentUser(),
     ]);
@@ -94,10 +112,7 @@ export default async function DashboardPage() {
               <Calendar className="size-3.5" />
               Today
             </Button>
-            <Button variant="outline" size="sm" className="h-8 rounded-md text-[12.5px]">
-              <Filter className="size-3.5" />
-              Filter
-            </Button>
+            <DashboardFilter />
             <Button variant="outline" size="sm" className="h-8 rounded-md text-[12.5px]">
               <Download className="size-3.5" />
               Export

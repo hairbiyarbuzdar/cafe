@@ -57,6 +57,8 @@ export type Order = {
   total: number;
   /** Nullable — held orders defer payment until pickup/served. */
   payment?: PaymentMethod;
+  /** The configured payment method (channel) the payment was taken into. */
+  paymentChannelId?: string;
   paidAt?: string;
   table?: string;
   staff: string;

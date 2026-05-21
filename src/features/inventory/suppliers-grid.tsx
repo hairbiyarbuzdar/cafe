@@ -3,6 +3,10 @@
 import * as React from "react";
 import { Mail, Phone, Plus, Star } from "lucide-react";
 
+import {
+  TablePagination,
+  usePagination,
+} from "@/components/shared/table-pagination";
 import { Button } from "@/components/ui/button";
 import { SectionCard } from "@/components/shared/section-card";
 import { CreateSupplierDialog } from "@/features/inventory/create-supplier-dialog";
@@ -29,6 +33,7 @@ export function SuppliersGrid({
   const [ledgerSupplierId, setLedgerSupplierId] = React.useState<string | null>(
     null,
   );
+  const pg = usePagination(suppliers);
 
   return (
     <>
@@ -55,7 +60,7 @@ export function SuppliersGrid({
           </p>
         ) : (
           <ul className="divide-y">
-            {suppliers.map((s) => (
+            {pg.pageItems.map((s) => (
               <li key={s.id}>
                 <button
                   type="button"
@@ -97,6 +102,16 @@ export function SuppliersGrid({
             ))}
           </ul>
         )}
+        {suppliers.length > 0 ? (
+          <TablePagination
+            page={pg.page}
+            pageCount={pg.pageCount}
+            shown={pg.shown}
+            total={pg.total}
+            onPrev={pg.prev}
+            onNext={pg.next}
+          />
+        ) : null}
       </SectionCard>
 
       <CreateSupplierDialog open={addOpen} onOpenChange={setAddOpen} />

@@ -23,12 +23,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { PaymentMethod } from "@/types";
+import type { PaymentChannel } from "@/lib/queries/payment-channels";
 
 export type AdvancedFilters = {
   dateFrom: string;
   dateTo: string;
-  payment: PaymentMethod | "all";
+  /** A configured payment-method (channel) id, or "all". */
+  payment: string;
   customerName: string;
   minTotal: string;
 };
@@ -59,9 +60,12 @@ export function countActive(f: AdvancedFilters): number {
 export function OrdersAdvancedFilter({
   value,
   onChange,
+  channels = [],
 }: {
   value: AdvancedFilters;
   onChange: (next: AdvancedFilters) => void;
+  /** Configured payment methods, loaded from Settings. */
+  channels?: PaymentChannel[];
 }) {
   const [open, setOpen] = React.useState(false);
   const [draft, setDraft] = React.useState<AdvancedFilters>(value);
@@ -140,17 +144,18 @@ export function OrdersAdvancedFilter({
           <Field label="Payment method">
             <Select
               value={draft.payment}
-              onValueChange={(v) => patch("payment", v as AdvancedFilters["payment"])}
+              onValueChange={(v) => patch("payment", v)}
             >
               <SelectTrigger className="h-10">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All methods</SelectItem>
-                <SelectItem value="card">Card</SelectItem>
-                <SelectItem value="cash">Cash</SelectItem>
-                <SelectItem value="wallet">Wallet</SelectItem>
-                <SelectItem value="online">Online</SelectItem>
+                {channels.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.name}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </Field>

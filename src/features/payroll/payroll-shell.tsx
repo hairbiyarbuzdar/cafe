@@ -4,8 +4,6 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import {
   CalendarDays,
-  ChevronLeft,
-  ChevronRight,
   Clock,
   History,
   MoreHorizontal,
@@ -18,6 +16,10 @@ import {
   Wallet,
 } from "lucide-react";
 
+import {
+  TablePagination,
+  usePagination,
+} from "@/components/shared/table-pagination";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -80,8 +82,6 @@ export function PayrollShell({
   const router = useRouter();
   const [search, setSearch] = React.useState("");
   const [statusFilter, setStatusFilter] = React.useState<"all" | "active" | "inactive">("all");
-  const [rowsPerPage, setRowsPerPage] = React.useState(10);
-  const [page, setPage] = React.useState(1);
   const [modal, setModal] = React.useState<Modal | null>(null);
 
   const baseYear = new Date().getFullYear();
@@ -103,12 +103,7 @@ export function PayrollShell({
     }
     return true;
   });
-  const total = filtered.length;
-  const totalPages = Math.max(1, Math.ceil(total / rowsPerPage));
-  const currentPage = Math.min(page, totalPages);
-  const start = total === 0 ? 0 : (currentPage - 1) * rowsPerPage + 1;
-  const end = Math.min(currentPage * rowsPerPage, total);
-  const pageRows = filtered.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
+  const pg = usePagination(filtered);
 
   const open = (type: ModalType, worker: PayrollRow | null) =>
     setModal({ type, worker });
@@ -169,14 +164,20 @@ export function PayrollShell({
           <Search className="pointer-events-none absolute start-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              pg.setPage(1);
+            }}
             placeholder="Search workers by name…"
             className="h-11 rounded-xl ps-10 text-[13px]"
           />
         </div>
         <Select
           value={statusFilter}
-          onValueChange={(v) => setStatusFilter(v as typeof statusFilter)}
+          onValueChange={(v) => {
+            setStatusFilter(v as typeof statusFilter);
+            pg.setPage(1);
+          }}
         >
           <SelectTrigger className="h-11 w-full rounded-xl text-[13px] sm:w-[160px]">
             <SelectValue />
@@ -214,14 +215,14 @@ export function PayrollShell({
               </tr>
             </thead>
             <tbody>
-              {pageRows.length === 0 ? (
+              {pg.pageItems.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="px-4 py-12 text-center text-muted-foreground">
                     No workers match. Add staff to start running payroll.
                   </td>
                 </tr>
               ) : (
-                pageRows.map((r) => (
+                pg.pageItems.map((r) => (
                   <tr key={r.id} className="border-b last:border-0 hover:bg-muted/20">
                     <td className="px-4 py-3.5">
                       <div className="flex items-center gap-2.5">
@@ -264,61 +265,14 @@ export function PayrollShell({
           </table>
         </div>
 
-        {/* Footer / pagination */}
-        <div className="flex flex-col items-center justify-between gap-3 border-t px-4 py-3 text-[11.5px] font-medium uppercase tracking-[0.04em] text-muted-foreground sm:flex-row">
-          <span>
-            Showing <span className="text-foreground">{start}-{end}</span> of{" "}
-            <span className="text-foreground">{total}</span> results
-          </span>
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1.5">
-              <span>Rows:</span>
-              <Select
-                value={String(rowsPerPage)}
-                onValueChange={(v) => {
-                  setRowsPerPage(Number(v));
-                  setPage(1);
-                }}
-              >
-                <SelectTrigger className="h-8 w-[68px] text-[12px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {[10, 25, 50].map((n) => (
-                    <SelectItem key={n} value={String(n)}>
-                      {n}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex items-center gap-1">
-              <Button
-                variant="outline"
-                size="icon"
-                className="size-8 rounded-md"
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={currentPage <= 1}
-                aria-label="Previous page"
-              >
-                <ChevronLeft className="size-4" />
-              </Button>
-              <span className="flex h-8 min-w-9 items-center justify-center rounded-md bg-primary px-2 text-[12px] font-semibold text-primary-foreground">
-                {currentPage} / {totalPages}
-              </span>
-              <Button
-                variant="outline"
-                size="icon"
-                className="size-8 rounded-md"
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={currentPage >= totalPages}
-                aria-label="Next page"
-              >
-                <ChevronRight className="size-4" />
-              </Button>
-            </div>
-          </div>
-        </div>
+        <TablePagination
+          page={pg.page}
+          pageCount={pg.pageCount}
+          shown={pg.shown}
+          total={pg.total}
+          onPrev={pg.prev}
+          onNext={pg.next}
+        />
       </div>
 
       {/* Modals */}

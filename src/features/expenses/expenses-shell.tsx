@@ -11,6 +11,10 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+import {
+  TablePagination,
+  usePagination,
+} from "@/components/shared/table-pagination";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -65,6 +69,8 @@ export function ExpensesShell({
     });
   }, [expenses, search, headFilter, methodFilter]);
 
+  const pg = usePagination(filtered);
+
   const filtersActive =
     search.trim().length > 0 || headFilter !== "all" || methodFilter !== "all";
 
@@ -114,7 +120,10 @@ export function ExpensesShell({
           <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              pg.setPage(1);
+            }}
             placeholder="Search by head, detail, or method…"
             className="h-9 ps-8 text-[12.5px]"
           />
@@ -134,6 +143,7 @@ export function ExpensesShell({
               setSearch("");
               setHeadFilter("all");
               setMethodFilter("all");
+              pg.setPage(1);
             }}
             disabled={!filtersActive}
             title={filtersActive ? "Clear filters" : "No filters applied"}
@@ -141,7 +151,13 @@ export function ExpensesShell({
           >
             <FilterIcon className="size-3.5" />
           </Button>
-          <Select value={headFilter} onValueChange={setHeadFilter}>
+          <Select
+            value={headFilter}
+            onValueChange={(v) => {
+              setHeadFilter(v);
+              pg.setPage(1);
+            }}
+          >
             <SelectTrigger className="h-9 w-[150px] text-[12.5px]">
               <SelectValue />
             </SelectTrigger>
@@ -154,7 +170,13 @@ export function ExpensesShell({
               ))}
             </SelectContent>
           </Select>
-          <Select value={methodFilter} onValueChange={setMethodFilter}>
+          <Select
+            value={methodFilter}
+            onValueChange={(v) => {
+              setMethodFilter(v);
+              pg.setPage(1);
+            }}
+          >
             <SelectTrigger className="h-9 w-[150px] text-[12.5px]">
               <SelectValue />
             </SelectTrigger>
@@ -194,7 +216,7 @@ export function ExpensesShell({
               <span className="text-end">Amount</span>
               <span aria-hidden />
             </li>
-            {filtered.map((e) => (
+            {pg.pageItems.map((e) => (
               <li
                 key={e.id}
                 className="grid grid-cols-1 items-center gap-1 px-4 py-2.5 md:grid-cols-[1.4fr_1fr_1fr_140px_36px] md:gap-3"
@@ -240,6 +262,16 @@ export function ExpensesShell({
             ))}
           </ul>
         )}
+        {filtered.length > 0 ? (
+          <TablePagination
+            page={pg.page}
+            pageCount={pg.pageCount}
+            shown={pg.shown}
+            total={pg.total}
+            onPrev={pg.prev}
+            onNext={pg.next}
+          />
+        ) : null}
       </section>
     </div>
   );

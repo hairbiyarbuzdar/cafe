@@ -1,3 +1,5 @@
+"use client";
+
 import {
   Activity,
   Coffee,
@@ -6,6 +8,10 @@ import {
   Users,
 } from "lucide-react";
 
+import {
+  TablePagination,
+  usePagination,
+} from "@/components/shared/table-pagination";
 import { SectionCard } from "@/components/shared/section-card";
 import { Button } from "@/components/ui/button";
 import { cn, formatRelativeTime, initials } from "@/lib/utils";
@@ -26,6 +32,7 @@ const TINT: Record<ActivityEvent["type"], string> = {
 };
 
 export function RecentActivity({ events }: { events: ActivityEvent[] }) {
+  const pg = usePagination(events);
   return (
     <SectionCard
       title="Recent activity"
@@ -44,7 +51,7 @@ export function RecentActivity({ events }: { events: ActivityEvent[] }) {
         </p>
       ) : null}
       <ul className="divide-y">
-        {events.map((e) => {
+        {pg.pageItems.map((e) => {
           const Icon = ICONS[e.type];
           return (
             <li
@@ -84,6 +91,16 @@ export function RecentActivity({ events }: { events: ActivityEvent[] }) {
           );
         })}
       </ul>
+      {events.length > 0 ? (
+        <TablePagination
+          page={pg.page}
+          pageCount={pg.pageCount}
+          shown={pg.shown}
+          total={pg.total}
+          onPrev={pg.prev}
+          onNext={pg.next}
+        />
+      ) : null}
     </SectionCard>
   );
 }

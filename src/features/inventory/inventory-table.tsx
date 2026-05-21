@@ -3,6 +3,10 @@
 import * as React from "react";
 import { Search, SlidersHorizontal } from "lucide-react";
 
+import {
+  TablePagination,
+  usePagination,
+} from "@/components/shared/table-pagination";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
@@ -60,6 +64,8 @@ export function InventoryTable({
     });
   }, [search, category, items]);
 
+  const pg = usePagination(filtered);
+
   return (
     <div className="ring-highlight rounded-xl border border-border/70 bg-card">
       <div className="flex flex-col gap-3 border-b border-border/70 p-3 md:flex-row md:items-center md:justify-between md:p-4">
@@ -68,12 +74,21 @@ export function InventoryTable({
             <Search className="pointer-events-none absolute start-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                pg.setPage(1);
+              }}
               placeholder="Search ingredient or SKU…"
               className="h-9 rounded-md ps-9 text-[13px] sm:w-[260px]"
             />
           </div>
-          <Select value={category} onValueChange={setCategory}>
+          <Select
+            value={category}
+            onValueChange={(v) => {
+              setCategory(v);
+              pg.setPage(1);
+            }}
+          >
             <SelectTrigger size="sm" className="h-9 w-auto min-w-[140px] rounded-md text-[13px]">
               <SelectValue />
             </SelectTrigger>
@@ -104,7 +119,7 @@ export function InventoryTable({
 
       {/* Mobile cards */}
       <ul className="divide-y divide-border/60 md:hidden">
-        {filtered.map((it) => {
+        {pg.pageItems.map((it) => {
           const supplier = suppliers.find((s) => s.id === it.supplierId);
           const ratio = Math.min(1, it.stock / Math.max(1, it.reorderLevel * 2));
           const low = it.stock < it.reorderLevel;
@@ -163,7 +178,7 @@ export function InventoryTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filtered.map((it) => {
+            {pg.pageItems.map((it) => {
               const supplier = suppliers.find((s) => s.id === it.supplierId);
               const ratio = Math.min(1, it.stock / Math.max(1, it.reorderLevel * 2));
               const low = it.stock < it.reorderLevel;
@@ -216,6 +231,15 @@ export function InventoryTable({
           </TableBody>
         </Table>
       </div>
+
+      <TablePagination
+        page={pg.page}
+        pageCount={pg.pageCount}
+        shown={pg.shown}
+        total={pg.total}
+        onPrev={pg.prev}
+        onNext={pg.next}
+      />
     </div>
   );
 }

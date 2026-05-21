@@ -43,6 +43,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { PageHeader } from "@/components/layouts/page-header";
+import {
+  TablePagination,
+  usePagination,
+} from "@/components/shared/table-pagination";
 import { CategoriesManager } from "@/features/menu/categories-manager";
 import { MenuFormSheet } from "@/features/menu/menu-form-sheet";
 import { StationsManager } from "@/features/menu/stations-manager";
@@ -96,6 +100,8 @@ export default function MenuPage() {
       return true;
     });
   }, [items, stationFilter, categoryFilter, query]);
+
+  const pg = usePagination(filtered);
 
   const totals = React.useMemo(() => {
     return {
@@ -257,12 +263,21 @@ export default function MenuPage() {
               <Search className="pointer-events-none absolute start-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 value={query}
-                onChange={(e) => setQuery(e.target.value)}
+                onChange={(e) => {
+                  setQuery(e.target.value);
+                  pg.setPage(1);
+                }}
                 placeholder="Search name or SKU…"
                 className="h-9 rounded-md ps-9 text-[13px] sm:w-[260px]"
               />
             </div>
-            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+            <Select
+              value={categoryFilter}
+              onValueChange={(v) => {
+                setCategoryFilter(v);
+                pg.setPage(1);
+              }}
+            >
               <SelectTrigger size="sm" className="h-9 w-auto min-w-[140px] rounded-md text-[13px]">
                 <SelectValue />
               </SelectTrigger>
@@ -275,7 +290,13 @@ export default function MenuPage() {
                 ))}
               </SelectContent>
             </Select>
-            <Select value={stationFilter} onValueChange={setStationFilter}>
+            <Select
+              value={stationFilter}
+              onValueChange={(v) => {
+                setStationFilter(v);
+                pg.setPage(1);
+              }}
+            >
               <SelectTrigger size="sm" className="h-9 w-auto min-w-[140px] rounded-md text-[13px]">
                 <SelectValue />
               </SelectTrigger>
@@ -321,7 +342,7 @@ export default function MenuPage() {
 
         {/* Mobile cards */}
         <ul className="divide-y divide-border/60 md:hidden">
-          {filtered.map((it) => {
+          {pg.pageItems.map((it) => {
             const isSelected = selected.has(it.id);
             return (
               <li
@@ -409,7 +430,7 @@ export default function MenuPage() {
                   </TableCell>
                 </TableRow>
               ) : (
-                filtered.map((it) => {
+                pg.pageItems.map((it) => {
                   const isSelected = selected.has(it.id);
                   return (
                     <TableRow
@@ -476,6 +497,15 @@ export default function MenuPage() {
             </TableBody>
           </Table>
         </div>
+
+        <TablePagination
+          page={pg.page}
+          pageCount={pg.pageCount}
+          shown={pg.shown}
+          total={pg.total}
+          onPrev={pg.prev}
+          onNext={pg.next}
+        />
       </div>
 
       <MenuFormSheet open={formOpen} onOpenChange={setFormOpen} item={editing} />

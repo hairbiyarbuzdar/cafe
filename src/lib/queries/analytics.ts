@@ -16,6 +16,39 @@ import type { ChannelSlice, DailyPoint, HourPoint, Kpi, TopProduct } from "@/typ
 
 const PKR = (n: number) => `Rs. ${Math.round(n).toLocaleString()}`;
 
+/**
+ * Optional dashboard scope. `from`/`to` are inclusive day boundaries;
+ * `channel` is a channel slug ("dine-in" / …) or "all". When omitted the
+ * queries keep their original fixed scope (today / 14d / this week) so
+ * other callers (Reports) are unaffected.
+ */
+export type DashboardFilter = {
+  from?: Date;
+  to?: Date;
+  channel?: string;
+};
+
+/** "all" / empty → null (no channel filter). */
+function normChannel(channel?: string): string | null {
+  return channel && channel !== "all" ? channel : null;
+}
+
+const MONTHS_SHORT = [
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+];
+
+function shortDate(iso: string): string {
+  const d = new Date(iso + "T00:00:00");
+  return `${MONTHS_SHORT[d.getMonth()]} ${d.getDate()}`;
+}
+
+/** Half-open [from, to) bounds for a filter's inclusive day range. */
+function rangeBounds(filter?: DashboardFilter): { from: Date; to: Date } | null {
+  if (!filter?.from || !filter?.to) return null;
+  return { from: startOf(filter.from), to: startOf(addDays(filter.to, 1)) };
+}
+
 // ──────────────────────────────────────────────────────────────
 // KPIs (Dashboard + Reports headers)
 // ──────────────────────────────────────────────────────────────
@@ -38,7 +71,11 @@ type DayStats = {
   guests: number;
 };
 
-async function dayStats(from: Date, to: Date): Promise<DayStats> {
+async function dayStats(
+  from: Date,
+  to: Date,
+  channel: string | null = null,
+): Promise<DayStats> {
   const rows = await prisma.$queryRaw<
     { revenue: number | null; orders: number | null; dine_in: number | null }[]
   >`
@@ -50,6 +87,7 @@ async function dayStats(from: Date, to: Date): Promise<DayStats> {
     WHERE "paidAt" >= ${from}
       AND "paidAt" <  ${to}
       AND status NOT IN ('cancelled', 'refunded')
+      AND (${channel}::text IS NULL OR channel = ${channel})
   `;
   const row = rows[0] ?? { revenue: 0, orders: 0, dine_in: 0 };
   const orders = Number(row.orders ?? 0);
@@ -61,7 +99,11 @@ async function dayStats(from: Date, to: Date): Promise<DayStats> {
   return { revenue: Number(row.revenue ?? 0), orders, guests };
 }
 
-async function revenueByDay(from: Date, to: Date): Promise<DailyPoint[]> {
+async function revenueByDay(
+  from: Date,
+  to: Date,
+  channel: string | null = null,
+): Promise<DailyPoint[]> {
   const rows = await prisma.$queryRaw<
     { day: Date; revenue: number | null; orders: number | null; dine_in: number | null }[]
   >`
@@ -74,6 +116,7 @@ async function revenueByDay(from: Date, to: Date): Promise<DailyPoint[]> {
     WHERE "paidAt" >= ${from}
       AND "paidAt" <  ${to}
       AND status NOT IN ('cancelled', 'refunded')
+      AND (${channel}::text IS NULL OR channel = ${channel})
     GROUP BY 1
     ORDER BY 1
   `;
@@ -104,21 +147,25 @@ async function revenueByDay(from: Date, to: Date): Promise<DailyPoint[]> {
   return out;
 }
 
-export async function todaysKpis(): Promise<Kpi[]> {
+export async function todaysKpis(filter?: DashboardFilter): Promise<Kpi[]> {
+  const channel = normChannel(filter?.channel);
+  const range = rangeBounds(filter);
+  if (range) return rangeKpis(range.from, range.to, channel);
+
   const today = startOf(new Date());
   const tomorrow = addDays(today, 1);
   const yesterday = addDays(today, -1);
   const lastWeekStart = addDays(today, -7);
 
   const [todayStats, yesterdayStats, last14] = await Promise.all([
-    dayStats(today, tomorrow),
-    dayStats(yesterday, today),
-    revenueByDay(addDays(today, -13), tomorrow),
+    dayStats(today, tomorrow, channel),
+    dayStats(yesterday, today, channel),
+    revenueByDay(addDays(today, -13), tomorrow, channel),
   ]);
 
   // For the AOV comparison we want this-week vs last-week so the
   // metric isn't noisy on low-volume days.
-  const lastWeek = await dayStats(lastWeekStart, today);
+  const lastWeek = await dayStats(lastWeekStart, today, channel);
 
   const todayAov = todayStats.orders > 0 ? todayStats.revenue / todayStats.orders : 0;
   const weekAov =
@@ -176,6 +223,72 @@ export async function todaysKpis(): Promise<Kpi[]> {
   ];
 }
 
+/** KPIs for an arbitrary [from, to) range, compared against the
+ * equal-length window immediately before it. */
+async function rangeKpis(
+  from: Date,
+  to: Date,
+  channel: string | null,
+): Promise<Kpi[]> {
+  const lenMs = Math.max(86_400_000, to.getTime() - from.getTime());
+  const prevFrom = new Date(from.getTime() - lenMs);
+  const [curr, prev, series] = await Promise.all([
+    dayStats(from, to, channel),
+    dayStats(prevFrom, from, channel),
+    revenueByDay(from, to, channel),
+  ]);
+  const currAov = curr.orders > 0 ? curr.revenue / curr.orders : 0;
+  const prevAov = prev.orders > 0 ? prev.revenue / prev.orders : 0;
+  const revSpark = series.map((d) => Math.max(0, Math.round(d.revenue)));
+  const ordSpark = series.map((d) => d.orders);
+  const guestSpark = series.map((d) => d.guests);
+  const aovSpark = series.map((d) =>
+    d.orders > 0 ? Math.round(d.revenue / d.orders) : 0,
+  );
+  return [
+    {
+      id: "revenue",
+      label: "Revenue",
+      value: curr.revenue,
+      formatted: PKR(curr.revenue),
+      delta: pctDelta(curr.revenue, prev.revenue),
+      trend: trendOf(curr.revenue, prev.revenue),
+      sparkline: revSpark,
+      helperText: `vs ${PKR(prev.revenue)} prior period`,
+    },
+    {
+      id: "orders",
+      label: "Orders",
+      value: curr.orders,
+      formatted: `${curr.orders}`,
+      delta: pctDelta(curr.orders, prev.orders),
+      trend: trendOf(curr.orders, prev.orders),
+      sparkline: ordSpark,
+      helperText: `vs ${prev.orders} prior period`,
+    },
+    {
+      id: "avg",
+      label: "Avg order value",
+      value: Math.round(currAov),
+      formatted: PKR(currAov),
+      delta: pctDelta(currAov, prevAov),
+      trend: trendOf(currAov, prevAov),
+      sparkline: aovSpark,
+      helperText: `vs ${PKR(prevAov)} prior period`,
+    },
+    {
+      id: "guests",
+      label: "Guests served",
+      value: curr.guests,
+      formatted: `${curr.guests}`,
+      delta: pctDelta(curr.guests, prev.guests),
+      trend: trendOf(curr.guests, prev.guests),
+      sparkline: guestSpark,
+      helperText: "Approximated from channel mix",
+    },
+  ];
+}
+
 // ──────────────────────────────────────────────────────────────
 // 14-day revenue + orders trend
 // ──────────────────────────────────────────────────────────────
@@ -187,10 +300,16 @@ const WEEKDAY = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
  * keeps the chart axis legible without forcing every consumer to
  * format dates the same way.
  */
-export async function revenue14d(): Promise<DailyPoint[]> {
+export async function revenue14d(filter?: DashboardFilter): Promise<DailyPoint[]> {
+  const channel = normChannel(filter?.channel);
+  const range = rangeBounds(filter);
+  if (range) {
+    const series = await revenueByDay(range.from, range.to, channel);
+    return series.map((d) => ({ ...d, date: shortDate(d.date) }));
+  }
   const today = startOf(new Date());
   const start = addDays(today, -13);
-  const series = await revenueByDay(start, addDays(today, 1));
+  const series = await revenueByDay(start, addDays(today, 1), channel);
   return series.map((d) => ({
     ...d,
     date: WEEKDAY[new Date(d.date + "T00:00:00").getDay()] ?? d.date,
@@ -208,16 +327,21 @@ function formatHour(hour24: number): string {
   return `${hour24 - 12}p`;
 }
 
-export async function hourlyOrdersToday(): Promise<HourPoint[]> {
-  const today = startOf(new Date());
-  const tomorrow = addDays(today, 1);
+export async function hourlyOrdersToday(
+  filter?: DashboardFilter,
+): Promise<HourPoint[]> {
+  const channel = normChannel(filter?.channel);
+  const range = rangeBounds(filter);
+  const from = range ? range.from : startOf(new Date());
+  const to = range ? range.to : addDays(startOf(new Date()), 1);
   const rows = await prisma.$queryRaw<{ hour: number; orders: number }[]>`
     SELECT EXTRACT(HOUR FROM "paidAt")::int AS hour,
            COUNT(*)::int                     AS orders
     FROM "Order"
-    WHERE "paidAt" >= ${today}
-      AND "paidAt" <  ${tomorrow}
+    WHERE "paidAt" >= ${from}
+      AND "paidAt" <  ${to}
       AND status NOT IN ('cancelled', 'refunded')
+      AND (${channel}::text IS NULL OR channel = ${channel})
     GROUP BY 1
     ORDER BY 1
   `;
@@ -248,13 +372,18 @@ const CHANNEL_LABELS: Record<string, string> = {
   online: "Online",
 };
 
-export async function channelMix(): Promise<ChannelSlice[]> {
-  const since = addDays(startOf(new Date()), -13);
+export async function channelMix(filter?: DashboardFilter): Promise<ChannelSlice[]> {
+  const channel = normChannel(filter?.channel);
+  const range = rangeBounds(filter);
+  const from = range ? range.from : addDays(startOf(new Date()), -13);
+  const to = range ? range.to : addDays(startOf(new Date()), 1);
   const rows = await prisma.$queryRaw<{ channel: string; orders: number }[]>`
     SELECT channel, COUNT(*)::int AS orders
     FROM "Order"
-    WHERE "paidAt" >= ${since}
+    WHERE "paidAt" >= ${from}
+      AND "paidAt" <  ${to}
       AND status NOT IN ('cancelled', 'refunded')
+      AND (${channel}::text IS NULL OR channel = ${channel})
     GROUP BY channel
     ORDER BY orders DESC
   `;
@@ -272,10 +401,16 @@ export async function channelMix(): Promise<ChannelSlice[]> {
 // Top products (this week)
 // ──────────────────────────────────────────────────────────────
 
-export async function topProducts(limit = 7): Promise<TopProduct[]> {
+export async function topProducts(
+  limit = 7,
+  filter?: DashboardFilter,
+): Promise<TopProduct[]> {
+  const channel = normChannel(filter?.channel);
+  const range = rangeBounds(filter);
   const today = startOf(new Date());
-  const start = addDays(today, -6);
-  const prevStart = addDays(today, -13);
+  const start = range ? range.from : addDays(today, -6);
+  const end = range ? range.to : addDays(today, 1);
+  const prevStart = new Date(start.getTime() - (end.getTime() - start.getTime()));
 
   const [current, previous] = await Promise.all([
     prisma.$queryRaw<
@@ -298,7 +433,9 @@ export async function topProducts(limit = 7): Promise<TopProduct[]> {
       LEFT JOIN "MenuItem" mi   ON mi.id = oi."menuItemId"
       LEFT JOIN "MenuCategory" mc ON mc.id = mi."categoryId"
       WHERE o."paidAt" >= ${start}
+        AND o."paidAt" <  ${end}
         AND o.status NOT IN ('cancelled', 'refunded')
+        AND (${channel}::text IS NULL OR o.channel = ${channel})
       GROUP BY oi."menuItemId", oi.name, mc.name
       ORDER BY revenue DESC
       LIMIT ${limit}
@@ -311,6 +448,7 @@ export async function topProducts(limit = 7): Promise<TopProduct[]> {
       WHERE o."paidAt" >= ${prevStart}
         AND o."paidAt" <  ${start}
         AND o.status NOT IN ('cancelled', 'refunded')
+        AND (${channel}::text IS NULL OR o.channel = ${channel})
       GROUP BY oi."menuItemId"
     `,
   ]);

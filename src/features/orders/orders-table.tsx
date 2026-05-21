@@ -79,7 +79,8 @@ export function OrdersTable({
         return false;
       }
       if (channel !== "all" && o.channel !== channel) return false;
-      if (advanced.payment !== "all" && o.payment !== advanced.payment) return false;
+      if (advanced.payment !== "all" && o.paymentChannelId !== advanced.payment)
+        return false;
       if (fromTs != null || toTs != null) {
         const ts = Date.parse(o.createdAt);
         if (fromTs != null && ts < fromTs) return false;
@@ -138,7 +139,11 @@ export function OrdersTable({
                 <SelectItem value="online">Online</SelectItem>
               </SelectContent>
             </Select>
-            <OrdersAdvancedFilter value={advanced} onChange={setAdvanced} />
+            <OrdersAdvancedFilter
+              value={advanced}
+              onChange={setAdvanced}
+              channels={paymentChannels}
+            />
           </div>
         </div>
 
