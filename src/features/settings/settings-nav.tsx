@@ -30,7 +30,6 @@ export const SETTINGS_TABS = [
   { id: "fiscal", label: "Fiscal device (BRA)", icon: Receipt },
   { id: "data", label: "Data Import / Export", icon: Database },
   { id: "notifications", label: "Notifications", icon: ShieldCheck },
-  { id: "security", label: "Security", icon: KeyRound },
 ] as const;
 
 export type SettingsTab = (typeof SETTINGS_TABS)[number]["id"];

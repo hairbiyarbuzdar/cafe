@@ -11,7 +11,6 @@ import { SettingsNav, type SettingsTab } from "@/features/settings/settings-nav"
 import {
   AppearancePanel,
   NotificationsPanel,
-  SecurityPanel,
   TeamPanel,
 } from "@/features/settings/settings-panels";
 import { WorkspacePanel } from "@/features/settings/workspace/workspace-panel";
@@ -85,7 +84,6 @@ export function SettingsShell({
         ) : null}
         {tab === "data" ? <DataTransferPanel /> : null}
         {tab === "notifications" ? <NotificationsPanel /> : null}
-        {tab === "security" ? <SecurityPanel /> : null}
       </div>
     </div>
   );
