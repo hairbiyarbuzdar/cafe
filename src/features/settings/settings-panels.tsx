@@ -393,54 +393,6 @@ export function NotificationsPanel() {
   );
 }
 
-export function BillingPanel() {
-  return (
-    <div className="space-y-4">
-      <SectionCard title="Plan" description="Current subscription and seat allocation">
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-          <PlanCard
-            name="Starter"
-            price="$0"
-            description="Up to 2 staff, single location"
-          />
-          <PlanCard
-            name="Growth"
-            price="$79"
-            description="Up to 15 staff, advanced reports"
-            current
-          />
-          <PlanCard
-            name="Pro"
-            price="$199"
-            description="Multi-location, SLA, API"
-          />
-        </div>
-      </SectionCard>
-
-      <SectionCard title="Payment method" description="Auto-renews on the 1st of each month">
-        <div className="flex items-center justify-between rounded-md border bg-card px-4 py-3">
-          <div className="flex items-center gap-3">
-            <span className="flex size-9 items-center justify-center rounded-md bg-primary/10 text-primary">
-              <CreditCard className="size-4" />
-            </span>
-            <div>
-              <p className="text-[13px] font-medium">Visa ending in 4242</p>
-              <p className="text-[11.5px] text-muted-foreground">Expires 08/2027</p>
-            </div>
-          </div>
-          <UpdatePaymentMethodDialog
-            trigger={
-              <Button variant="outline" size="sm" className="h-8 rounded-md text-[12.5px]">
-                Update
-              </Button>
-            }
-          />
-        </div>
-      </SectionCard>
-    </div>
-  );
-}
-
 export function SecurityPanel() {
   return (
     <div className="space-y-4">

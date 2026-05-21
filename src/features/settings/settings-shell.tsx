@@ -10,7 +10,6 @@ import { RolesManagerPanel } from "@/features/settings/roles/roles-manager-panel
 import { SettingsNav, type SettingsTab } from "@/features/settings/settings-nav";
 import {
   AppearancePanel,
-  BillingPanel,
   NotificationsPanel,
   SecurityPanel,
   TeamPanel,
@@ -86,7 +85,6 @@ export function SettingsShell({
         ) : null}
         {tab === "data" ? <DataTransferPanel /> : null}
         {tab === "notifications" ? <NotificationsPanel /> : null}
-        {tab === "billing" ? <BillingPanel /> : null}
         {tab === "security" ? <SecurityPanel /> : null}
       </div>
     </div>

@@ -5,7 +5,6 @@ import {
   Building2,
   ChevronLeft,
   ChevronRight,
-  CreditCard,
   Database,
   KeyRound,
   Palette,
@@ -31,7 +30,6 @@ export const SETTINGS_TABS = [
   { id: "fiscal", label: "Fiscal device (BRA)", icon: Receipt },
   { id: "data", label: "Data Import / Export", icon: Database },
   { id: "notifications", label: "Notifications", icon: ShieldCheck },
-  { id: "billing", label: "Billing", icon: CreditCard },
   { id: "security", label: "Security", icon: KeyRound },
 ] as const;
 
