@@ -33,7 +33,7 @@ export const MODULES: Record<ModuleKey, ModuleMeta> = {
     // items, balances, or inventory side-effects without corrupting them.
     importable: false,
     columns: [
-      col("id", "ID", "text", { width: 26 }),
+      // col("id", "ID", "text", { width: 26 }),
       col("number", "Order #", "text", { width: 12 }),
       col("status", "Status", "text", { width: 12 }),
       col("channel", "Channel", "text", { width: 12 }),
@@ -49,7 +49,7 @@ export const MODULES: Record<ModuleKey, ModuleMeta> = {
       col("paymentChannel", "Payment method", "text", { width: 16 }),
       col("staff", "Staff", "text", { width: 16 }),
       col("paidAt", "Paid at", "datetime", { width: 18 }),
-      col("createdAt", "Created", "datetime", { width: 18 }),
+      // col("createdAt", "Created", "datetime", { width: 18 }),
     ],
   },
 
@@ -62,7 +62,7 @@ export const MODULES: Record<ModuleKey, ModuleMeta> = {
     exportable: true,
     importable: true,
     columns: [
-      col("id", "ID", "text", { width: 26 }),
+      // col("id", "ID", "text", { width: 26 }),
       col("name", "Name", "text", { width: 24, required: true }),
       col("category", "Category", "text", { width: 16, required: true }),
       col("price", "Price", "money", { width: 12, required: true }),
@@ -73,7 +73,7 @@ export const MODULES: Record<ModuleKey, ModuleMeta> = {
       col("popular", "Popular", "boolean", { width: 9 }),
       col("prepTimeMinutes", "Prep (min)", "integer", { width: 10 }),
       col("description", "Description", "text", { width: 30 }),
-      col("createdAt", "Created", "datetime", { width: 18 }),
+      // col("createdAt", "Created", "datetime", { width: 18 }),
     ],
   },
 
@@ -86,7 +86,7 @@ export const MODULES: Record<ModuleKey, ModuleMeta> = {
     exportable: true,
     importable: true,
     columns: [
-      col("id", "ID", "text", { width: 26 }),
+      // col("id", "ID", "text", { width: 26 }),
       col("name", "Name", "text", { width: 24, required: true }),
       col("sku", "SKU", "text", { width: 14, required: true }),
       col("category", "Category", "text", { width: 16, required: true }),
@@ -97,7 +97,7 @@ export const MODULES: Record<ModuleKey, ModuleMeta> = {
       col("supplier", "Supplier", "text", { width: 18 }),
       col("lastRestocked", "Last restocked", "datetime", { width: 18 }),
       col("expiresAt", "Expires", "date", { width: 14 }),
-      col("createdAt", "Created", "datetime", { width: 18 }),
+      // col("createdAt", "Created", "datetime", { width: 18 }),
     ],
   },
 
@@ -110,14 +110,14 @@ export const MODULES: Record<ModuleKey, ModuleMeta> = {
     exportable: true,
     importable: true,
     columns: [
-      col("id", "ID", "text", { width: 26 }),
+      // col("id", "ID", "text", { width: 26 }),
       col("name", "Name", "text", { width: 24, required: true }),
       col("contact", "Contact person", "text", { width: 18 }),
       col("email", "Email", "text", { width: 22 }),
       col("phone", "Phone", "text", { width: 16 }),
       col("address", "Address", "text", { width: 28 }),
       col("rating", "Rating", "number", { width: 8 }),
-      col("createdAt", "Created", "datetime", { width: 18 }),
+      // col("createdAt", "Created", "datetime", { width: 18 }),
     ],
   },
 
@@ -130,7 +130,7 @@ export const MODULES: Record<ModuleKey, ModuleMeta> = {
     exportable: true,
     importable: true,
     columns: [
-      col("id", "ID", "text", { width: 26 }),
+      // col("id", "ID", "text", { width: 26 }),
       col("name", "Name", "text", { width: 22, required: true }),
       col("email", "Email", "text", { width: 24, required: true }),
       col("phone", "Phone", "text", { width: 16 }),
@@ -139,7 +139,7 @@ export const MODULES: Record<ModuleKey, ModuleMeta> = {
       col("overtimeRate", "Overtime rate", "money", { width: 13 }),
       col("standardWorkingDays", "Working days", "integer", { width: 12 }),
       col("active", "Active", "boolean", { width: 8 }),
-      col("createdAt", "Created", "datetime", { width: 18 }),
+      // col("createdAt", "Created", "datetime", { width: 18 }),
     ],
   },
 
@@ -152,13 +152,13 @@ export const MODULES: Record<ModuleKey, ModuleMeta> = {
     exportable: true,
     importable: true,
     columns: [
-      col("id", "ID", "text", { width: 26 }),
+      // col("id", "ID", "text", { width: 26 }),
       col("head", "Expense head", "text", { width: 20, required: true }),
       col("amount", "Amount", "money", { width: 12, required: true }),
       col("paymentChannel", "Payment method", "text", { width: 16, required: true }),
       col("detail", "Detail", "text", { width: 28 }),
       col("occurredAt", "Date", "date", { width: 14, required: true }),
-      col("createdAt", "Created", "datetime", { width: 18 }),
+      // col("createdAt", "Created", "datetime", { width: 18 }),
     ],
   },
 
@@ -172,12 +172,12 @@ export const MODULES: Record<ModuleKey, ModuleMeta> = {
     // Derived from orders — there is no Customer table to import into.
     importable: false,
     columns: [
-      col("id", "ID", "text", { width: 16 }),
+      // col("id", "ID", "text", { width: 16 }),
       col("name", "Name", "text", { width: 22 }),
       col("phone", "Phone", "text", { width: 16 }),
       col("orderCount", "Orders", "integer", { width: 8 }),
       col("totalSpent", "Total spent", "money", { width: 14 }),
-      col("lastOrderAt", "Last order", "datetime", { width: 18 }),
+      // col("lastOrderAt", "Last order", "datetime", { width: 18 }),
     ],
   },
 
@@ -190,13 +190,13 @@ export const MODULES: Record<ModuleKey, ModuleMeta> = {
     exportable: true,
     importable: true,
     columns: [
-      col("id", "ID", "text", { width: 26 }),
+      // col("id", "ID", "text", { width: 26 }),
       col("name", "Name", "text", { width: 20, required: true }),
       col("kind", "Kind", "text", { width: 10, required: true }),
       col("openingBalance", "Opening balance", "money", { width: 15 }),
       col("currentBalance", "Current balance", "money", { width: 15 }),
       col("archived", "Archived", "boolean", { width: 9 }),
-      col("createdAt", "Created", "datetime", { width: 18 }),
+      // col("createdAt", "Created", "datetime", { width: 18 }),
     ],
   },
 };
