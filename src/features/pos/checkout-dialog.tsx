@@ -1,6 +1,6 @@
 "use client";
 
-import * as React from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Check,
@@ -134,19 +134,19 @@ export function CheckoutDialog({
   const menuItems = useMenu((s) => s.items);
   const stations = useStations((s) => s.stations);
   const workspace = useWorkspace((s) => s.workspace);
-  const [status, setStatus] = React.useState<Status>("review");
-  const [success, setSuccess] = React.useState<SuccessInfo | null>(null);
-  const [receiptOpen, setReceiptOpen] = React.useState(false);
-  const [receipts, setReceipts] = React.useState<ReceiptPayload[]>([]);
-  const [deliveryMode, setDeliveryMode] = React.useState<"cod" | "paynow">(
+  const [status, setStatus] = useState<Status>("review");
+  const [success, setSuccess] = useState<SuccessInfo | null>(null);
+  const [receiptOpen, setReceiptOpen] = useState(false);
+  const [receipts, setReceipts] = useState<ReceiptPayload[]>([]);
+  const [deliveryMode, setDeliveryMode] = useState<"cod" | "paynow">(
     "cod",
   );
-  const [payChannelId, setPayChannelId] = React.useState<string>("");
-  const [assignedStaffId, setAssignedStaffId] = React.useState<string>("");
+  const [payChannelId, setPayChannelId] = useState<string>("");
+  const [assignedStaffId, setAssignedStaffId] = useState<string>("");
 
   const allStaff = useStaff((s) => s.staff);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (open) {
       setStatus("review");
       setSuccess(null);
@@ -158,11 +158,11 @@ export function CheckoutDialog({
   const isDelivery = channel === "delivery";
   const isDineIn = channel === "dine-in";
 
-  const activeChannels = React.useMemo(
+  const activeChannels = useMemo(
     () => channels.filter((c) => !c.archived),
     [channels],
   );
-  const nonCashChannels = React.useMemo(
+  const nonCashChannels = useMemo(
     () => activeChannels.filter((c) => c.kind !== "cash"),
     [activeChannels],
   );
@@ -191,8 +191,8 @@ export function CheckoutDialog({
   // Assigned person: a waiter for dine-in (default = the table's waiter),
   // a rider for delivery. Resolved without an effect — explicit pick wins,
   // else the table's waiter for dine-in, and the NONE sentinel clears it.
-  const waiters = React.useMemo(() => waitersOf(allStaff), [allStaff]);
-  const riders = React.useMemo(() => ridersOf(allStaff), [allStaff]);
+  const waiters = useMemo(() => waitersOf(allStaff), [allStaff]);
+  const riders = useMemo(() => ridersOf(allStaff), [allStaff]);
   const showAssignee = !isAttach && (isDineIn || isDelivery);
   const assigneeOptions = isDineIn ? waiters : isDelivery ? riders : [];
   const tableWaiterId = tables.find((t) => t.id === tableId)?.waiterId ?? "";
