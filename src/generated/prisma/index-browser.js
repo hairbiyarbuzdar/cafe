@@ -406,6 +406,7 @@ exports.Prisma.WorkspaceScalarFieldEnum = {
   name: 'name',
   legalEntity: 'legalEntity',
   taxId: 'taxId',
+  phone: 'phone',
   currency: 'currency',
   timezone: 'timezone',
   city: 'city',

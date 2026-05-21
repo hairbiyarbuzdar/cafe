@@ -47,6 +47,7 @@ import {
   TablePagination,
   usePagination,
 } from "@/components/shared/table-pagination";
+import { ExportMenu } from "@/components/shared/export-menu";
 import { CategoriesManager } from "@/features/menu/categories-manager";
 import { MenuFormSheet } from "@/features/menu/menu-form-sheet";
 import { StationsManager } from "@/features/menu/stations-manager";
@@ -208,6 +209,12 @@ export default function MenuPage() {
         description="The sellable products shown on the POS — pricing, categories, station routing, and recipes all live here."
         actions={
           <>
+            <ExportMenu
+              modules={["menu"]}
+              scope="menu"
+              title="Menu"
+              className="h-9"
+            />
             <Button
               variant="outline"
               size="sm"

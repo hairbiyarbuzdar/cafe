@@ -32887,6 +32887,7 @@ export namespace Prisma {
     name: string | null
     legalEntity: string | null
     taxId: string | null
+    phone: string | null
     currency: string | null
     timezone: string | null
     city: string | null
@@ -32915,6 +32916,7 @@ export namespace Prisma {
     name: string | null
     legalEntity: string | null
     taxId: string | null
+    phone: string | null
     currency: string | null
     timezone: string | null
     city: string | null
@@ -32943,6 +32945,7 @@ export namespace Prisma {
     name: number
     legalEntity: number
     taxId: number
+    phone: number
     currency: number
     timezone: number
     city: number
@@ -32973,6 +32976,7 @@ export namespace Prisma {
     name?: true
     legalEntity?: true
     taxId?: true
+    phone?: true
     currency?: true
     timezone?: true
     city?: true
@@ -33001,6 +33005,7 @@ export namespace Prisma {
     name?: true
     legalEntity?: true
     taxId?: true
+    phone?: true
     currency?: true
     timezone?: true
     city?: true
@@ -33029,6 +33034,7 @@ export namespace Prisma {
     name?: true
     legalEntity?: true
     taxId?: true
+    phone?: true
     currency?: true
     timezone?: true
     city?: true
@@ -33130,6 +33136,7 @@ export namespace Prisma {
     name: string
     legalEntity: string | null
     taxId: string | null
+    phone: string | null
     currency: string
     timezone: string
     city: string | null
@@ -33175,6 +33182,7 @@ export namespace Prisma {
     name?: boolean
     legalEntity?: boolean
     taxId?: boolean
+    phone?: boolean
     currency?: boolean
     timezone?: boolean
     city?: boolean
@@ -33203,6 +33211,7 @@ export namespace Prisma {
     name?: boolean
     legalEntity?: boolean
     taxId?: boolean
+    phone?: boolean
     currency?: boolean
     timezone?: boolean
     city?: boolean
@@ -33231,6 +33240,7 @@ export namespace Prisma {
     name?: boolean
     legalEntity?: boolean
     taxId?: boolean
+    phone?: boolean
     currency?: boolean
     timezone?: boolean
     city?: boolean
@@ -33259,6 +33269,7 @@ export namespace Prisma {
     name?: boolean
     legalEntity?: boolean
     taxId?: boolean
+    phone?: boolean
     currency?: boolean
     timezone?: boolean
     city?: boolean
@@ -33282,7 +33293,7 @@ export namespace Prisma {
     updatedAt?: boolean
   }
 
-  export type WorkspaceOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "legalEntity" | "taxId" | "currency" | "timezone" | "city" | "addressLine" | "receiptFooter" | "receiptWidth" | "hoursMonOpen" | "hoursMonClose" | "hoursTueOpen" | "hoursTueClose" | "hoursWedOpen" | "hoursWedClose" | "hoursThuOpen" | "hoursThuClose" | "hoursFriOpen" | "hoursFriClose" | "hoursSatOpen" | "hoursSatClose" | "hoursSunOpen" | "hoursSunClose" | "updatedAt", ExtArgs["result"]["workspace"]>
+  export type WorkspaceOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "legalEntity" | "taxId" | "phone" | "currency" | "timezone" | "city" | "addressLine" | "receiptFooter" | "receiptWidth" | "hoursMonOpen" | "hoursMonClose" | "hoursTueOpen" | "hoursTueClose" | "hoursWedOpen" | "hoursWedClose" | "hoursThuOpen" | "hoursThuClose" | "hoursFriOpen" | "hoursFriClose" | "hoursSatOpen" | "hoursSatClose" | "hoursSunOpen" | "hoursSunClose" | "updatedAt", ExtArgs["result"]["workspace"]>
 
   export type $WorkspacePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "Workspace"
@@ -33292,6 +33303,11 @@ export namespace Prisma {
       name: string
       legalEntity: string | null
       taxId: string | null
+      /**
+       * Contact phone number. Surfaced in exported PDF footers and the
+       * XLSX branding header (Settings → Workspace).
+       */
+      phone: string | null
       /**
        * ISO-ish currency code. Drives downstream formatting helpers.
        */
@@ -33764,6 +33780,7 @@ export namespace Prisma {
     readonly name: FieldRef<"Workspace", 'String'>
     readonly legalEntity: FieldRef<"Workspace", 'String'>
     readonly taxId: FieldRef<"Workspace", 'String'>
+    readonly phone: FieldRef<"Workspace", 'String'>
     readonly currency: FieldRef<"Workspace", 'String'>
     readonly timezone: FieldRef<"Workspace", 'String'>
     readonly city: FieldRef<"Workspace", 'String'>
@@ -41127,6 +41144,7 @@ export namespace Prisma {
     name: 'name',
     legalEntity: 'legalEntity',
     taxId: 'taxId',
+    phone: 'phone',
     currency: 'currency',
     timezone: 'timezone',
     city: 'city',
@@ -43433,6 +43451,7 @@ export namespace Prisma {
     name?: StringFilter<"Workspace"> | string
     legalEntity?: StringNullableFilter<"Workspace"> | string | null
     taxId?: StringNullableFilter<"Workspace"> | string | null
+    phone?: StringNullableFilter<"Workspace"> | string | null
     currency?: StringFilter<"Workspace"> | string
     timezone?: StringFilter<"Workspace"> | string
     city?: StringNullableFilter<"Workspace"> | string | null
@@ -43461,6 +43480,7 @@ export namespace Prisma {
     name?: SortOrder
     legalEntity?: SortOrderInput | SortOrder
     taxId?: SortOrderInput | SortOrder
+    phone?: SortOrderInput | SortOrder
     currency?: SortOrder
     timezone?: SortOrder
     city?: SortOrderInput | SortOrder
@@ -43492,6 +43512,7 @@ export namespace Prisma {
     name?: StringFilter<"Workspace"> | string
     legalEntity?: StringNullableFilter<"Workspace"> | string | null
     taxId?: StringNullableFilter<"Workspace"> | string | null
+    phone?: StringNullableFilter<"Workspace"> | string | null
     currency?: StringFilter<"Workspace"> | string
     timezone?: StringFilter<"Workspace"> | string
     city?: StringNullableFilter<"Workspace"> | string | null
@@ -43520,6 +43541,7 @@ export namespace Prisma {
     name?: SortOrder
     legalEntity?: SortOrderInput | SortOrder
     taxId?: SortOrderInput | SortOrder
+    phone?: SortOrderInput | SortOrder
     currency?: SortOrder
     timezone?: SortOrder
     city?: SortOrderInput | SortOrder
@@ -43554,6 +43576,7 @@ export namespace Prisma {
     name?: StringWithAggregatesFilter<"Workspace"> | string
     legalEntity?: StringNullableWithAggregatesFilter<"Workspace"> | string | null
     taxId?: StringNullableWithAggregatesFilter<"Workspace"> | string | null
+    phone?: StringNullableWithAggregatesFilter<"Workspace"> | string | null
     currency?: StringWithAggregatesFilter<"Workspace"> | string
     timezone?: StringWithAggregatesFilter<"Workspace"> | string
     city?: StringNullableWithAggregatesFilter<"Workspace"> | string | null
@@ -46100,6 +46123,7 @@ export namespace Prisma {
     name?: string
     legalEntity?: string | null
     taxId?: string | null
+    phone?: string | null
     currency?: string
     timezone?: string
     city?: string | null
@@ -46128,6 +46152,7 @@ export namespace Prisma {
     name?: string
     legalEntity?: string | null
     taxId?: string | null
+    phone?: string | null
     currency?: string
     timezone?: string
     city?: string | null
@@ -46156,6 +46181,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     legalEntity?: NullableStringFieldUpdateOperationsInput | string | null
     taxId?: NullableStringFieldUpdateOperationsInput | string | null
+    phone?: NullableStringFieldUpdateOperationsInput | string | null
     currency?: StringFieldUpdateOperationsInput | string
     timezone?: StringFieldUpdateOperationsInput | string
     city?: NullableStringFieldUpdateOperationsInput | string | null
@@ -46184,6 +46210,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     legalEntity?: NullableStringFieldUpdateOperationsInput | string | null
     taxId?: NullableStringFieldUpdateOperationsInput | string | null
+    phone?: NullableStringFieldUpdateOperationsInput | string | null
     currency?: StringFieldUpdateOperationsInput | string
     timezone?: StringFieldUpdateOperationsInput | string
     city?: NullableStringFieldUpdateOperationsInput | string | null
@@ -46212,6 +46239,7 @@ export namespace Prisma {
     name?: string
     legalEntity?: string | null
     taxId?: string | null
+    phone?: string | null
     currency?: string
     timezone?: string
     city?: string | null
@@ -46240,6 +46268,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     legalEntity?: NullableStringFieldUpdateOperationsInput | string | null
     taxId?: NullableStringFieldUpdateOperationsInput | string | null
+    phone?: NullableStringFieldUpdateOperationsInput | string | null
     currency?: StringFieldUpdateOperationsInput | string
     timezone?: StringFieldUpdateOperationsInput | string
     city?: NullableStringFieldUpdateOperationsInput | string | null
@@ -46268,6 +46297,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     legalEntity?: NullableStringFieldUpdateOperationsInput | string | null
     taxId?: NullableStringFieldUpdateOperationsInput | string | null
+    phone?: NullableStringFieldUpdateOperationsInput | string | null
     currency?: StringFieldUpdateOperationsInput | string
     timezone?: StringFieldUpdateOperationsInput | string
     city?: NullableStringFieldUpdateOperationsInput | string | null
@@ -48518,6 +48548,7 @@ export namespace Prisma {
     name?: SortOrder
     legalEntity?: SortOrder
     taxId?: SortOrder
+    phone?: SortOrder
     currency?: SortOrder
     timezone?: SortOrder
     city?: SortOrder
@@ -48546,6 +48577,7 @@ export namespace Prisma {
     name?: SortOrder
     legalEntity?: SortOrder
     taxId?: SortOrder
+    phone?: SortOrder
     currency?: SortOrder
     timezone?: SortOrder
     city?: SortOrder
@@ -48574,6 +48606,7 @@ export namespace Prisma {
     name?: SortOrder
     legalEntity?: SortOrder
     taxId?: SortOrder
+    phone?: SortOrder
     currency?: SortOrder
     timezone?: SortOrder
     city?: SortOrder

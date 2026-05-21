@@ -1,66 +1,112 @@
-import { CalendarRange, Download, FileText, Share2 } from "lucide-react";
-
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { PageHeader } from "@/components/layouts/page-header";
-import { KpiCard } from "@/components/shared/kpi-card";
+import { ExportMenu } from "@/components/shared/export-menu";
 import { CategoryMix } from "@/features/reports/category-mix";
+import { ReportFilter } from "@/features/reports/report-filter";
+import { ReportHeading, StatTile } from "@/features/reports/report-ui";
 import { SalesOverview } from "@/features/reports/sales-overview";
 import { TopProductsTable } from "@/features/reports/top-products-table";
+import { EXPORTABLE_MODULES } from "@/lib/data-transfer/registry";
 import {
   categoryRevenue,
   revenue14d,
-  todaysKpis,
   topProducts,
 } from "@/lib/queries/analytics";
+import { reportsSummary } from "@/lib/queries/reports";
+import { formatCurrency } from "@/lib/utils";
 
-export const metadata = { title: "Reports" };
+export const metadata = { title: "Reports — Summary" };
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export default async function ReportsPage() {
-  const [kpis, revenue, categories, top] = await Promise.all([
-    todaysKpis(),
-    revenue14d(),
+function parseDate(value?: string): Date | undefined {
+  if (!value) return undefined;
+  const d = new Date(value + "T00:00:00");
+  return Number.isNaN(d.getTime()) ? undefined : d;
+}
+
+const ALL_KEYS = EXPORTABLE_MODULES.map((m) => m.key);
+
+export default async function ReportsSummaryPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ from?: string; to?: string }>;
+}) {
+  const sp = await searchParams;
+  const filter = { from: parseDate(sp.from), to: parseDate(sp.to) };
+
+  const [summary, revenue, categories, top] = await Promise.all([
+    reportsSummary(filter),
+    revenue14d(filter),
     categoryRevenue(),
-    topProducts(10),
+    topProducts(10, filter),
   ]);
 
+  const profitTone = summary.netProfit >= 0 ? "success" : "danger";
+
   return (
-    <>
-      <PageHeader
-        title="Reports"
-        description="Deep dive into performance, products, and customer trends."
+    <div className="space-y-4">
+      <ReportHeading
+        title="Executive Summary"
+        description="A consolidated, business-wide view of performance."
         actions={
           <>
-            <Tabs defaultValue="week" className="hidden md:block">
-              <TabsList className="h-8 rounded-md bg-secondary/50 p-0.5">
-                <TabsTrigger value="day" className="h-7 px-2.5 text-[12px]">Day</TabsTrigger>
-                <TabsTrigger value="week" className="h-7 px-2.5 text-[12px]">Week</TabsTrigger>
-                <TabsTrigger value="month" className="h-7 px-2.5 text-[12px]">Month</TabsTrigger>
-                <TabsTrigger value="quarter" className="h-7 px-2.5 text-[12px]">Quarter</TabsTrigger>
-              </TabsList>
-            </Tabs>
-            <Button variant="outline" size="sm" className="h-8 rounded-md text-[12.5px]">
-              <CalendarRange className="size-3.5" />
-              Apr 8 — Apr 21
-            </Button>
-            <Button variant="outline" size="sm" className="h-8 rounded-md text-[12.5px]">
-              <Share2 className="size-3.5" />
-              Share
-            </Button>
-            <Button size="sm" className="h-8 rounded-md text-[12.5px]">
-              <Download className="size-3.5" />
-              Export
-            </Button>
+            <ReportFilter />
+            <ExportMenu
+              modules={ALL_KEYS}
+              scope="full-system"
+              title="Complete System Export"
+            />
           </>
         }
       />
 
-      <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {kpis.map((k, i) => (
-          <KpiCard key={k.id} kpi={k} accentColor={`var(--chart-${(i % 5) + 1})`} />
-        ))}
+      <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <StatTile
+          label="Orders"
+          value={summary.ordersCount.toLocaleString()}
+          hint="excl. cancelled & refunded"
+        />
+        <StatTile
+          label="Revenue"
+          value={formatCurrency(summary.revenue, { maximumFractionDigits: 0 })}
+          tone="primary"
+          hint="gross sales"
+        />
+        <StatTile
+          label="Expenses"
+          value={formatCurrency(summary.expensesTotal, { maximumFractionDigits: 0 })}
+          hint="recorded spend"
+        />
+        <StatTile
+          label="Salaries paid"
+          value={formatCurrency(summary.salariesPaid, { maximumFractionDigits: 0 })}
+          hint="net disbursed"
+        />
+        <StatTile
+          label="Inventory value"
+          value={formatCurrency(summary.inventoryValue, { maximumFractionDigits: 0 })}
+          hint="stock at cost"
+        />
+        <StatTile
+          label="Supplier purchases"
+          value={formatCurrency(summary.supplierPurchases, { maximumFractionDigits: 0 })}
+          hint={`${summary.supplierCount} suppliers`}
+        />
+        <StatTile
+          label="Net profit"
+          value={formatCurrency(summary.netProfit, { maximumFractionDigits: 0 })}
+          tone={profitTone}
+          hint="revenue − expenses − salaries"
+        />
+        <StatTile
+          label="Profit margin"
+          value={
+            summary.revenue > 0
+              ? `${((summary.netProfit / summary.revenue) * 100).toFixed(1)}%`
+              : "—"
+          }
+          tone={profitTone}
+          hint="net / revenue"
+        />
       </section>
 
       <SalesOverview data={revenue} />
@@ -70,59 +116,9 @@ export default async function ReportsPage() {
           <CategoryMix data={categories} />
         </div>
         <div className="lg:col-span-2">
-          <ExportPanel />
+          <TopProductsTable data={top} />
         </div>
       </section>
-
-      <TopProductsTable data={top} />
-    </>
-  );
-}
-
-function ExportPanel() {
-  const reports = [
-    { name: "Daily sales summary", description: "Settled revenue and breakdowns", format: "PDF" },
-    { name: "Product performance", description: "Units, revenue, and contribution", format: "CSV" },
-    { name: "Inventory consumption", description: "Stock movement vs sales", format: "XLSX" },
-    { name: "Staff productivity", description: "Hours, orders, and tips", format: "PDF" },
-    { name: "Customer retention", description: "Cohort retention by week", format: "CSV" },
-  ];
-  return (
-    <div className="flex h-full flex-col rounded-lg border bg-card shadow-elevated">
-      <header className="border-b px-4 py-3 md:px-5 md:py-3.5">
-        <h2 className="text-[14px] font-semibold leading-none text-foreground">
-          Saved exports
-        </h2>
-        <p className="mt-1.5 text-[12px] text-muted-foreground">
-          Schedule or download common reports
-        </p>
-      </header>
-      <ul className="flex-1 divide-y">
-        {reports.map((r) => (
-          <li
-            key={r.name}
-            className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/40 md:px-5"
-          >
-            <span className="flex size-8 items-center justify-center rounded-md bg-secondary text-secondary-foreground">
-              <FileText className="size-3.5" />
-            </span>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-[12.5px] font-medium text-foreground">
-                {r.name}
-              </p>
-              <p className="truncate text-[11.5px] text-muted-foreground">
-                {r.description}
-              </p>
-            </div>
-            <span className="rounded border bg-card px-1.5 py-0.5 font-mono text-[10.5px] text-muted-foreground">
-              {r.format}
-            </span>
-            <Button variant="ghost" size="icon-sm" className="rounded-md">
-              <Download className="size-3.5" />
-            </Button>
-          </li>
-        ))}
-      </ul>
     </div>
   );
 }

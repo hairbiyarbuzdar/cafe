@@ -4,10 +4,20 @@ import * as React from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
 /** Default rows per page across the admin tables. Matches the Orders page. */
 export const TABLE_PAGE_SIZE = 8;
+
+/** Standard page-size choices for the rows-per-page selector. */
+export const PAGE_SIZE_OPTIONS = [8, 16, 32, 64];
 
 /**
  * Standard client-side pagination for the admin tables. Clamps the page
@@ -46,6 +56,9 @@ export function TablePagination({
   onPrev,
   onNext,
   className,
+  pageSize,
+  onPageSizeChange,
+  pageSizeOptions = PAGE_SIZE_OPTIONS,
 }: {
   page: number;
   pageCount: number;
@@ -56,6 +69,10 @@ export function TablePagination({
   onPrev: () => void;
   onNext: () => void;
   className?: string;
+  /** When provided (with onPageSizeChange), renders a rows-per-page selector. */
+  pageSize?: number;
+  onPageSizeChange?: (size: number) => void;
+  pageSizeOptions?: number[];
 }) {
   return (
     <div
@@ -64,10 +81,32 @@ export function TablePagination({
         className,
       )}
     >
-      <span>
-        <span className="text-foreground">{shown}</span> of{" "}
-        <span className="text-foreground">{total}</span>
-      </span>
+      <div className="flex items-center gap-3">
+        <span>
+          <span className="text-foreground">{shown}</span> of{" "}
+          <span className="text-foreground">{total}</span>
+        </span>
+        {pageSize != null && onPageSizeChange ? (
+          <div className="hidden items-center gap-1.5 sm:flex">
+            <span>Rows</span>
+            <Select
+              value={String(pageSize)}
+              onValueChange={(v) => onPageSizeChange(Number(v))}
+            >
+              <SelectTrigger className="h-7 w-[68px] text-[12px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {pageSizeOptions.map((opt) => (
+                  <SelectItem key={opt} value={String(opt)}>
+                    {opt}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        ) : null}
+      </div>
       <div className="flex items-center gap-1.5">
         <Button
           variant="outline"

@@ -643,6 +643,9 @@ model Workspace {
   name          String   @default("My café")
   legalEntity   String?
   taxId         String?
+  /// Contact phone number. Surfaced in exported PDF footers and the
+  /// XLSX branding header (Settings → Workspace).
+  phone         String?
   /// ISO-ish currency code. Drives downstream formatting helpers.
   currency      String   @default("PKR")
   /// IANA tz string, e.g. "Asia/Karachi".

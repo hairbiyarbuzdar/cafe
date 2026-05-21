@@ -1,7 +1,7 @@
-import { AlertTriangle, BoxIcon, Download } from "lucide-react";
+import { AlertTriangle, BoxIcon } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/layouts/page-header";
+import { ExportMenu } from "@/components/shared/export-menu";
 import { InventoryTable } from "@/features/inventory/inventory-table";
 import { InventoryTrend } from "@/features/inventory/inventory-trend";
 import { LowStockAlerts } from "@/features/inventory/low-stock-alerts";
@@ -43,10 +43,11 @@ export default async function InventoryPage() {
         description="Track ingredients, packaging, and supplier orders in one place."
         actions={
           <>
-            <Button variant="outline" size="sm" className="h-8 rounded-md text-[12.5px]">
-              <Download className="size-3.5" />
-              Export
-            </Button>
+            <ExportMenu
+              modules={["inventory", "suppliers"]}
+              scope="inventory"
+              title="Inventory"
+            />
             <NewInventoryItemButton
               suppliers={suppliers}
               knownCategories={knownCategories}

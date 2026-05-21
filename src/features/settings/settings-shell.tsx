@@ -2,6 +2,7 @@
 
 import * as React from "react";
 
+import { DataTransferPanel } from "@/features/settings/data-transfer/data-transfer-panel";
 import { FiscalPanel } from "@/features/settings/fiscal/fiscal-panel";
 import { PaymentMethodsPanel } from "@/features/settings/payment-methods/payment-methods-panel";
 import { ProfilePanel } from "@/features/settings/profile/profile-panel";
@@ -83,6 +84,7 @@ export function SettingsShell({
         {tab === "fiscal" ? (
           <FiscalPanel config={fiscalConfig} submissions={fiscalSubmissions} />
         ) : null}
+        {tab === "data" ? <DataTransferPanel /> : null}
         {tab === "notifications" ? <NotificationsPanel /> : null}
         {tab === "billing" ? <BillingPanel /> : null}
         {tab === "security" ? <SecurityPanel /> : null}

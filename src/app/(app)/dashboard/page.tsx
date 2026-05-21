@@ -1,8 +1,9 @@
-import { Calendar, Download } from "lucide-react";
+import { Calendar } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/layouts/page-header";
+import { ExportMenu } from "@/components/shared/export-menu";
 import { KpiCard } from "@/components/shared/kpi-card";
 import { ChannelMix } from "@/features/dashboard/channel-mix";
 import { DashboardFilter } from "@/features/dashboard/dashboard-filter";
@@ -113,10 +114,11 @@ export default async function DashboardPage({
               Today
             </Button>
             <DashboardFilter />
-            <Button variant="outline" size="sm" className="h-8 rounded-md text-[12.5px]">
-              <Download className="size-3.5" />
-              Export
-            </Button>
+            <ExportMenu
+              modules={["orders", "expenses"]}
+              scope="dashboard"
+              title="Dashboard Snapshot"
+            />
           </>
         }
       />

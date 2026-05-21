@@ -52,6 +52,7 @@ export type UpdateWorkspaceInput = {
   name: string;
   legalEntity?: string | null;
   taxId?: string | null;
+  phone?: string | null;
   currency: string;
   timezone: string;
   city?: string | null;
@@ -128,6 +129,7 @@ export async function updateWorkspaceAction(
     name,
     legalEntity: input.legalEntity?.trim() || null,
     taxId: input.taxId?.trim() || null,
+    phone: input.phone?.trim() || null,
     currency,
     timezone,
     city: input.city?.trim() || null,

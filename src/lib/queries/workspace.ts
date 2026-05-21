@@ -26,6 +26,7 @@ export type Workspace = {
   name: string;
   legalEntity: string | null;
   taxId: string | null;
+  phone: string | null;
   currency: string;
   timezone: string;
   city: string | null;
@@ -49,6 +50,7 @@ export async function getWorkspace(): Promise<Workspace | null> {
     name: row.name,
     legalEntity: row.legalEntity,
     taxId: row.taxId,
+    phone: row.phone,
     currency: row.currency,
     timezone: row.timezone,
     city: row.city,

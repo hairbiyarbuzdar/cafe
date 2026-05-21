@@ -20,6 +20,7 @@ import {
   TablePagination,
   usePagination,
 } from "@/components/shared/table-pagination";
+import { ExportMenu } from "@/components/shared/export-menu";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -147,6 +148,12 @@ export function PayrollShell({
               ))}
             </SelectContent>
           </Select>
+          <ExportMenu
+            modules={["staff"]}
+            scope="staff"
+            title="Staff"
+            className="h-10"
+          />
           <Button
             size="sm"
             className="h-10 rounded-md text-[13px] font-medium"

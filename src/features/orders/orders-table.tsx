@@ -3,7 +3,10 @@
 import * as React from "react";
 import { ArrowUpDown, ChevronLeft, ChevronRight, Search } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
+import {
+  TablePagination,
+  usePagination,
+} from "@/components/shared/table-pagination";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -45,8 +48,6 @@ const TABS: { value: TableTab; label: string }[] = [
   { value: "refunded", label: "Refunded" },
 ];
 
-const PAGE_SIZE = 8;
-
 export function OrdersTable({
   orders,
   paymentChannels = [],
@@ -60,7 +61,7 @@ export function OrdersTable({
   const [advanced, setAdvanced] = React.useState<AdvancedFilters>(
     emptyAdvancedFilters,
   );
-  const [page, setPage] = React.useState(1);
+  const [pageSize, setPageSize] = React.useState(8);
   const [selected, setSelected] = React.useState<Order | null>(null);
 
   const filtered = React.useMemo(() => {
@@ -102,12 +103,13 @@ export function OrdersTable({
     });
   }, [tab, channel, search, orders, advanced]);
 
-  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const pageItems = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const pg = usePagination(filtered, pageSize);
+  const { setPage } = pg;
 
+  // Reset to the first page whenever a filter changes.
   React.useEffect(() => {
     setPage(1);
-  }, [tab, channel, search, advanced]);
+  }, [tab, channel, search, advanced, setPage]);
 
   return (
     <>
@@ -149,12 +151,12 @@ export function OrdersTable({
 
         {/* Mobile: card list. Tablet+: full table. */}
         <ul className="divide-y divide-border/60 md:hidden">
-          {pageItems.length === 0 ? (
+          {pg.pageItems.length === 0 ? (
             <li className="px-4 py-10 text-center text-[13px] text-muted-foreground">
               No orders match the current filters.
             </li>
           ) : (
-            pageItems.map((o) => (
+            pg.pageItems.map((o) => (
               <li key={o.id}>
                 <button
                   type="button"
@@ -208,7 +210,7 @@ export function OrdersTable({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {pageItems.length === 0 ? (
+              {pg.pageItems.length === 0 ? (
                 <TableRow>
                   <TableCell
                     colSpan={8}
@@ -218,7 +220,7 @@ export function OrdersTable({
                   </TableCell>
                 </TableRow>
               ) : (
-                pageItems.map((o) => (
+                pg.pageItems.map((o) => (
                   <TableRow
                     key={o.id}
                     onClick={() => setSelected(o)}
@@ -273,37 +275,16 @@ export function OrdersTable({
           </Table>
         </div>
 
-        <div className="flex items-center justify-between border-t border-border/70 px-3 py-3 text-[12.5px] text-muted-foreground md:px-4">
-          <span>
-            <span className="text-foreground">{pageItems.length}</span> of{" "}
-            <span className="text-foreground">{filtered.length}</span>
-          </span>
-          <div className="flex items-center gap-1.5">
-            <Button
-              variant="outline"
-              size="icon-sm"
-              className="size-9 rounded-md md:size-8"
-              disabled={page <= 1}
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              aria-label="Previous page"
-            >
-              <ChevronLeft className="size-4" />
-            </Button>
-            <span className="tabular-nums">
-              {page} / {pageCount}
-            </span>
-            <Button
-              variant="outline"
-              size="icon-sm"
-              className="size-9 rounded-md md:size-8"
-              disabled={page >= pageCount}
-              onClick={() => setPage((p) => Math.min(pageCount, p + 1))}
-              aria-label="Next page"
-            >
-              <ChevronRight className="size-4" />
-            </Button>
-          </div>
-        </div>
+        <TablePagination
+          page={pg.page}
+          pageCount={pg.pageCount}
+          shown={pg.shown}
+          total={pg.total}
+          onPrev={pg.prev}
+          onNext={pg.next}
+          pageSize={pageSize}
+          onPageSizeChange={setPageSize}
+        />
       </div>
       <OrderDetailDrawer
         order={selected}

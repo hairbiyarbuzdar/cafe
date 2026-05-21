@@ -15,6 +15,7 @@ import {
   TablePagination,
   usePagination,
 } from "@/components/shared/table-pagination";
+import { ExportMenu } from "@/components/shared/export-menu";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -100,6 +101,7 @@ export function ExpensesShell({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <ExportMenu modules={["expenses"]} scope="expenses" title="Expenses" />
           <ExpenseHeadManager heads={heads} />
           <NewExpenseDialog heads={heads} paymentChannels={paymentChannels} />
         </div>

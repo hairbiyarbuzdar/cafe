@@ -1,7 +1,8 @@
-import { Download, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/layouts/page-header";
+import { ExportMenu } from "@/components/shared/export-menu";
 import { OrdersTable } from "@/features/orders/orders-table";
 import { LiveRefresh } from "@/features/realtime/live-refresh";
 import { listOrders, ordersSummary } from "@/lib/queries/orders";
@@ -27,10 +28,12 @@ export default async function OrdersPage() {
         description="All orders across in-store, takeaway, delivery, and online channels."
         actions={
           <>
-            <Button variant="outline" size="sm" className="h-8 rounded-md text-[12.5px]">
-              <Download className="size-3.5" />
-              Export CSV
-            </Button>
+            <ExportMenu
+              modules={["orders"]}
+              scope="orders"
+              title="Orders"
+              pdfOrientation="landscape"
+            />
             <Link href="/pos" className="flex items-center">
               <Button size="sm" variant="default" className="h-8 rounded-md text-[12.5px]">
                 <Plus className="size-3.5" />

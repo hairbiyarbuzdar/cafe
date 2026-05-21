@@ -62,6 +62,7 @@ type FormState = {
   name: string;
   legalEntity: string;
   taxId: string;
+  phone: string;
   currency: string;
   timezone: string;
   city: string;
@@ -76,6 +77,7 @@ function workspaceToForm(w: Workspace): FormState {
     name: w.name,
     legalEntity: w.legalEntity ?? "",
     taxId: w.taxId ?? "",
+    phone: w.phone ?? "",
     currency: w.currency,
     timezone: w.timezone,
     city: w.city ?? "",
@@ -128,6 +130,7 @@ export function WorkspacePanel({ workspace }: { workspace: Workspace }) {
         name: form.name.trim(),
         legalEntity: form.legalEntity.trim() || null,
         taxId: form.taxId.trim() || null,
+        phone: form.phone.trim() || null,
         currency: form.currency,
         timezone: form.timezone,
         city: form.city.trim() || null,
@@ -180,6 +183,19 @@ export function WorkspacePanel({ workspace }: { workspace: Workspace }) {
               placeholder="e.g. 38-7724918"
               className="h-10 font-mono text-[13px]"
             />
+          </Field>
+          <Field label="Phone number" htmlFor="ws-phone">
+            <Input
+              id="ws-phone"
+              value={form.phone}
+              onChange={(e) => patch("phone", e.target.value)}
+              placeholder="e.g. +92 21 1234 5678"
+              className="h-10"
+              inputMode="tel"
+            />
+            <p className="text-[11.5px] text-muted-foreground">
+              Shown in exported PDF footers and the XLSX branding header.
+            </p>
           </Field>
           <Field label="Currency" htmlFor="ws-currency">
             <Select
