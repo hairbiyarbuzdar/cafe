@@ -17,7 +17,7 @@ import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { NumericInput } from "@/components/ui/numeric-input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
@@ -254,13 +254,10 @@ export function CartPanel({
                 <Label htmlFor="discount" className="text-[11.5px] text-muted-foreground">
                   Discount (%)
                 </Label>
-                <Input
+                <NumericInput
                   id="discount"
-                  type="number"
-                  min={0}
-                  max={100}
                   value={discountPct}
-                  onChange={(e) => setDiscountPct(Number(e.target.value) || 0)}
+                  onValueChange={(v) => setDiscountPct(Number(v) || 0)}
                   className="h-8 rounded-md text-[12.5px]"
                 />
               </div>

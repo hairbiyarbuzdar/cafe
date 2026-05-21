@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { NumericInput } from "@/components/ui/numeric-input";
 import { ChannelSelect } from "@/features/payroll/pay-salary-dialog";
 import {
   deleteStaffAdvanceAction,
@@ -164,11 +165,9 @@ export function AdvancesDialog({
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label className="text-[12px] font-medium">Amount (Rs) *</Label>
-              <Input
-                type="number"
-                min={0}
+              <NumericInput
                 value={amount}
-                onChange={(e) => setAmount(e.target.value)}
+                onValueChange={setAmount}
                 placeholder="0"
                 className="h-10 text-[13px]"
               />

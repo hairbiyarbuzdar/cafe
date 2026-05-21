@@ -23,6 +23,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { NumericInput } from "@/components/ui/numeric-input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Select,
@@ -190,13 +191,11 @@ export function TablesDialog({ open, onOpenChange }: Props) {
             >
               Max people
             </Label>
-            <Input
+            <NumericInput
               id="capacity"
-              type="number"
-              min={1}
-              max={20}
+              decimal={false}
               value={capacity}
-              onChange={(e) => setCapacity(Math.max(1, Number(e.target.value) || 1))}
+              onValueChange={(v) => setCapacity(Math.max(1, Number(v) || 1))}
               className="h-10 text-[13.5px]"
             />
           </div>

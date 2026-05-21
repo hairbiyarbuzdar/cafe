@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { NumericInput } from "@/components/ui/numeric-input";
 import {
   Select,
   SelectContent,
@@ -139,12 +140,9 @@ export function PaySalaryDialog({
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <FieldLabel>Absent days</FieldLabel>
-              <Input
-                type="number"
-                min={0}
-                step="0.5"
+              <NumericInput
                 value={absentStr}
-                onChange={(e) => setAbsentStr(e.target.value)}
+                onValueChange={setAbsentStr}
                 placeholder="0.0"
                 className="h-10 text-[13px]"
               />

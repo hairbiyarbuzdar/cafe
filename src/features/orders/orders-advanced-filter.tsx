@@ -14,6 +14,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { NumericInput } from "@/components/ui/numeric-input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -165,13 +166,10 @@ export function OrdersAdvancedFilter({
           </Field>
 
           <Field label="Minimum total (Rs.)" htmlFor="of-min">
-            <Input
+            <NumericInput
               id="of-min"
-              type="number"
-              min={0}
-              step="0.01"
               value={draft.minTotal}
-              onChange={(e) => patch("minTotal", e.target.value)}
+              onValueChange={(v) => patch("minTotal", v)}
               placeholder="0"
               className="h-10 text-end tabular-nums"
             />

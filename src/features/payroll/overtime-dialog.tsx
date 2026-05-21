@@ -13,8 +13,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { NumericInput } from "@/components/ui/numeric-input";
 import {
   addStaffOvertimeAction,
   deleteStaffOvertimeAction,
@@ -147,23 +147,18 @@ export function OvertimeDialog({
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label className="text-[12px] font-medium">Hours</Label>
-              <Input
-                type="number"
-                min={0}
-                step="0.5"
+              <NumericInput
                 value={hours}
-                onChange={(e) => setHours(e.target.value)}
+                onValueChange={setHours}
                 placeholder="0.0"
                 className="h-10 text-[13px]"
               />
             </div>
             <div className="space-y-1.5">
               <Label className="text-[12px] font-medium">Rate (Rs/hr)</Label>
-              <Input
-                type="number"
-                min={0}
+              <NumericInput
                 value={rate}
-                onChange={(e) => setRate(e.target.value)}
+                onValueChange={setRate}
                 placeholder="100"
                 className="h-10 text-[13px]"
               />

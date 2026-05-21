@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { NumericInput, PhoneInput } from "@/components/ui/numeric-input";
 import {
   Select,
   SelectContent,
@@ -190,7 +191,7 @@ export function WorkerFormDialog({
               <FieldLabel>Phone number</FieldLabel>
               <IconInput
                 icon={Phone}
-                type="tel"
+                field="phone"
                 value={form.phone}
                 onChange={(v) => patch("phone", v)}
                 placeholder="03xx-xxxxxxx"
@@ -204,7 +205,7 @@ export function WorkerFormDialog({
               <FieldLabel>Monthly salary (Rs) *</FieldLabel>
               <IconInput
                 icon={Wallet}
-                type="number"
+                field="number"
                 value={form.salary}
                 onChange={(v) => patch("salary", v)}
                 placeholder="0"
@@ -214,7 +215,7 @@ export function WorkerFormDialog({
               <FieldLabel>Overtime rate (Rs/hr)</FieldLabel>
               <IconInput
                 icon={Clock}
-                type="number"
+                field="number"
                 value={form.overtimeRate}
                 onChange={(v) => patch("overtimeRate", v)}
                 placeholder="0"
@@ -227,7 +228,7 @@ export function WorkerFormDialog({
               <FieldLabel>Standard working days</FieldLabel>
               <IconInput
                 icon={CalendarDays}
-                type="number"
+                field="integer"
                 value={form.workingDays}
                 onChange={(v) => patch("workingDays", v)}
                 placeholder="26"
@@ -312,6 +313,7 @@ function IconInput({
   onChange,
   placeholder,
   type = "text",
+  field,
   invalid,
 }: {
   icon: typeof Wallet;
@@ -319,20 +321,42 @@ function IconInput({
   onChange: (v: string) => void;
   placeholder?: string;
   type?: string;
+  /** Numeric / phone behaviour. Omit for a plain text input. */
+  field?: "phone" | "number" | "integer";
   invalid?: boolean;
 }) {
+  const className = "h-10 ps-9 text-[13px]";
   return (
     <div className="relative">
       <Icon className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-      <Input
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        autoComplete="off"
-        aria-invalid={invalid}
-        className="h-10 ps-9 text-[13px]"
-      />
+      {field === "phone" ? (
+        <PhoneInput
+          value={value}
+          onValueChange={onChange}
+          placeholder={placeholder}
+          aria-invalid={invalid}
+          className={className}
+        />
+      ) : field === "number" || field === "integer" ? (
+        <NumericInput
+          value={value}
+          onValueChange={onChange}
+          decimal={field === "number"}
+          placeholder={placeholder}
+          aria-invalid={invalid}
+          className={className}
+        />
+      ) : (
+        <Input
+          type={type}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          autoComplete="off"
+          aria-invalid={invalid}
+          className={className}
+        />
+      )}
     </div>
   );
 }

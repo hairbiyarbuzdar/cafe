@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NumericInput } from "@/components/ui/numeric-input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -283,23 +284,19 @@ export function MenuFormSheet({ open, onOpenChange, item }: Props) {
             <Section title="Pricing & operations">
               <div className="grid grid-cols-2 gap-3">
                 <Field label="Price (Rs.)" htmlFor="m-price">
-                  <Input
+                  <NumericInput
                     id="m-price"
-                    type="number"
-                    min={0}
-                    step="0.01"
                     value={form.price}
-                    onChange={(e) => patch("price", e.target.value)}
+                    onValueChange={(v) => patch("price", v)}
                     className="h-10"
                   />
                 </Field>
                 <Field label="Prep time (min)" htmlFor="m-prep">
-                  <Input
+                  <NumericInput
                     id="m-prep"
-                    type="number"
-                    min={0}
+                    decimal={false}
                     value={form.prepTimeMinutes}
-                    onChange={(e) => patch("prepTimeMinutes", e.target.value)}
+                    onValueChange={(v) => patch("prepTimeMinutes", v)}
                     className="h-10"
                   />
                 </Field>
@@ -399,14 +396,11 @@ export function MenuFormSheet({ open, onOpenChange, item }: Props) {
                           ))}
                         </SelectContent>
                       </Select>
-                      <Input
-                        type="number"
-                        min={0}
-                        step="0.01"
+                      <NumericInput
                         value={r.quantity}
-                        onChange={(e) =>
+                        onValueChange={(v) =>
                           patchIngredient(idx, {
-                            quantity: Math.max(0, Number(e.target.value) || 0),
+                            quantity: Math.max(0, Number(v) || 0),
                           })
                         }
                         className="h-8 text-end text-[12.5px] tabular-nums"

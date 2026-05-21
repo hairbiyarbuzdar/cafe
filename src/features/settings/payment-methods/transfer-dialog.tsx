@@ -15,6 +15,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { NumericInput } from "@/components/ui/numeric-input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -192,13 +193,10 @@ export function TransferDialog({
               <FieldLabel htmlFor="tr-amount" required>
                 Amount (Rs)
               </FieldLabel>
-              <Input
+              <NumericInput
                 id="tr-amount"
-                type="number"
-                min={0}
-                step="0.01"
                 value={form.amount}
-                onChange={(e) => patch("amount", e.target.value)}
+                onValueChange={(v) => patch("amount", v)}
                 placeholder="0"
                 className="h-10 tabular-nums"
               />

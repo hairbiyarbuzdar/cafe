@@ -15,7 +15,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
+import { NumericInput } from "@/components/ui/numeric-input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -231,13 +231,10 @@ export function ReceiveStockDialog({
 
           <div className="grid grid-cols-[1fr_90px] gap-3">
             <Field label="Quantity" htmlFor="rs-qty">
-              <Input
+              <NumericInput
                 id="rs-qty"
-                type="number"
-                min={0}
-                step="0.001"
                 value={form.quantity}
-                onChange={(e) => patch("quantity", e.target.value)}
+                onValueChange={(v) => patch("quantity", v)}
                 className="h-10 text-end tabular-nums"
               />
             </Field>
@@ -268,13 +265,10 @@ export function ReceiveStockDialog({
               </Select>
             </Field>
             <Field label="Cost per unit (Rs.)" htmlFor="rs-cost">
-              <Input
+              <NumericInput
                 id="rs-cost"
-                type="number"
-                min={0}
-                step="0.0001"
                 value={form.costPerUnit}
-                onChange={(e) => patch("costPerUnit", e.target.value)}
+                onValueChange={(v) => patch("costPerUnit", v)}
                 className="h-10 text-end tabular-nums"
               />
             </Field>
@@ -309,14 +303,10 @@ export function ReceiveStockDialog({
               </Select>
             </Field>
             <Field label={`Amount to pay (max ${formatCurrency(maxPay)})`} htmlFor="rs-paid">
-              <Input
+              <NumericInput
                 id="rs-paid"
-                type="number"
-                min={0}
-                max={maxPay}
-                step="0.01"
                 value={form.paidAmount}
-                onChange={(e) => patch("paidAmount", e.target.value)}
+                onValueChange={(v) => patch("paidAmount", v)}
                 placeholder={String(maxPay)}
                 disabled={!selectedChannel || outflow <= 0}
                 className="h-10 text-end tabular-nums"

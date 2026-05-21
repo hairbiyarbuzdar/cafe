@@ -16,6 +16,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { NumericInput } from "@/components/ui/numeric-input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -190,12 +191,9 @@ export function NewExpenseDialog({ heads, paymentChannels }: Props) {
               label="Amount (Rs)"
               required
             >
-              <Input
-                type="number"
-                min={0}
-                step="0.01"
+              <NumericInput
                 value={amount}
-                onChange={(e) => setAmount(e.target.value)}
+                onValueChange={setAmount}
                 placeholder="0"
                 className="h-10 text-end tabular-nums"
               />

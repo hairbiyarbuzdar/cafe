@@ -7,6 +7,7 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NumericInput } from "@/components/ui/numeric-input";
 import { Label } from "@/components/ui/label";
 import { SectionCard } from "@/components/shared/section-card";
 import { updateTaxConfigAction } from "@/lib/actions/tax";
@@ -82,15 +83,10 @@ export function TaxPanel({ config }: { config: TaxConfig }) {
           <Label htmlFor="tax-rate" className="text-[12.5px] font-medium">
             Rate (%)
           </Label>
-          <Input
+          <NumericInput
             id="tax-rate"
-            type="number"
-            inputMode="decimal"
-            step="0.01"
-            min={0}
-            max={100}
             value={percent}
-            onChange={(e) => setPercent(e.target.value)}
+            onValueChange={setPercent}
             className="h-10 text-[14px] tabular-nums"
           />
           <p className="text-[11.5px] text-muted-foreground">

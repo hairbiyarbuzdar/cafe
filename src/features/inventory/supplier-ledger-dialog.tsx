@@ -18,7 +18,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
+import { NumericInput } from "@/components/ui/numeric-input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -356,13 +356,10 @@ function PayForm({
           >
             Amount
           </Label>
-          <Input
+          <NumericInput
             id="sup-pay-amount"
-            type="number"
-            min={0}
-            step="0.01"
             value={amount}
-            onChange={(e) => setAmount(e.target.value)}
+            onValueChange={setAmount}
             className="h-9 text-end tabular-nums"
           />
         </div>

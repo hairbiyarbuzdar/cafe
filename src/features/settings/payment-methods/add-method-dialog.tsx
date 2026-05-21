@@ -16,6 +16,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { NumericInput } from "@/components/ui/numeric-input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -130,13 +131,10 @@ export function AddPaymentMethodDialog({
 
           <div className="space-y-1.5 pt-1">
             <FieldLabel htmlFor="pm-open">Opening balance (Rs)</FieldLabel>
-            <Input
+            <NumericInput
               id="pm-open"
-              type="number"
-              min={0}
-              step="0.01"
               value={opening}
-              onChange={(e) => setOpening(e.target.value)}
+              onValueChange={setOpening}
               className="h-10 tabular-nums"
             />
             <p className="text-[11.5px] text-muted-foreground">

@@ -7,6 +7,7 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NumericInput } from "@/components/ui/numeric-input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -248,13 +249,10 @@ export function NewInventoryItemButton({
             <Section title="Stock">
               <div className="grid grid-cols-[1fr_120px] gap-3">
                 <Field label="On hand" htmlFor="inv-stock">
-                  <Input
+                  <NumericInput
                     id="inv-stock"
-                    type="number"
-                    min={0}
-                    step="0.001"
                     value={form.stock}
-                    onChange={(e) => patch("stock", e.target.value)}
+                    onValueChange={(v) => patch("stock", v)}
                     className="h-10 text-end tabular-nums"
                   />
                 </Field>
@@ -278,24 +276,18 @@ export function NewInventoryItemButton({
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <Field label="Reorder level" htmlFor="inv-reorder">
-                  <Input
+                  <NumericInput
                     id="inv-reorder"
-                    type="number"
-                    min={0}
-                    step="0.001"
                     value={form.reorderLevel}
-                    onChange={(e) => patch("reorderLevel", e.target.value)}
+                    onValueChange={(v) => patch("reorderLevel", v)}
                     className="h-10 text-end tabular-nums"
                   />
                 </Field>
                 <Field label="Cost per unit (Rs.)" htmlFor="inv-cost">
-                  <Input
+                  <NumericInput
                     id="inv-cost"
-                    type="number"
-                    min={0}
-                    step="0.0001"
                     value={form.costPerUnit}
-                    onChange={(e) => patch("costPerUnit", e.target.value)}
+                    onValueChange={(v) => patch("costPerUnit", v)}
                     className="h-10 text-end tabular-nums"
                   />
                 </Field>
@@ -370,14 +362,10 @@ export function NewInventoryItemButton({
                   label={`Amount to pay (max ${formatCurrency(maxPay)})`}
                   htmlFor="inv-paid"
                 >
-                  <Input
+                  <NumericInput
                     id="inv-paid"
-                    type="number"
-                    min={0}
-                    max={maxPay}
-                    step="0.01"
                     value={form.paidAmount}
-                    onChange={(e) => patch("paidAmount", e.target.value)}
+                    onValueChange={(v) => patch("paidAmount", v)}
                     placeholder={String(maxPay)}
                     disabled={!selectedChannel || initialOutflow <= 0}
                     className="h-10 text-end tabular-nums"
