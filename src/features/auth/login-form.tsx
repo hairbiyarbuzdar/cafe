@@ -56,12 +56,12 @@ export function LoginForm() {
   }
 
   return (
-    <div className="w-full max-w-[440px]">
+    <div className="w-full max-w-110">
       <div className="ring-highlight rounded-2xl border border-border/70 bg-card shadow-elevated">
         <div className="border-b border-border/70 p-6 md:p-7">
           <div className="flex items-center gap-2.5">
             <span className="flex size-9 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-soft">
-              <Coffee className="size-[18px]" strokeWidth={2} />
+              <Coffee className="size-3.5" strokeWidth={2} />
             </span>
             <span className="text-[14px] font-semibold tracking-tight">
               {BRAND.name}
@@ -117,7 +117,7 @@ export function LoginForm() {
                 type="button"
                 onClick={() => setShowPassword((s) => !s)}
                 aria-label={showPassword ? "Hide password" : "Show password"}
-                className="absolute end-0 top-0 flex h-10 w-10 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
+                className="absolute inset-e-0 right-0top-0 flex h-10 w-10 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
               >
                 {showPassword ? (
                   <EyeOff className="size-4" />
