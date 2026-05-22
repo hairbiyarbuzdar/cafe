@@ -9,15 +9,13 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
 import { BRAND } from "@/constants/nav";
 import { demoSignInAction, signInAction } from "@/lib/actions/auth";
 import { ROLE_LABEL, homeFor } from "@/lib/permissions";
 import { useAuth } from "@/store/auth-store";
 import type { SessionUser } from "@/types/auth";
-import { cn, initials } from "@/lib/utils";
 
-export function LoginForm({ demoUsers }: { demoUsers: SessionUser[] }) {
+export function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
   const next = params.get("next");
@@ -55,22 +53,6 @@ export function LoginForm({ demoUsers }: { demoUsers: SessionUser[] }) {
     } finally {
       setSubmitting(false);
     }
-  }
-
-  async function handleDemoSignIn(userId: string) {
-    const result = await demoSignInAction(userId);
-    if (!result.ok) {
-      toast.error("Could not sign in", { description: result.error });
-      return;
-    }
-    setUser(result.user);
-    toast.success(
-      `Signed in as ${result.user.roleName ?? ROLE_LABEL[result.user.role] ?? result.user.role}`,
-      {
-        description: result.user.name,
-      },
-    );
-    navigateAfterSignIn(result.user);
   }
 
   return (
@@ -162,40 +144,6 @@ export function LoginForm({ demoUsers }: { demoUsers: SessionUser[] }) {
               </>
             )}
           </Button>
-
-          <div className="flex items-center gap-3 pt-2">
-            <Separator className="flex-1" />
-            <span className="text-[11.5px] uppercase tracking-[0.1em] text-muted-foreground">
-              or try a demo role
-            </span>
-            <Separator className="flex-1" />
-          </div>
-
-          <ul className="grid grid-cols-1 gap-1.5">
-            {demoUsers.map((u) => (
-              <li key={u.id}>
-                <button
-                  type="button"
-                  onClick={() => handleDemoSignIn(u.id)}
-                  className={cn(
-                    "group flex w-full items-center gap-3 rounded-lg border border-border/70 bg-card p-2.5 text-left transition-all",
-                    "hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-soft",
-                  )}
-                >
-                  <span className="flex size-9 items-center justify-center rounded-md bg-gradient-to-br from-primary/15 to-primary/8 text-[12px] font-semibold text-primary">
-                    {initials(u.name)}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[13px] font-medium">{u.name}</p>
-                    <p className="text-[11.5px] text-muted-foreground">
-                      {u.roleName ?? ROLE_LABEL[u.role] ?? u.role} · {u.email}
-                    </p>
-                  </div>
-                  <ArrowRight className="size-3.5 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
-                </button>
-              </li>
-            ))}
-          </ul>
         </form>
 
         <div className="border-t border-border/70 px-6 py-4 text-center text-[12px] text-muted-foreground md:px-7">
