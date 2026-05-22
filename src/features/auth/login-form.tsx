@@ -10,8 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { BRAND } from "@/constants/nav";
-import { demoSignInAction, signInAction } from "@/lib/actions/auth";
-import { ROLE_LABEL, homeFor } from "@/lib/permissions";
+import { signInAction } from "@/lib/actions/auth";
+import { homeFor } from "@/lib/permissions";
 import { useAuth } from "@/store/auth-store";
 import type { SessionUser } from "@/types/auth";
 
