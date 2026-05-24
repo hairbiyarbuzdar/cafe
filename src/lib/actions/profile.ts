@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { writeSessionCookie } from "@/lib/actions/auth";
 import { getServerSession } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { supabase } from "@/lib/supabase";
 import type { Permission, SessionUser } from "@/types/auth";
 
 export type UpdateProfileResult =
@@ -12,23 +12,10 @@ export type UpdateProfileResult =
   | { ok: false; error: string };
 
 const ALLOWED_ROUTES = new Set([
-  "/pos",
-  "/dashboard",
-  "/orders",
-  "/kitchen",
-  "/menu",
-  "/inventory",
-  "/reports",
-  "/staff",
-  "/settings",
+  "/pos", "/dashboard", "/orders", "/kitchen", "/menu",
+  "/inventory", "/reports", "/staff", "/settings",
 ]);
 
-/**
- * Self-service profile edit. Updates the *currently signed-in*
- * user's name, phone, and landing route. The route allowlist keeps
- * malformed values out of the session cookie. `defaultRoute === ""`
- * clears the override and reverts to ROLE_HOME[role].
- */
 export async function updateProfileAction(input: {
   name: string;
   phone: string | null;
@@ -52,23 +39,20 @@ export async function updateProfileAction(input: {
     return { ok: false, error: "That landing route isn't available" };
   }
 
-  const row = await prisma.user.update({
-    where: { id: session.user.id },
-    data: { name, phone, defaultRoute },
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      phone: true,
-      role: true,
-      avatar: true,
-      defaultRoute: true,
-      monthlySalary: true,
-      roleRef: {
-        select: { name: true, permissions: true, defaultRoute: true },
-      },
-    },
-  });
+  const { data: row, error } = await supabase
+    .from("User")
+    .update({ name, phone, defaultRoute })
+    .eq("id", session.user.id)
+    .select("id, name, email, phone, role, avatar, defaultRoute, monthlySalary, Role(name, permissions, defaultRoute)")
+    .single();
+
+  if (error || !row) {
+    return { ok: false, error: error?.message ?? "Failed to update profile" };
+  }
+
+  const roleData = (Array.isArray(row.Role) ? row.Role[0] : row.Role) as {
+    name: string; permissions: unknown; defaultRoute: string | null;
+  } | null;
 
   const user: SessionUser = {
     id: row.id,
@@ -76,19 +60,16 @@ export async function updateProfileAction(input: {
     email: row.email,
     phone: row.phone,
     role: row.role,
-    roleName: row.roleRef?.name,
-    permissions: Array.isArray(row.roleRef?.permissions)
-      ? (row.roleRef.permissions as Permission[])
+    roleName: roleData?.name,
+    permissions: Array.isArray(roleData?.permissions)
+      ? (roleData.permissions as Permission[])
       : [],
     avatar: row.avatar,
-    defaultRoute: row.defaultRoute ?? row.roleRef?.defaultRoute ?? null,
+    defaultRoute: row.defaultRoute ?? roleData?.defaultRoute ?? null,
     monthlySalary: row.monthlySalary ? Number(row.monthlySalary) : null,
   };
 
-  // Re-issue the session cookie so the proxy picks up the new
-  // landing route on the next "/" hit without forcing a re-login.
   await writeSessionCookie(user);
-
   revalidatePath("/", "layout");
   return { ok: true, user };
 }

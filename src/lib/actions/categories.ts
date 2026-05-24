@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { prisma } from "@/lib/prisma";
+import { supabase } from "@/lib/supabase";
 
 export type ActionResult<T = void> =
   | (T extends void ? { ok: true } : { ok: true; data: T })
@@ -15,15 +15,10 @@ export type CategoryInput = {
 };
 
 function slugify(s: string): string {
-  return s
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
+  return s.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 }
 
 type SanitizedCategory = { name: string; slug: string; color: string };
-
 type SanitizeResult =
   | { ok: true; data: SanitizedCategory }
   | { ok: false; error: string };
@@ -35,11 +30,7 @@ function sanitize(input: CategoryInput): SanitizeResult {
   if (!color) return { ok: false, error: "Pick a color" };
   return {
     ok: true,
-    data: {
-      name,
-      slug: (input.slug?.trim() || slugify(name)) || slugify(name),
-      color,
-    },
+    data: { name, slug: (input.slug?.trim() || slugify(name)) || slugify(name), color },
   };
 }
 
@@ -49,17 +40,20 @@ export async function createCategoryAction(
   const sanitized = sanitize(input);
   if (!sanitized.ok) return { ok: false, error: sanitized.error };
 
-  const dup = await prisma.menuCategory.findUnique({
-    where: { slug: sanitized.data.slug },
-    select: { id: true },
-  });
+  const { data: dup } = await supabase
+    .from("MenuCategory")
+    .select("id")
+    .eq("slug", sanitized.data.slug)
+    .maybeSingle();
   if (dup) return { ok: false, error: `Slug "${sanitized.data.slug}" is in use` };
 
   try {
-    const created = await prisma.menuCategory.create({
-      data: sanitized.data,
-      select: { id: true },
-    });
+    const { data: created, error } = await supabase
+      .from("MenuCategory")
+      .insert(sanitized.data)
+      .select("id")
+      .single();
+    if (error) throw error;
     revalidatePath("/menu");
     revalidatePath("/pos");
     return { ok: true, data: { id: created.id } };
@@ -80,17 +74,20 @@ export async function updateCategoryAction(
   const sanitized = sanitize(input);
   if (!sanitized.ok) return { ok: false, error: sanitized.error };
 
-  const dup = await prisma.menuCategory.findFirst({
-    where: { slug: sanitized.data.slug, NOT: { id } },
-    select: { id: true },
-  });
+  const { data: dup } = await supabase
+    .from("MenuCategory")
+    .select("id")
+    .eq("slug", sanitized.data.slug)
+    .neq("id", id)
+    .maybeSingle();
   if (dup) return { ok: false, error: `Slug "${sanitized.data.slug}" is in use` };
 
   try {
-    await prisma.menuCategory.update({
-      where: { id },
-      data: sanitized.data,
-    });
+    const { error } = await supabase
+      .from("MenuCategory")
+      .update(sanitized.data)
+      .eq("id", id);
+    if (error) throw error;
     revalidatePath("/menu");
     revalidatePath("/pos");
     return { ok: true };
@@ -105,19 +102,23 @@ export async function updateCategoryAction(
 
 export async function deleteCategoryAction(id: string): Promise<ActionResult> {
   if (!id) return { ok: false, error: "Missing category id" };
-  const inUse = await prisma.menuItem.findFirst({
-    where: { categoryId: id },
-    select: { id: true },
-  });
+
+  const { data: inUse } = await supabase
+    .from("MenuItem")
+    .select("id")
+    .eq("categoryId", id)
+    .limit(1)
+    .maybeSingle();
   if (inUse) {
     return {
       ok: false,
-      error:
-        "At least one menu item belongs to this category. Reassign or delete those items first.",
+      error: "At least one menu item belongs to this category. Reassign or delete those items first.",
     };
   }
+
   try {
-    await prisma.menuCategory.delete({ where: { id } });
+    const { error } = await supabase.from("MenuCategory").delete().eq("id", id);
+    if (error) throw error;
     revalidatePath("/menu");
     revalidatePath("/pos");
     return { ok: true };

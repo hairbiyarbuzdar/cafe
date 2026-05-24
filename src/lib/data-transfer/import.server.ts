@@ -2,7 +2,7 @@ import "server-only";
 
 import { randomUUID } from "node:crypto";
 
-import { prisma } from "@/lib/prisma";
+import { supabase } from "@/lib/supabase";
 import { getModule } from "./registry";
 import type { ImportModuleResult, ModuleKey } from "./types";
 
@@ -28,11 +28,11 @@ const boolv = (v: unknown): boolean => {
   const s = (str(v) ?? "").toLowerCase();
   return s === "true" || s === "yes" || s === "1" || s === "y";
 };
-const datev = (v: unknown): Date | null => {
+const datev = (v: unknown): string | null => {
   const s = str(v);
   if (s == null) return null;
   const d = new Date(s);
-  return Number.isNaN(d.getTime()) ? null : d;
+  return Number.isNaN(d.getTime()) ? null : d.toISOString();
 };
 
 function slugify(value: string): string {
@@ -44,8 +44,6 @@ function slugify(value: string): string {
   );
 }
 
-/** Validate a row against the module's required columns. Returns an
- * error string, or null when valid. */
 function checkRequired(key: ModuleKey, row: RawRow): string | null {
   const meta = getModule(key);
   for (const c of meta.columns) {
@@ -60,48 +58,47 @@ function isUniqueViolation(err: unknown): boolean {
   return (
     typeof err === "object" &&
     err !== null &&
-    (err as { code?: string }).code === "P2002"
+    (err as { code?: string }).code === "23505"
   );
 }
 
 // ---- find-or-create lookups ----------------------------------------
 
 async function categoryIdByName(name: string): Promise<string> {
-  const found = await prisma.menuCategory.findFirst({ where: { name } });
+  const { data: found } = await supabase.from("MenuCategory").select("id").eq("name", name).maybeSingle();
   if (found) return found.id;
-  const created = await prisma.menuCategory.create({
-    data: { name, slug: slugify(name), color: "#6F4E37" },
-  });
+  const { data: created, error } = await supabase.from("MenuCategory").insert({ name, slug: slugify(name), color: "#6F4E37" }).select("id").single();
+  if (error) throw error;
   return created.id;
 }
 
 async function stationIdByName(name: string): Promise<string> {
-  const found = await prisma.kitchenStation.findFirst({ where: { name } });
+  const { data: found } = await supabase.from("KitchenStation").select("id").eq("name", name).maybeSingle();
   if (found) return found.id;
-  const created = await prisma.kitchenStation.create({ data: { name } });
+  const { data: created, error } = await supabase.from("KitchenStation").insert({ name }).select("id").single();
+  if (error) throw error;
   return created.id;
 }
 
 async function expenseHeadIdByName(name: string): Promise<string> {
-  const found = await prisma.expenseHead.findFirst({ where: { name } });
+  const { data: found } = await supabase.from("ExpenseHead").select("id").eq("name", name).maybeSingle();
   if (found) return found.id;
-  const created = await prisma.expenseHead.create({ data: { name } });
+  const { data: created, error } = await supabase.from("ExpenseHead").insert({ name }).select("id").single();
+  if (error) throw error;
   return created.id;
 }
 
 async function supplierIdByName(name: string): Promise<string | null> {
-  const found = await prisma.supplier.findFirst({ where: { name } });
-  return found?.id ?? null;
+  const { data } = await supabase.from("Supplier").select("id").eq("name", name).maybeSingle();
+  return data?.id ?? null;
 }
 
 async function paymentChannelIdByName(name: string): Promise<string | null> {
-  const found = await prisma.paymentChannel.findFirst({ where: { name } });
-  return found?.id ?? null;
+  const { data } = await supabase.from("PaymentChannel").select("id").eq("name", name).maybeSingle();
+  return data?.id ?? null;
 }
 
 // ---- per-row insert builders ---------------------------------------
-// Each returns void on success or throws; the runner handles dedupe,
-// unique-collision skips, and error collection.
 
 type RowInserter = (row: RawRow) => Promise<void>;
 
@@ -110,17 +107,16 @@ const INSERTERS: Record<
   RowInserter
 > = {
   suppliers: async (row) => {
-    await prisma.supplier.create({
-      data: {
-        id: str(row.id) ?? undefined,
-        name: str(row.name)!,
-        contact: str(row.contact),
-        email: str(row.email),
-        phone: str(row.phone),
-        address: str(row.address),
-        rating: numv(row.rating) ?? 0,
-      },
+    const { error } = await supabase.from("Supplier").insert({
+      id: str(row.id) ?? undefined,
+      name: str(row.name)!,
+      contact: str(row.contact),
+      email: str(row.email),
+      phone: str(row.phone),
+      address: str(row.address),
+      rating: numv(row.rating) ?? 0,
     });
+    if (error) throw error;
   },
 
   paymentMethods: async (row) => {
@@ -129,76 +125,69 @@ const INSERTERS: Record<
       throw new Error(`invalid kind "${kind}"`);
     }
     const opening = numv(row.openingBalance) ?? 0;
-    await prisma.paymentChannel.create({
-      data: {
-        id: str(row.id) ?? undefined,
-        name: str(row.name)!,
-        kind: kind as "cash" | "card" | "wallet" | "online",
-        openingBalance: opening,
-        currentBalance: numv(row.currentBalance) ?? opening,
-        archived: boolv(row.archived),
-      },
+    const { error } = await supabase.from("PaymentChannel").insert({
+      id: str(row.id) ?? undefined,
+      name: str(row.name)!,
+      kind: kind as "cash" | "card" | "wallet" | "online",
+      openingBalance: opening,
+      currentBalance: numv(row.currentBalance) ?? opening,
+      archived: boolv(row.archived),
     });
+    if (error) throw error;
   },
 
   inventory: async (row) => {
     const supplierName = str(row.supplier);
-    const supplierId = supplierName
-      ? await supplierIdByName(supplierName)
-      : null;
-    await prisma.inventoryItem.create({
-      data: {
-        id: str(row.id) ?? undefined,
-        name: str(row.name)!,
-        sku: str(row.sku)!,
-        category: str(row.category)!,
-        unit: str(row.unit)!,
-        stock: numv(row.stock) ?? 0,
-        reorderLevel: numv(row.reorderLevel) ?? 0,
-        costPerUnit: numv(row.costPerUnit) ?? 0,
-        supplierId: supplierId ?? undefined,
-        lastRestocked: datev(row.lastRestocked) ?? undefined,
-        expiresAt: datev(row.expiresAt) ?? undefined,
-      },
+    const supplierId = supplierName ? await supplierIdByName(supplierName) : null;
+    const { error } = await supabase.from("InventoryItem").insert({
+      id: str(row.id) ?? undefined,
+      name: str(row.name)!,
+      sku: str(row.sku)!,
+      category: str(row.category)!,
+      unit: str(row.unit)!,
+      stock: numv(row.stock) ?? 0,
+      reorderLevel: numv(row.reorderLevel) ?? 0,
+      costPerUnit: numv(row.costPerUnit) ?? 0,
+      supplierId: supplierId ?? null,
+      lastRestocked: datev(row.lastRestocked),
+      expiresAt: datev(row.expiresAt),
     });
+    if (error) throw error;
   },
 
   menu: async (row) => {
     const categoryId = await categoryIdByName(str(row.category)!);
     const stationId = await stationIdByName(str(row.station) ?? "Kitchen");
-    await prisma.menuItem.create({
-      data: {
-        id: str(row.id) ?? undefined,
-        name: str(row.name)!,
-        description: str(row.description),
-        price: numv(row.price) ?? 0,
-        sku: str(row.sku) ?? undefined,
-        available: row.available == null ? true : boolv(row.available),
-        posVisible: row.posVisible == null ? true : boolv(row.posVisible),
-        popular: boolv(row.popular),
-        prepTimeMinutes: intv(row.prepTimeMinutes) ?? undefined,
-        categoryId,
-        stationId,
-      },
+    const { error } = await supabase.from("MenuItem").insert({
+      id: str(row.id) ?? undefined,
+      name: str(row.name)!,
+      description: str(row.description),
+      price: numv(row.price) ?? 0,
+      sku: str(row.sku),
+      available: row.available == null ? true : boolv(row.available),
+      posVisible: row.posVisible == null ? true : boolv(row.posVisible),
+      popular: boolv(row.popular),
+      prepTimeMinutes: intv(row.prepTimeMinutes),
+      categoryId,
+      stationId,
     });
+    if (error) throw error;
   },
 
   staff: async (row) => {
-    await prisma.user.create({
-      data: {
-        id: str(row.id) ?? undefined,
-        name: str(row.name)!,
-        email: str(row.email)!.toLowerCase(),
-        phone: str(row.phone),
-        // Imported accounts get an unusable hash — owner must reset.
-        passwordHash: `imported:${randomUUID()}`,
-        role: str(row.role)!,
-        monthlySalary: numv(row.monthlySalary) ?? undefined,
-        overtimeRate: numv(row.overtimeRate) ?? undefined,
-        standardWorkingDays: intv(row.standardWorkingDays) ?? undefined,
-        active: row.active == null ? true : boolv(row.active),
-      },
+    const { error } = await supabase.from("User").insert({
+      id: str(row.id) ?? undefined,
+      name: str(row.name)!,
+      email: str(row.email)!.toLowerCase(),
+      phone: str(row.phone),
+      passwordHash: `imported:${randomUUID()}`,
+      role: str(row.role)!,
+      monthlySalary: numv(row.monthlySalary),
+      overtimeRate: numv(row.overtimeRate),
+      standardWorkingDays: intv(row.standardWorkingDays),
+      active: row.active == null ? true : boolv(row.active),
     });
+    if (error) throw error;
   },
 
   expenses: async (row) => {
@@ -207,16 +196,15 @@ const INSERTERS: Record<
     if (!channelId) {
       throw new Error(`payment method "${row.paymentChannel}" not found`);
     }
-    await prisma.expense.create({
-      data: {
-        id: str(row.id) ?? undefined,
-        expenseHeadId: headId,
-        paymentChannelId: channelId,
-        amount: numv(row.amount) ?? 0,
-        detail: str(row.detail),
-        occurredAt: datev(row.occurredAt) ?? new Date(),
-      },
+    const { error } = await supabase.from("Expense").insert({
+      id: str(row.id) ?? undefined,
+      expenseHeadId: headId,
+      paymentChannelId: channelId,
+      amount: numv(row.amount) ?? 0,
+      detail: str(row.detail),
+      occurredAt: datev(row.occurredAt) ?? new Date().toISOString(),
     });
+    if (error) throw error;
   },
 };
 
@@ -225,18 +213,30 @@ const DEDUPE_TABLE: Record<
   Exclude<ModuleKey, "orders" | "customers">,
   () => Promise<Set<string>>
 > = {
-  suppliers: async () =>
-    new Set((await prisma.supplier.findMany({ select: { id: true } })).map((r) => r.id)),
-  paymentMethods: async () =>
-    new Set((await prisma.paymentChannel.findMany({ select: { id: true } })).map((r) => r.id)),
-  inventory: async () =>
-    new Set((await prisma.inventoryItem.findMany({ select: { id: true } })).map((r) => r.id)),
-  menu: async () =>
-    new Set((await prisma.menuItem.findMany({ select: { id: true } })).map((r) => r.id)),
-  staff: async () =>
-    new Set((await prisma.user.findMany({ select: { id: true } })).map((r) => r.id)),
-  expenses: async () =>
-    new Set((await prisma.expense.findMany({ select: { id: true } })).map((r) => r.id)),
+  suppliers: async () => {
+    const { data } = await supabase.from("Supplier").select("id");
+    return new Set((data ?? []).map((r) => r.id));
+  },
+  paymentMethods: async () => {
+    const { data } = await supabase.from("PaymentChannel").select("id");
+    return new Set((data ?? []).map((r) => r.id));
+  },
+  inventory: async () => {
+    const { data } = await supabase.from("InventoryItem").select("id");
+    return new Set((data ?? []).map((r) => r.id));
+  },
+  menu: async () => {
+    const { data } = await supabase.from("MenuItem").select("id");
+    return new Set((data ?? []).map((r) => r.id));
+  },
+  staff: async () => {
+    const { data } = await supabase.from("User").select("id");
+    return new Set((data ?? []).map((r) => r.id));
+  },
+  expenses: async () => {
+    const { data } = await supabase.from("Expense").select("id");
+    return new Set((data ?? []).map((r) => r.id));
+  },
 };
 
 /**
@@ -273,8 +273,6 @@ export async function importModuleRows(
     rowNum++;
     const id = str(row.id);
 
-    // Duplicate rule: skip if the id already exists (DB or earlier in
-    // this same file).
     if (id && (existingIds.has(id) || seenInBatch.has(id))) {
       result.skipped++;
       continue;
@@ -295,8 +293,6 @@ export async function importModuleRows(
       }
     } catch (err) {
       if (isUniqueViolation(err)) {
-        // Collides with an existing unique value (name/sku/email) →
-        // treat as a duplicate skip, not a failure.
         result.skipped++;
       } else {
         const msg = err instanceof Error ? err.message : "insert failed";

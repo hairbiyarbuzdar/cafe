@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { prisma } from "@/lib/prisma";
+import { supabase } from "@/lib/supabase";
 import { ensureBuiltInRoles } from "@/lib/roles-seed";
 import type { Permission } from "@/types/auth";
 
@@ -11,54 +11,26 @@ export type RoleActionResult<T = { id: string }> =
   | { ok: false; error: string };
 
 const ALL_PERMISSIONS: ReadonlySet<Permission> = new Set([
-  "pos.access",
-  "orders.view",
-  "orders.refund",
-  "orders.cancel",
-  "inventory.view",
-  "inventory.edit",
-  "menu.view",
-  "menu.edit",
-  "reports.view",
-  "staff.view",
-  "staff.edit",
-  "settings.view",
-  "settings.edit",
-  "kitchen.view",
-  "dashboard.view",
-  "expenses.view",
-  "expenses.edit",
+  "pos.access", "orders.view", "orders.refund", "orders.cancel",
+  "inventory.view", "inventory.edit", "menu.view", "menu.edit",
+  "reports.view", "staff.view", "staff.edit", "settings.view", "settings.edit",
+  "kitchen.view", "dashboard.view", "expenses.view", "expenses.edit",
 ]);
 
 const ALLOWED_DEFAULT_ROUTES = new Set([
-  "/pos",
-  "/dashboard",
-  "/orders",
-  "/kitchen",
-  "/menu",
-  "/inventory",
-  "/reports",
-  "/expenses",
-  "/staff",
-  "/settings",
+  "/pos", "/dashboard", "/orders", "/kitchen", "/menu",
+  "/inventory", "/reports", "/expenses", "/staff", "/settings",
 ]);
 
 function slugify(value: string): string {
-  return value
-    .normalize("NFKD")
-    .replace(/[̀-ͯ]/g, "")
-    .replace(/[^a-zA-Z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .toLowerCase();
+  return value.normalize("NFKD").replace(/[̀-ͯ]/g, "").replace(/[^a-zA-Z0-9]+/g, "-").replace(/^-+|-+$/g, "").toLowerCase();
 }
 
 function sanitisePermissions(input: unknown): Permission[] {
   if (!Array.isArray(input)) return [];
   const out = new Set<Permission>();
   for (const v of input) {
-    if (typeof v === "string" && ALL_PERMISSIONS.has(v as Permission)) {
-      out.add(v as Permission);
-    }
+    if (typeof v === "string" && ALL_PERMISSIONS.has(v as Permission)) out.add(v as Permission);
   }
   return Array.from(out);
 }
@@ -73,9 +45,6 @@ export type CreateRoleInput = {
 export async function createRoleAction(
   input: CreateRoleInput,
 ): Promise<RoleActionResult> {
-  // Make sure the built-in slugs ("admin", "manager", …) are taken
-  // before generating any custom slug — keeps user-supplied "Admin"
-  // from colliding with the built-in.
   await ensureBuiltInRoles();
 
   const name = input.name.trim();
@@ -94,35 +63,24 @@ export async function createRoleAction(
   const base = slugify(name) || "role";
   let id = base;
   for (let i = 2; i < 50; i++) {
-    const exists = await prisma.role.findUnique({
-      where: { id },
-      select: { id: true },
-    });
+    const { data: exists } = await supabase.from("Role").select("id").eq("id", id).maybeSingle();
     if (!exists) break;
     id = `${base}-${i}`;
   }
 
   try {
-    const row = await prisma.role.create({
-      data: {
-        id,
-        name,
-        description: input.description?.trim() || null,
-        permissions,
-        isSystem: false,
-        defaultRoute,
-      },
-      select: { id: true },
-    });
+    const { data: row, error } = await supabase
+      .from("Role")
+      .insert({ id, name, description: input.description?.trim() || null, permissions, isSystem: false, defaultRoute })
+      .select("id")
+      .single();
+    if (error) throw error;
     revalidatePath("/settings");
     revalidatePath("/staff");
     return { ok: true, data: { id: row.id } };
   } catch (err) {
     console.error("createRoleAction failed", err);
-    return {
-      ok: false,
-      error: err instanceof Error ? err.message : "Failed to create role",
-    };
+    return { ok: false, error: err instanceof Error ? err.message : "Failed to create role" };
   }
 }
 
@@ -134,11 +92,6 @@ export type UpdateRoleInput = {
   defaultRoute?: string | null;
 };
 
-/**
- * Update a role's name, description, permissions, and default route.
- * Built-in roles can have their permissions adjusted but their slug
- * (id) is locked and their `isSystem` flag is preserved.
- */
 export async function updateRoleAction(
   input: UpdateRoleInput,
 ): Promise<RoleActionResult> {
@@ -157,39 +110,22 @@ export async function updateRoleAction(
     return { ok: false, error: "That landing route isn't available" };
   }
 
-  const existing = await prisma.role.findUnique({
-    where: { id: input.id },
-    select: { id: true, isSystem: true },
-  });
+  const { data: existing } = await supabase.from("Role").select("id, isSystem").eq("id", input.id).maybeSingle();
   if (!existing) return { ok: false, error: "Role not found" };
 
-  // Belt-and-suspenders: admin must always have full access. The UI
-  // disables the checkboxes too, but the server is the last line of
-  // defence against an admin role being neutered by accident.
-  let finalPermissions = permissions;
-  if (input.id === "admin") {
-    finalPermissions = Array.from(ALL_PERMISSIONS);
-  }
+  const finalPermissions = input.id === "admin" ? Array.from(ALL_PERMISSIONS) : permissions;
 
   try {
-    await prisma.role.update({
-      where: { id: input.id },
-      data: {
-        name,
-        description: input.description?.trim() || null,
-        permissions: finalPermissions,
-        defaultRoute,
-      },
-    });
+    const { error } = await supabase.from("Role").update({
+      name, description: input.description?.trim() || null, permissions: finalPermissions, defaultRoute,
+    }).eq("id", input.id);
+    if (error) throw error;
     revalidatePath("/settings");
     revalidatePath("/staff");
     return { ok: true, data: { id: input.id } };
   } catch (err) {
     console.error("updateRoleAction failed", err);
-    return {
-      ok: false,
-      error: err instanceof Error ? err.message : "Failed to update role",
-    };
+    return { ok: false, error: err instanceof Error ? err.message : "Failed to update role" };
   }
 }
 
@@ -198,31 +134,29 @@ export async function deleteRoleAction(
 ): Promise<RoleActionResult<{ deleted: true }>> {
   if (!id) return { ok: false, error: "No role specified" };
 
-  const role = await prisma.role.findUnique({
-    where: { id },
-    select: { id: true, isSystem: true, _count: { select: { users: true } } },
-  });
+  const { data: role } = await supabase.from("Role").select("id, isSystem").eq("id", id).maybeSingle();
   if (!role) return { ok: false, error: "Role not found" };
-  if (role.isSystem) {
-    return { ok: false, error: "Built-in roles can't be deleted" };
-  }
-  if (role._count.users > 0) {
+  if (role.isSystem) return { ok: false, error: "Built-in roles can't be deleted" };
+
+  const { count } = await supabase
+    .from("User")
+    .select("*", { count: "exact", head: true })
+    .eq("role", id);
+  if ((count ?? 0) > 0) {
     return {
       ok: false,
-      error: `${role._count.users} member${role._count.users === 1 ? "" : "s"} still hold this role — reassign them first`,
+      error: `${count} member${count === 1 ? "" : "s"} still hold this role — reassign them first`,
     };
   }
 
   try {
-    await prisma.role.delete({ where: { id } });
+    const { error } = await supabase.from("Role").delete().eq("id", id);
+    if (error) throw error;
     revalidatePath("/settings");
     revalidatePath("/staff");
     return { ok: true, data: { deleted: true } };
   } catch (err) {
     console.error("deleteRoleAction failed", err);
-    return {
-      ok: false,
-      error: err instanceof Error ? err.message : "Failed to delete role",
-    };
+    return { ok: false, error: err instanceof Error ? err.message : "Failed to delete role" };
   }
 }

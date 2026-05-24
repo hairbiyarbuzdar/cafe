@@ -2,131 +2,101 @@
 
 import { revalidatePath } from "next/cache";
 
-import { prisma } from "@/lib/prisma";
+import { supabase } from "@/lib/supabase";
 import { publish } from "@/lib/realtime/bus";
 import type { TicketStatus } from "@/types";
 
 const TICKET_STATUSES: readonly TicketStatus[] = [
-  "pending",
-  "preparing",
-  "ready",
-  "served",
-  "cancelled",
+  "pending", "preparing", "ready", "served", "cancelled",
 ];
 
-export type SetTicketStatusResult =
-  | { ok: true }
-  | { ok: false; error: string };
+export type SetTicketStatusResult = { ok: true } | { ok: false; error: string };
 
-/**
- * Update the persisted status of a single kitchen ticket. The KDS
- * surface composes a synthetic ticket id of `${orderId}__${stationId}`
- * to address each ticket — that's what gets passed here.
- *
- * Two side effects worth calling out:
- *
- * 1. We sync `Order.status` when all of an order's tickets reach
- *    `ready` (→ order.status = "ready") or `served` (→ "preparing"
- *    if not paid yet, otherwise we leave it as "completed" set by
- *    payOrderAction). Keeps the order timeline coherent without the
- *    cashier having to touch the order again.
- *
- * 2. Cancelled tickets stay terminal — you can dismiss them (→ served)
- *    but you can't un-cancel.
- */
 export async function setKitchenTicketStatusAction(
   ticketId: string,
   status: TicketStatus,
 ): Promise<SetTicketStatusResult> {
   if (!ticketId) return { ok: false, error: "Missing ticket id" };
-  if (!TICKET_STATUSES.includes(status)) {
-    return { ok: false, error: "Invalid ticket status" };
-  }
+  if (!TICKET_STATUSES.includes(status)) return { ok: false, error: "Invalid ticket status" };
 
-  // Synthetic ids look like `${orderId}__${stationId}` — match how
-  // `listActiveKitchenTickets()` shapes them.
   const sep = ticketId.lastIndexOf("__");
   if (sep <= 0) return { ok: false, error: "Bad ticket id" };
   const orderId = ticketId.slice(0, sep);
   const stationId = ticketId.slice(sep + 2);
 
-  const existing = await prisma.kitchenTicket.findUnique({
-    where: { orderId_stationId: { orderId, stationId } },
-    select: { id: true, status: true },
-  });
+  const { data: existing } = await supabase
+    .from("KitchenTicket")
+    .select("id, status")
+    .eq("orderId", orderId)
+    .eq("stationId", stationId)
+    .maybeSingle();
   if (!existing) return { ok: false, error: "Ticket not found" };
   if (existing.status === status) return { ok: true };
   if (existing.status === "cancelled" && status !== "served") {
-    return {
-      ok: false,
-      error: "Cancelled tickets can only be dismissed (→ served).",
-    };
+    return { ok: false, error: "Cancelled tickets can only be dismissed (→ served)." };
   }
 
   try {
-    await prisma.kitchenTicket.update({
-      where: { id: existing.id },
-      data: { status },
-    });
+    await supabase.from("KitchenTicket").update({ status }).eq("id", existing.id);
 
-    // First transition into `ready` stamps every OrderItem at this
-    // station as completed. We only stamp items that haven't been
-    // stamped already, so a ready → preparing → ready bounce doesn't
-    // overwrite the original prep time, and any items added after the
-    // ticket was reopened (preparedAt: null) flip from "fresh" to
-    // "done" together with their peers.
     if (status === "ready") {
-      const itemsToStamp = await prisma.orderItem.findMany({
-        where: {
-          orderId,
-          preparedAt: null,
-          menuItem: { stationId },
-        },
-        select: { id: true },
-      });
-      if (itemsToStamp.length > 0) {
-        await prisma.orderItem.updateMany({
-          where: { id: { in: itemsToStamp.map((i) => i.id) } },
-          data: { preparedAt: new Date() },
-        });
+      const { data: itemsToStamp } = await supabase
+        .from("OrderItem")
+        .select("id, menuItemId")
+        .eq("orderId", orderId)
+        .is("preparedAt", null);
+
+      if (itemsToStamp && itemsToStamp.length > 0) {
+        const menuItemIds = itemsToStamp.map((i) => i.menuItemId).filter(Boolean);
+        const { data: stationItems } = await supabase
+          .from("MenuItem")
+          .select("id")
+          .in("id", menuItemIds)
+          .eq("stationId", stationId);
+        const stationItemIdSet = new Set((stationItems ?? []).map((m) => m.id));
+        const toStampIds = itemsToStamp
+          .filter((i) => i.menuItemId && stationItemIdSet.has(i.menuItemId))
+          .map((i) => i.id);
+        if (toStampIds.length > 0) {
+          await supabase
+            .from("OrderItem")
+            .update({ preparedAt: new Date().toISOString() })
+            .in("id", toStampIds);
+        }
       }
     }
 
-    // Mirror to the parent order's status if all of its tickets agree.
-    const siblings = await prisma.kitchenTicket.findMany({
-      where: { orderId },
-      select: { status: true },
-    });
-    const allActive = siblings.filter(
+    const { data: siblings } = await supabase
+      .from("KitchenTicket")
+      .select("status")
+      .eq("orderId", orderId);
+
+    const allActive = (siblings ?? []).filter(
       (t) => t.status !== "cancelled" && t.status !== "served",
     );
-    const everyReady =
-      allActive.length > 0 && allActive.every((t) => t.status === "ready");
+    const everyReady = allActive.length > 0 && allActive.every((t) => t.status === "ready");
     const everyDone = allActive.length === 0;
 
     if (everyReady) {
-      await prisma.order.update({
-        where: { id: orderId },
-        data: { status: "ready" },
-      });
+      await supabase.from("Order").update({ status: "ready" }).eq("id", orderId);
     } else if (everyDone) {
-      // Don't downgrade an order that's already paid+completed.
-      const order = await prisma.order.findUnique({
-        where: { id: orderId },
-        select: { paidAt: true, status: true },
-      });
+      const { data: order } = await supabase
+        .from("Order")
+        .select("paidAt, status")
+        .eq("id", orderId)
+        .maybeSingle();
       if (order && order.status !== "completed" && order.status !== "cancelled") {
-        await prisma.order.update({
-          where: { id: orderId },
-          data: { status: order.paidAt ? "completed" : "ready" },
-        });
+        await supabase
+          .from("Order")
+          .update({ status: order.paidAt ? "completed" : "ready" })
+          .eq("id", orderId);
       }
-    } else if (siblings.some((t) => t.status === "preparing")) {
-      // At least one station has started — bump the order out of "pending".
-      await prisma.order.updateMany({
-        where: { id: orderId, status: "pending" },
-        data: { status: "preparing" },
-      });
+    } else if ((siblings ?? []).some((t) => t.status === "preparing")) {
+      await supabase
+        .from("Order")
+        .update({ status: "preparing" })
+        .eq("id", orderId)
+        .eq("status", "pending");
     }
 
     revalidatePath("/kitchen");

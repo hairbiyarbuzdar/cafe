@@ -1,24 +1,10 @@
 import "server-only";
 
-import { prisma } from "@/lib/prisma";
+import { supabase } from "@/lib/supabase";
 
-export const DAYS = [
-  "mon",
-  "tue",
-  "wed",
-  "thu",
-  "fri",
-  "sat",
-  "sun",
-] as const;
+export const DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const;
 export type WeekDay = (typeof DAYS)[number];
-
-export type DayHours = {
-  /** "HH:mm" or null = closed. */
-  open: string | null;
-  close: string | null;
-};
-
+export type DayHours = { open: string | null; close: string | null };
 export type ReceiptWidth = "80" | "58";
 
 export type Workspace = {
@@ -37,52 +23,42 @@ export type Workspace = {
   updatedAt: string;
 };
 
-/**
- * Read the singleton workspace row. If absent (fresh DB), returns
- * `null` — callers that need a guaranteed row (settings page,
- * onboarding) call `ensureWorkspace()` first.
- */
-export async function getWorkspace(): Promise<Workspace | null> {
-  const row = await prisma.workspace.findUnique({ where: { id: "default" } });
-  if (!row) return null;
+function rowToWorkspace(row: Record<string, unknown>): Workspace {
   return {
-    id: row.id,
-    name: row.name,
-    legalEntity: row.legalEntity,
-    taxId: row.taxId,
-    phone: row.phone,
-    currency: row.currency,
-    timezone: row.timezone,
-    city: row.city,
-    addressLine: row.addressLine,
-    receiptFooter: row.receiptFooter,
+    id: row.id as string,
+    name: row.name as string,
+    legalEntity: (row.legalEntity as string | null) ?? null,
+    taxId: (row.taxId as string | null) ?? null,
+    phone: (row.phone as string | null) ?? null,
+    currency: (row.currency as string) ?? "PKR",
+    timezone: (row.timezone as string) ?? "Asia/Karachi",
+    city: (row.city as string | null) ?? null,
+    addressLine: (row.addressLine as string | null) ?? null,
+    receiptFooter: (row.receiptFooter as string | null) ?? null,
     receiptWidth: row.receiptWidth === "58" ? "58" : "80",
     hours: {
-      mon: { open: row.hoursMonOpen, close: row.hoursMonClose },
-      tue: { open: row.hoursTueOpen, close: row.hoursTueClose },
-      wed: { open: row.hoursWedOpen, close: row.hoursWedClose },
-      thu: { open: row.hoursThuOpen, close: row.hoursThuClose },
-      fri: { open: row.hoursFriOpen, close: row.hoursFriClose },
-      sat: { open: row.hoursSatOpen, close: row.hoursSatClose },
-      sun: { open: row.hoursSunOpen, close: row.hoursSunClose },
+      mon: { open: row.hoursMonOpen as string | null, close: row.hoursMonClose as string | null },
+      tue: { open: row.hoursTueOpen as string | null, close: row.hoursTueClose as string | null },
+      wed: { open: row.hoursWedOpen as string | null, close: row.hoursWedClose as string | null },
+      thu: { open: row.hoursThuOpen as string | null, close: row.hoursThuClose as string | null },
+      fri: { open: row.hoursFriOpen as string | null, close: row.hoursFriClose as string | null },
+      sat: { open: row.hoursSatOpen as string | null, close: row.hoursSatClose as string | null },
+      sun: { open: row.hoursSunOpen as string | null, close: row.hoursSunClose as string | null },
     },
-    updatedAt: row.updatedAt.toISOString(),
+    updatedAt: row.updatedAt as string,
   };
 }
 
-/**
- * Convenience: returns the workspace (creating one with defaults if
- * missing). Use in surfaces that must render *something*, like the
- * sidebar — never returns null.
- */
+export async function getWorkspace(): Promise<Workspace | null> {
+  const { data, error } = await supabase.from("Workspace").select("*").eq("id", "default").single();
+  if (error || !data) return null;
+  return rowToWorkspace(data as Record<string, unknown>);
+}
+
 export async function getOrCreateWorkspace(): Promise<Workspace> {
   const existing = await getWorkspace();
   if (existing) return existing;
-  await prisma.workspace.upsert({
-    where: { id: "default" },
-    create: { id: "default" },
-    update: {},
-  });
+  await supabase.from("Workspace").upsert({ id: "default", name: "My Café" }, { onConflict: "id" });
   const row = await getWorkspace();
   if (!row) throw new Error("Failed to create workspace");
   return row;

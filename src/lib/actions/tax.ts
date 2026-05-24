@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { prisma } from "@/lib/prisma";
+import { supabase } from "@/lib/supabase";
 
 export type UpdateTaxResult =
   | { ok: true; data: { rate: number; label: string } }
@@ -25,12 +25,16 @@ export async function updateTaxConfigAction(input: {
     return { ok: false, error: "Label is required (1–24 chars)" };
   }
 
-  const row = await prisma.taxConfig.upsert({
-    where: { id: "default" },
-    create: { id: "default", rate, label },
-    update: { rate, label },
-  });
+  const { data: row, error } = await supabase
+    .from("TaxConfig")
+    .upsert({ id: "default", rate, label }, { onConflict: "id" })
+    .select("rate, label")
+    .single();
+
+  if (error || !row) {
+    return { ok: false, error: error?.message ?? "Failed to save" };
+  }
 
   revalidatePath("/", "layout");
-  return { ok: true, data: { rate: row.rate, label: row.label } };
+  return { ok: true, data: { rate: Number(row.rate), label: row.label } };
 }

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { prisma } from "@/lib/prisma";
+import { supabase } from "@/lib/supabase";
 
 export type ActionResult<T = void> =
   | (T extends void ? { ok: true } : { ok: true; data: T })
@@ -26,13 +26,15 @@ export async function createTableAction(
   if (!Number.isFinite(capacity) || capacity < 1) {
     return { ok: false, error: "Capacity must be at least 1" };
   }
-  const existing = await prisma.table.findMany({ select: { name: true } });
-  const { name } = nextNameFromExisting(existing.map((t) => t.name));
+  const { data: existing } = await supabase.from("Table").select("name");
+  const { name } = nextNameFromExisting((existing ?? []).map((t) => t.name));
   try {
-    const created = await prisma.table.create({
-      data: { name, capacity: Math.floor(capacity), occupancy: 0 },
-      select: { id: true },
-    });
+    const { data: created, error } = await supabase
+      .from("Table")
+      .insert({ name, capacity: Math.floor(capacity), occupancy: 0 })
+      .select("id")
+      .single();
+    if (error) throw error;
     revalidatePath("/pos");
     return { ok: true, data: { id: created.id } };
   } catch (err) {
@@ -46,10 +48,14 @@ export async function createTableAction(
 
 export async function removeTableAction(id: string): Promise<ActionResult> {
   if (!id) return { ok: false, error: "Missing table id" };
-  const inUse = await prisma.order.findFirst({
-    where: { tableId: id, paidAt: null, status: { notIn: ["cancelled", "refunded"] } },
-    select: { id: true },
-  });
+  const { data: inUse } = await supabase
+    .from("Order")
+    .select("id")
+    .eq("tableId", id)
+    .is("paidAt", null)
+    .not("status", "in", '("cancelled","refunded")')
+    .limit(1)
+    .maybeSingle();
   if (inUse) {
     return {
       ok: false,
@@ -57,7 +63,8 @@ export async function removeTableAction(id: string): Promise<ActionResult> {
     };
   }
   try {
-    await prisma.table.delete({ where: { id } });
+    const { error } = await supabase.from("Table").delete().eq("id", id);
+    if (error) throw error;
     revalidatePath("/pos");
     return { ok: true };
   } catch (err) {
@@ -77,22 +84,19 @@ export async function setTableCapacityAction(
   if (!Number.isFinite(capacity) || capacity < 1) {
     return { ok: false, error: "Capacity must be at least 1" };
   }
-  const row = await prisma.table.findUnique({
-    where: { id },
-    select: { occupancy: true },
-  });
+  const { data: row } = await supabase
+    .from("Table")
+    .select("occupancy")
+    .eq("id", id)
+    .maybeSingle();
   if (!row) return { ok: false, error: "Table not found" };
   const cap = Math.floor(capacity);
   try {
-    await prisma.table.update({
-      where: { id },
-      data: {
-        capacity: cap,
-        // Capacity can't fall below current occupancy without breaking the
-        // invariant — clamp the occupancy down if needed.
-        occupancy: Math.min(row.occupancy, cap),
-      },
-    });
+    const { error } = await supabase
+      .from("Table")
+      .update({ capacity: cap, occupancy: Math.min(row.occupancy, cap) })
+      .eq("id", id);
+    if (error) throw error;
     revalidatePath("/pos");
     return { ok: true };
   } catch (err) {
@@ -109,26 +113,30 @@ export async function setTableWaiterAction(
   waiterId: string | null,
 ): Promise<ActionResult> {
   if (!id) return { ok: false, error: "Missing table id" };
-  const table = await prisma.table.findUnique({
-    where: { id },
-    select: { id: true },
-  });
+  const { data: table } = await supabase
+    .from("Table")
+    .select("id")
+    .eq("id", id)
+    .maybeSingle();
   if (!table) return { ok: false, error: "Table not found" };
 
-  // Validate the waiter (if any) is a real user with the waiter role —
-  // guards against a stale id from a long-open dialog.
   if (waiterId) {
-    const waiter = await prisma.user.findUnique({
-      where: { id: waiterId },
-      select: { role: true },
-    });
+    const { data: waiter } = await supabase
+      .from("User")
+      .select("role")
+      .eq("id", waiterId)
+      .maybeSingle();
     if (!waiter || waiter.role !== "waiter") {
       return { ok: false, error: "Pick a valid waiter" };
     }
   }
 
   try {
-    await prisma.table.update({ where: { id }, data: { waiterId } });
+    const { error } = await supabase
+      .from("Table")
+      .update({ waiterId })
+      .eq("id", id);
+    if (error) throw error;
     revalidatePath("/pos");
     return { ok: true };
   } catch (err) {
@@ -148,14 +156,19 @@ export async function setTableOccupancyAction(
   if (!Number.isFinite(occupancy) || occupancy < 0) {
     return { ok: false, error: "Occupancy must be 0 or greater" };
   }
-  const row = await prisma.table.findUnique({
-    where: { id },
-    select: { capacity: true },
-  });
+  const { data: row } = await supabase
+    .from("Table")
+    .select("capacity")
+    .eq("id", id)
+    .maybeSingle();
   if (!row) return { ok: false, error: "Table not found" };
   const value = Math.max(0, Math.min(Math.floor(occupancy), row.capacity));
   try {
-    await prisma.table.update({ where: { id }, data: { occupancy: value } });
+    const { error } = await supabase
+      .from("Table")
+      .update({ occupancy: value })
+      .eq("id", id);
+    if (error) throw error;
     revalidatePath("/pos");
     return { ok: true };
   } catch (err) {

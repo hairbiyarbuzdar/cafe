@@ -5,168 +5,143 @@ import { revalidatePath } from "next/cache";
 import { submitInvoiceToBraAction } from "@/lib/actions/fiscal";
 import { logActivity } from "@/lib/activity";
 import { getServerSession } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { supabase } from "@/lib/supabase";
 import { getOrderById } from "@/lib/queries/orders";
 import { publish } from "@/lib/realtime/bus";
 import { sendPushInBackground, userIdsWithPermission } from "@/lib/push/server";
 import type { Order, OrderChannel, PaymentMethod, ProductModifier } from "@/types";
 
-export type LoadOrderResult =
-  | { ok: true; order: Order }
-  | { ok: false; error: string };
+export type LoadOrderResult = { ok: true; order: Order } | { ok: false; error: string };
 
-/**
- * Lightweight fetcher used by the POS Pay picker — the cashier picks
- * a held order from the summary list, and the client hydrates the
- * full Order so `TakePaymentDialog` can render line totals + take
- * payment without bouncing through /orders.
- */
-export async function loadOrderForPaymentAction(
-  orderId: string,
-): Promise<LoadOrderResult> {
+export async function loadOrderForPaymentAction(orderId: string): Promise<LoadOrderResult> {
   const order = await getOrderById(orderId);
   if (!order) return { ok: false, error: "Order not found" };
   if (order.paidAt) return { ok: false, error: "Order is already paid" };
-  if (
-    order.status === "cancelled" ||
-    order.status === "refunded" ||
-    order.status === "completed"
-  ) {
+  if (order.status === "cancelled" || order.status === "refunded" || order.status === "completed") {
     return { ok: false, error: `Order is ${order.status} — cannot collect` };
   }
   if (order.status !== "ready") {
-    return {
-      ok: false,
-      error: `Order is ${order.status} — cashier can collect only after the kitchen marks it ready.`,
-    };
+    return { ok: false, error: `Order is ${order.status} — cashier can collect only after the kitchen marks it ready.` };
   }
   return { ok: true, order };
 }
 
-/**
- * Lifecycle (see also README "POS workflow"):
- *
- *   placeOrderAction → Order(status=pending, paidAt=null, payment=null)
- *                       + kitchen tickets (pending)
- *                       + inventory deducted
- *                       BRA submission is deferred.
- *
- *   addItemsToHeldOrderAction → appends OrderItems + new station tickets
- *                                + deducts inventory for the additions.
- *
- *   cancelHeldOrderAction → status=cancelled, tickets=cancelled
- *                            (still visible in the kitchen until a cook
- *                            dismisses them), inventory restored, order
- *                            no longer payable.
- *
- *   payOrderAction → captures payment, stamps paidAt, finalises totals
- *                     including any tip, kicks BRA auto-submit. Status
- *                     advances to "completed" so the order leaves the
- *                     "active" lists.
- */
-
-type CheckoutItem = {
-  productId: string;
-  quantity: number;
-  modifiers?: ProductModifier[];
-  note?: string;
-};
+type CheckoutItem = { productId: string; quantity: number; modifiers?: ProductModifier[]; note?: string };
 
 type Priced = {
-  line: CheckoutItem;
-  name: string;
-  unitPrice: number;
-  stationId: string;
+  line: CheckoutItem; name: string; unitPrice: number; stationId: string;
   recipe: { inventoryItemId: string; quantity: number }[];
 };
 
 const ORDER_NUMBER_BASE = 5800;
+const PAYMENT_METHODS: readonly PaymentMethod[] = ["card", "cash", "wallet", "online"];
+
+function round2(n: number) { return Math.round(n * 100) / 100; }
+function sumPriced(lines: Priced[]) { return lines.reduce((sum, p) => sum + p.unitPrice * p.line.quantity, 0); }
+function collectIngredientDelta(lines: Priced[]): Map<string, number> {
+  const delta = new Map<string, number>();
+  for (const p of lines) {
+    for (const r of p.recipe) {
+      delta.set(r.inventoryItemId, (delta.get(r.inventoryItemId) ?? 0) + r.quantity * p.line.quantity);
+    }
+  }
+  return delta;
+}
+function toOrderItemCreate(p: Priced) {
+  return {
+    menuItemId: p.line.productId, name: p.name, quantity: p.line.quantity, unitPrice: p.unitPrice,
+    modifiers: p.line.modifiers && p.line.modifiers.length ? p.line.modifiers.map((m) => m.name) : undefined,
+    note: p.line.note ?? null,
+  };
+}
+function receiptNumberFor(orderNumber: string) { return `BR-${orderNumber.replace(/^#/, "")}`; }
+
+async function priceCart(items: CheckoutItem[]): Promise<{ ok: true; lines: Priced[] } | { ok: false; error: string }> {
+  const productIds = Array.from(new Set(items.map((i) => i.productId)));
+  const { data: menuItems } = await supabase
+    .from("MenuItem")
+    .select("id, name, price, stationId, RecipeIngredient(inventoryItemId, quantity)")
+    .in("id", productIds);
+  const menuById = new Map((menuItems ?? []).map((m) => [m.id, m]));
+  const missing = productIds.filter((id) => !menuById.has(id));
+  if (missing.length) return { ok: false, error: `Unknown menu item(s): ${missing.join(", ")}` };
+  const lines: Priced[] = items.map((line) => {
+    const product = menuById.get(line.productId)!;
+    const modPrice = (line.modifiers ?? []).reduce((sum, m) => sum + (typeof m.priceDelta === "number" ? m.priceDelta : 0), 0);
+    const recipe = (Array.isArray(product.RecipeIngredient) ? product.RecipeIngredient : []) as { inventoryItemId: string; quantity: number }[];
+    return { line, name: product.name, unitPrice: Number(product.price) + modPrice, stationId: product.stationId, recipe: recipe.map((r) => ({ inventoryItemId: r.inventoryItemId, quantity: Number(r.quantity) })) };
+  });
+  return { ok: true, lines };
+}
+
+async function applyInventoryDelta(delta: Map<string, number>, ctx: { orderId: string; sign: 1 | -1; reason: string }) {
+  for (const [inventoryItemId, qty] of delta) {
+    if (qty <= 0) continue;
+    const { data: item } = await supabase.from("InventoryItem").select("stock").eq("id", inventoryItemId).maybeSingle();
+    const current = Number(item?.stock ?? 0);
+    const newStock = ctx.sign < 0 ? Math.max(0, current - qty) : current + qty;
+    await supabase.from("InventoryItem").update({ stock: newStock }).eq("id", inventoryItemId);
+    await supabase.from("InventoryMovement").insert({ inventoryItemId, delta: qty * ctx.sign, reason: ctx.reason, orderId: ctx.orderId });
+  }
+}
+
+async function nextOrderNumber(): Promise<string> {
+  const { data: rows } = await supabase.from("Order").select("number").like("number", "#%");
+  const nums = (rows ?? []).map((r) => { const m = /^#(\d+)$/.exec(r.number); return m ? parseInt(m[1]!, 10) : 0; });
+  const top = nums.length > 0 ? Math.max(...nums) : ORDER_NUMBER_BASE;
+  let candidate = Math.max(top + 1, ORDER_NUMBER_BASE + 1);
+  for (let attempt = 0; attempt < 50; attempt++) {
+    const { data: taken } = await supabase.from("Order").select("id").eq("number", `#${candidate}`).maybeSingle();
+    if (!taken) return `#${candidate}`;
+    candidate += 1;
+  }
+  throw new Error("Could not allocate a unique order number");
+}
+
+async function maybeSubmitToBra(orderId: string): Promise<string | null> {
+  try {
+    const { data: cfg } = await supabase.from("FiscalConfig").select("enabled, autoSubmit, mode").eq("id", "default").maybeSingle();
+    if (!cfg?.enabled || !cfg.autoSubmit || cfg.mode === "disabled") return null;
+    const result = await submitInvoiceToBraAction(orderId);
+    return result.ok ? result.data.fiscalInvoiceNumber : null;
+  } catch (err) {
+    console.error("Auto-submit to BRA failed", err);
+    return null;
+  }
+}
 
 // ──────────────────────────────────────────────────────────────
 // Place a held order
 // ──────────────────────────────────────────────────────────────
 
 export type PlaceOrderInput = {
-  items: CheckoutItem[];
-  channel: OrderChannel;
-  tableId?: string;
-  /** Party size for dine-in (defaults to 1). Used to bump the
-   * table's occupancy by exactly this much; cleared on pay/cancel. */
-  guests?: number;
-  note?: string;
-  /** 0–100, cashier-applied discount percentage. */
-  discountPct: number;
-  /** Decimal between 0 and 1, e.g. 0.085. */
-  taxRate: number;
-  customerName?: string;
-  customerPhone?: string;
-  /** Assigned waiter (dine-in) or delivery rider (delivery). Validated
-   * server-side; an unknown id is dropped rather than failing the order. */
-  assignedStaffId?: string | null;
-  /** When set, capture payment in the same transaction as placement
-   * (takeaway / delivery pay-now). The order is stamped paid but stays
-   * in the kitchen pipeline (status `pending`) — it's completed later
-   * via `completeOrderAction` (the hand-off), not by payment. Omit for
-   * held orders (dine-in, delivery COD). */
-  prepay?: {
-    payment: PaymentMethod;
-    paymentChannelId: string;
-  };
+  items: CheckoutItem[]; channel: OrderChannel; tableId?: string; guests?: number;
+  note?: string; discountPct: number; taxRate: number;
+  customerName?: string; customerPhone?: string; assignedStaffId?: string | null;
+  prepay?: { payment: PaymentMethod; paymentChannelId: string };
 };
 
 export type PlaceOrderResult =
-  | {
-      ok: true;
-      orderId: string;
-      orderNumber: string;
-      total: number;
-      /** True when payment was captured at placement (prepaid). Drives
-       * the payment-receipt print on the client. */
-      paid?: boolean;
-      receiptNumber?: string;
-      fiscalInvoiceNumber?: string;
-    }
+  | { ok: true; orderId: string; orderNumber: string; total: number; paid?: boolean; receiptNumber?: string; fiscalInvoiceNumber?: string }
   | { ok: false; error: string };
 
-export async function placeOrderAction(
-  input: PlaceOrderInput,
-): Promise<PlaceOrderResult> {
+export async function placeOrderAction(input: PlaceOrderInput): Promise<PlaceOrderResult> {
   if (!input.items.length) return { ok: false, error: "Cart is empty" };
-  if (input.discountPct < 0 || input.discountPct > 100) {
-    return { ok: false, error: "Invalid discount" };
-  }
-  if (input.taxRate < 0 || input.taxRate > 1) {
-    return { ok: false, error: "Invalid tax rate" };
-  }
-
-  // Dine-in must always carry a table — otherwise the order has no
-  // surface to sit on and the floor team can't find it. Surfaced as
-  // a clean reject so the client toasts the right thing rather than
-  // silently downgrading to a tableless order.
+  if (input.discountPct < 0 || input.discountPct > 100) return { ok: false, error: "Invalid discount" };
+  if (input.taxRate < 0 || input.taxRate > 1) return { ok: false, error: "Invalid tax rate" };
   if (input.channel === "dine-in" && !input.tableId) {
     return { ok: false, error: "Pick a table before placing a dine-in order" };
   }
 
-  // Normalise guests: dine-in defaults to 1; other channels store 0.
   const isDineIn = input.channel === "dine-in" && !!input.tableId;
   const requestedGuests = isDineIn ? Math.max(1, Math.floor(input.guests ?? 1)) : 0;
 
-  // Capacity guard — block over-seating with a clear message.
   if (isDineIn) {
-    const table = await prisma.table.findUnique({
-      where: { id: input.tableId! },
-      select: { id: true, name: true, capacity: true, occupancy: true },
-    });
+    const { data: table } = await supabase.from("Table").select("id, name, capacity, occupancy").eq("id", input.tableId!).maybeSingle();
     if (!table) return { ok: false, error: "Table not found" };
     const free = Math.max(0, table.capacity - table.occupancy);
     if (requestedGuests > free) {
-      return {
-        ok: false,
-        error:
-          free === 0
-            ? `${table.name} is full (${table.capacity}/${table.capacity})`
-            : `${table.name} only has ${free} seat${free === 1 ? "" : "s"} free`,
-      };
+      return { ok: false, error: free === 0 ? `${table.name} is full (${table.capacity}/${table.capacity})` : `${table.name} only has ${free} seat${free === 1 ? "" : "s"} free` };
     }
   }
 
@@ -179,38 +154,19 @@ export async function placeOrderAction(
   const tax = round2((subtotal - discount) * input.taxRate);
   const total = round2(subtotal - discount + tax);
 
-  // Prepayment (takeaway / delivery pay-now): validate the channel up
-  // front so a bad / archived one bails before we create the order.
   const prepay = input.prepay;
   let prepayChannelId: string | null = null;
   if (prepay) {
-    if (!PAYMENT_METHODS.includes(prepay.payment)) {
-      return { ok: false, error: "Invalid payment method" };
-    }
-    const channel = await prisma.paymentChannel.findUnique({
-      where: { id: prepay.paymentChannelId },
-      select: { id: true, archived: true, kind: true },
-    });
-    if (!channel || channel.archived) {
-      return { ok: false, error: "Selected payment method isn't active" };
-    }
-    if (channel.kind !== prepay.payment) {
-      return {
-        ok: false,
-        error: "Payment method doesn't match the selected channel",
-      };
-    }
+    if (!PAYMENT_METHODS.includes(prepay.payment)) return { ok: false, error: "Invalid payment method" };
+    const { data: channel } = await supabase.from("PaymentChannel").select("id, archived, kind").eq("id", prepay.paymentChannelId).maybeSingle();
+    if (!channel || channel.archived) return { ok: false, error: "Selected payment method isn't active" };
+    if (channel.kind !== prepay.payment) return { ok: false, error: "Payment method doesn't match the selected channel" };
     prepayChannelId = channel.id;
   }
 
-  // Resolve the assigned waiter / rider — drop an unknown id rather than
-  // failing the whole order over a stale selection.
   let assignedStaffId: string | null = null;
   if (input.assignedStaffId) {
-    const assignee = await prisma.user.findUnique({
-      where: { id: input.assignedStaffId },
-      select: { id: true },
-    });
+    const { data: assignee } = await supabase.from("User").select("id").eq("id", input.assignedStaffId).maybeSingle();
     assignedStaffId = assignee?.id ?? null;
   }
 
@@ -219,60 +175,31 @@ export async function placeOrderAction(
   const orderNumber = await nextOrderNumber();
 
   try {
-    const order = await prisma.$transaction(async (tx) => {
-      const created = await tx.order.create({
-        data: {
-          number: orderNumber,
-          status: "pending",
-          channel: input.channel,
-          customerName: input.customerName?.trim() || null,
-          customerPhone: input.customerPhone?.trim() || null,
-          tableId: input.tableId ?? null,
-          guests: requestedGuests,
-          staffId: session?.user.id ?? null,
-          assignedStaffId,
-          subtotal: round2(subtotal),
-          tax,
-          tip: null,
-          discount: discount > 0 ? discount : null,
-          total,
-          payment: prepay ? prepay.payment : null,
-          paymentChannelId: prepayChannelId,
-          paidAt: prepay ? new Date() : null,
-          notes: input.note?.trim() || null,
-          items: { create: priced.lines.map(toOrderItemCreate) },
-          tickets: {
-            create: stationIds.map((stationId) => ({
-              stationId,
-              status: "pending" as const,
-            })),
-          },
-        },
-      });
-      if (isDineIn) {
-        // Atomically bump the table's occupancy — the capacity guard
-        // above keeps us within bounds, and doing it inside the
-        // transaction means the row only exists if seats were taken.
-        await tx.table.update({
-          where: { id: input.tableId! },
-          data: { occupancy: { increment: requestedGuests } },
-        });
-      }
-      await applyInventoryDelta(tx, ingredientDelta, {
-        orderId: created.id,
-        sign: -1,
-        reason: `Placed via order ${orderNumber}`,
-      });
-      // Prepaid: credit the channel in the same transaction so Settings →
-      // Payment methods balances stay truthful, exactly like payOrderAction.
-      if (prepayChannelId && total > 0) {
-        await tx.paymentChannel.update({
-          where: { id: prepayChannelId },
-          data: { currentBalance: { increment: total } },
-        });
-      }
-      return created;
-    });
+    const { data: created, error: orderError } = await supabase.from("Order").insert({
+      number: orderNumber, status: "pending", channel: input.channel,
+      customerName: input.customerName?.trim() || null, customerPhone: input.customerPhone?.trim() || null,
+      tableId: input.tableId ?? null, guests: requestedGuests,
+      staffId: session?.user.id ?? null, assignedStaffId,
+      subtotal: round2(subtotal), tax, tip: null, discount: discount > 0 ? discount : null, total,
+      payment: prepay ? prepay.payment : null, paymentChannelId: prepayChannelId,
+      paidAt: prepay ? new Date().toISOString() : null, notes: input.note?.trim() || null,
+    }).select("id, number").single();
+    if (orderError) throw orderError;
+
+    await supabase.from("OrderItem").insert(priced.lines.map((p) => ({ orderId: created.id, ...toOrderItemCreate(p) })));
+    await supabase.from("KitchenTicket").insert(stationIds.map((stationId) => ({ orderId: created.id, stationId, status: "pending" })));
+
+    if (isDineIn) {
+      const { data: t } = await supabase.from("Table").select("occupancy").eq("id", input.tableId!).single();
+      await supabase.from("Table").update({ occupancy: Number(t?.occupancy ?? 0) + requestedGuests }).eq("id", input.tableId!);
+    }
+
+    await applyInventoryDelta(ingredientDelta, { orderId: created.id, sign: -1, reason: `Placed via order ${orderNumber}` });
+
+    if (prepayChannelId && total > 0) {
+      const { data: ch } = await supabase.from("PaymentChannel").select("currentBalance").eq("id", prepayChannelId).single();
+      await supabase.from("PaymentChannel").update({ currentBalance: Number(ch?.currentBalance ?? 0) + total }).eq("id", prepayChannelId);
+    }
 
     revalidatePath("/orders");
     revalidatePath("/kitchen");
@@ -280,69 +207,30 @@ export async function placeOrderAction(
     revalidatePath("/dashboard");
     if (isDineIn) revalidatePath("/pos");
 
-    await publish({
-      type: "order.placed",
-      orderId: order.id,
-      orderNumber: order.number,
-    });
+    await publish({ type: "order.placed", orderId: created.id, orderNumber: created.number });
 
-    // Ping every device whose role can see /kitchen so the kitchen
-    // tablet wakes the screen on a new order even if Cafe Management System's tab
-    // isn't focused. Fire-and-forget so push latency doesn't sit on
-    // the cashier's response path.
     void userIdsWithPermission("kitchen.view").then((userIds) =>
       sendPushInBackground(userIds, {
-        title: `New order · ${order.number}`,
-        body: `${priced.lines.reduce((s, p) => s + p.line.quantity, 0)} item${priced.lines.reduce((s, p) => s + p.line.quantity, 0) === 1 ? "" : "s"} · ${input.channel}${input.tableId ? ` · table` : ""}`,
-        url: "/kitchen",
-        tag: "order.placed",
+        title: `New order · ${created.number}`,
+        body: `${priced.lines.reduce((s, p) => s + p.line.quantity, 0)} items · ${input.channel}`,
+        url: "/kitchen", tag: "order.placed",
       }),
     );
 
     const itemCount = priced.lines.reduce((s, p) => s + p.line.quantity, 0);
-    await logActivity({
-      type: "order",
-      title: `Order ${order.number} started`,
-      description: `${itemCount} item${itemCount === 1 ? "" : "s"} · ${input.channel}${
-        input.tableId ? ` · table ${input.tableId}${isDineIn ? ` · ${requestedGuests} guest${requestedGuests === 1 ? "" : "s"}` : ""}` : ""
-      }`,
-      orderId: order.id,
-    });
+    await logActivity({ type: "order", title: `Order ${created.number} started`, description: `${itemCount} item${itemCount === 1 ? "" : "s"} · ${input.channel}`, orderId: created.id });
 
-    // Prepaid orders: mirror payOrderAction's after-effects — broadcast
-    // the paid state, log it, and fire BRA fiscalization (best-effort).
     let fiscalInvoiceNumber: string | undefined;
     if (prepay) {
-      await publish({ type: "order.paid", orderId: order.id });
-      await logActivity({
-        type: "order",
-        title: `Order ${order.number} paid`,
-        description: `${prepay.payment} · Rs. ${total.toLocaleString()} · prepaid at placement`,
-        orderId: order.id,
-        metadata: { payment: prepay.payment, total, prepaid: true },
-      });
-      try {
-        fiscalInvoiceNumber = (await maybeSubmitToBra(order.id)) ?? undefined;
-      } catch {
-        // swallow; logged inside maybeSubmitToBra
-      }
+      await publish({ type: "order.paid", orderId: created.id });
+      await logActivity({ type: "order", title: `Order ${created.number} paid`, description: `${prepay.payment} · Rs. ${total.toLocaleString()} · prepaid at placement`, orderId: created.id, metadata: { payment: prepay.payment, total, prepaid: true } });
+      try { fiscalInvoiceNumber = (await maybeSubmitToBra(created.id)) ?? undefined; } catch { /* swallow */ }
     }
 
-    return {
-      ok: true,
-      orderId: order.id,
-      orderNumber: order.number,
-      total,
-      paid: prepay ? true : undefined,
-      receiptNumber: prepay ? receiptNumberFor(order.number) : undefined,
-      fiscalInvoiceNumber,
-    };
+    return { ok: true, orderId: created.id, orderNumber: created.number, total, paid: prepay ? true : undefined, receiptNumber: prepay ? receiptNumberFor(created.number) : undefined, fiscalInvoiceNumber };
   } catch (err) {
     console.error("placeOrderAction failed", err);
-    return {
-      ok: false,
-      error: err instanceof Error ? err.message : "Failed to place order",
-    };
+    return { ok: false, error: err instanceof Error ? err.message : "Failed to place order" };
   }
 }
 
@@ -357,39 +245,19 @@ export async function addItemsToHeldOrderAction(
   if (!orderId) return { ok: false, error: "Missing order id" };
   if (!items.length) return { ok: false, error: "Nothing to add" };
 
-  const order = await prisma.order.findUnique({
-    where: { id: orderId },
-    select: {
-      id: true,
-      number: true,
-      status: true,
-      paidAt: true,
-      discount: true,
-      subtotal: true,
-      tax: true,
-    },
-  });
+  const { data: order } = await supabase.from("Order").select("id, number, status, paidAt, discount, subtotal, tax").eq("id", orderId).maybeSingle();
   if (!order) return { ok: false, error: "Order not found" };
   if (order.paidAt) return { ok: false, error: "Order is already paid" };
-  if (order.status === "cancelled" || order.status === "refunded") {
-    return { ok: false, error: "Order is no longer open" };
-  }
+  if (order.status === "cancelled" || order.status === "refunded") return { ok: false, error: "Order is no longer open" };
 
   const priced = await priceCart(items);
   if (!priced.ok) return priced;
 
-  // Recompute totals from existing subtotal + the additions, preserving
-  // the existing discount percentage. We keep tax rate fresh from the
-  // recompute so a settings change between adds doesn't drift the math.
-  const existingSubtotal = toNumber(order.subtotal);
-  const existingTax = toNumber(order.tax);
-  const existingDiscount = toNumber(order.discount);
-  const taxRate =
-    existingSubtotal - existingDiscount > 0
-      ? existingTax / (existingSubtotal - existingDiscount)
-      : 0;
-  const discountPct =
-    existingSubtotal > 0 ? (existingDiscount / existingSubtotal) * 100 : 0;
+  const existingSubtotal = Number(order.subtotal);
+  const existingTax = Number(order.tax);
+  const existingDiscount = Number(order.discount ?? 0);
+  const taxRate = existingSubtotal - existingDiscount > 0 ? existingTax / (existingSubtotal - existingDiscount) : 0;
+  const discountPct = existingSubtotal > 0 ? (existingDiscount / existingSubtotal) * 100 : 0;
 
   const addedSubtotal = sumPriced(priced.lines);
   const nextSubtotal = round2(existingSubtotal + addedSubtotal);
@@ -401,72 +269,27 @@ export async function addItemsToHeldOrderAction(
   const newStationIds = Array.from(new Set(priced.lines.map((p) => p.stationId)));
 
   try {
-    await prisma.$transaction(async (tx) => {
-      await tx.order.update({
-        where: { id: order.id },
-        data: {
-          subtotal: nextSubtotal,
-          discount: nextDiscount > 0 ? nextDiscount : null,
-          tax: nextTax,
-          total: nextTotal,
-          items: { create: priced.lines.map(toOrderItemCreate) },
-        },
-      });
+    await supabase.from("Order").update({ subtotal: nextSubtotal, discount: nextDiscount > 0 ? nextDiscount : null, tax: nextTax, total: nextTotal }).eq("id", order.id);
+    await supabase.from("OrderItem").insert(priced.lines.map((p) => ({ orderId: order.id, ...toOrderItemCreate(p) })));
 
-      // For each station the additions touch, either create a fresh
-      // ticket or reopen an existing one. We reopen anything that
-      // isn't already in `pending` (or `preparing`, where the cook is
-      // actively watching the card) — critically, this catches the
-      // `ready` case where the kitchen has filed the ticket away and
-      // would otherwise never notice the new items appear inside it.
-      // Without this, attaching to a ready order + adding items would
-      // silently land them in a card no cook is looking at.
-      for (const stationId of newStationIds) {
-        const existing = await tx.kitchenTicket.findUnique({
-          where: { orderId_stationId: { orderId: order.id, stationId } },
-        });
-        if (!existing) {
-          await tx.kitchenTicket.create({
-            data: { orderId: order.id, stationId, status: "pending" },
-          });
-        } else if (existing.status !== "pending" && existing.status !== "preparing") {
-          await tx.kitchenTicket.update({
-            where: { id: existing.id },
-            data: { status: "pending" },
-          });
-        }
+    for (const stationId of newStationIds) {
+      const { data: existing } = await supabase.from("KitchenTicket").select("id, status").eq("orderId", order.id).eq("stationId", stationId).maybeSingle();
+      if (!existing) {
+        await supabase.from("KitchenTicket").insert({ orderId: order.id, stationId, status: "pending" });
+      } else if (existing.status !== "pending" && existing.status !== "preparing") {
+        await supabase.from("KitchenTicket").update({ status: "pending" }).eq("id", existing.id);
       }
+    }
 
-      // Recompute order.status from the freshly-mutated tickets so
-      // the cashier's Pay button (gated to `ready`) re-locks if any
-      // station now has fresh work pending. Mirrors the logic in
-      // setKitchenTicketStatusAction so the two stay coherent.
-      const allTickets = await tx.kitchenTicket.findMany({
-        where: { orderId: order.id },
-        select: { status: true },
-      });
-      const activeTickets = allTickets.filter(
-        (t) => t.status !== "cancelled" && t.status !== "served",
-      );
-      const nextOrderStatus =
-        activeTickets.length === 0
-          ? "pending"
-          : activeTickets.every((t) => t.status === "ready")
-            ? "ready"
-            : activeTickets.some((t) => t.status === "preparing")
-              ? "preparing"
-              : "pending";
-      await tx.order.update({
-        where: { id: order.id },
-        data: { status: nextOrderStatus },
-      });
+    const { data: allTickets } = await supabase.from("KitchenTicket").select("status").eq("orderId", order.id);
+    const activeTickets = (allTickets ?? []).filter((t) => t.status !== "cancelled" && t.status !== "served");
+    const nextOrderStatus = activeTickets.length === 0 ? "pending"
+      : activeTickets.every((t) => t.status === "ready") ? "ready"
+      : activeTickets.some((t) => t.status === "preparing") ? "preparing"
+      : "pending";
+    await supabase.from("Order").update({ status: nextOrderStatus }).eq("id", order.id);
 
-      await applyInventoryDelta(tx, ingredientDelta, {
-        orderId: order.id,
-        sign: -1,
-        reason: `Added to order ${order.number}`,
-      });
-    });
+    await applyInventoryDelta(ingredientDelta, { orderId: order.id, sign: -1, reason: `Added to order ${order.number}` });
 
     revalidatePath("/orders");
     revalidatePath("/kitchen");
@@ -475,25 +298,12 @@ export async function addItemsToHeldOrderAction(
     await publish({ type: "order.updated", orderId: order.id });
 
     const addedQty = priced.lines.reduce((s, p) => s + p.line.quantity, 0);
-    await logActivity({
-      type: "order",
-      title: `Items added to ${order.number}`,
-      description: `+${addedQty} item${addedQty === 1 ? "" : "s"}`,
-      orderId: order.id,
-    });
+    await logActivity({ type: "order", title: `Items added to ${order.number}`, description: `+${addedQty} item${addedQty === 1 ? "" : "s"}`, orderId: order.id });
 
-    return {
-      ok: true,
-      orderId: order.id,
-      orderNumber: order.number,
-      total: nextTotal,
-    };
+    return { ok: true, orderId: order.id, orderNumber: order.number, total: nextTotal };
   } catch (err) {
     console.error("addItemsToHeldOrderAction failed", err);
-    return {
-      ok: false,
-      error: err instanceof Error ? err.message : "Failed to add items",
-    };
+    return { ok: false, error: err instanceof Error ? err.message : "Failed to add items" };
   }
 }
 
@@ -501,87 +311,39 @@ export async function addItemsToHeldOrderAction(
 // Cancel a held order
 // ──────────────────────────────────────────────────────────────
 
-export type CancelHeldOrderResult =
-  | { ok: true }
-  | { ok: false; error: string };
+export type CancelHeldOrderResult = { ok: true } | { ok: false; error: string };
 
-export async function cancelHeldOrderAction(
-  orderId: string,
-  reason?: string,
-): Promise<CancelHeldOrderResult> {
+export async function cancelHeldOrderAction(orderId: string, reason?: string): Promise<CancelHeldOrderResult> {
   if (!orderId) return { ok: false, error: "Missing order id" };
-
-  const order = await prisma.order.findUnique({
-    where: { id: orderId },
-    select: {
-      id: true,
-      number: true,
-      status: true,
-      paidAt: true,
-      notes: true,
-      tableId: true,
-      guests: true,
-    },
-  });
+  const { data: order } = await supabase.from("Order").select("id, number, status, paidAt, notes, tableId, guests").eq("id", orderId).maybeSingle();
   if (!order) return { ok: false, error: "Order not found" };
   if (order.paidAt) return { ok: false, error: "Paid orders can't be cancelled" };
   if (order.status === "cancelled") return { ok: true };
-  if (order.status === "refunded") {
-    return { ok: false, error: "Order is already refunded" };
-  }
+  if (order.status === "refunded") return { ok: false, error: "Order is already refunded" };
 
-  // Restore inventory for every consumption movement we wrote against
-  // this order. Net out by inventory item so a re-stock entry has the
-  // right magnitude.
-  const consumed = await prisma.inventoryMovement.findMany({
-    where: { orderId: order.id, delta: { lt: 0 } },
-    select: { inventoryItemId: true, delta: true },
-  });
+  const { data: consumed } = await supabase.from("InventoryMovement").select("inventoryItemId, delta").eq("orderId", order.id).lt("delta", 0);
   const restoreByItem = new Map<string, number>();
-  for (const m of consumed) {
-    const restore = -toNumber(m.delta); // positive
-    restoreByItem.set(
-      m.inventoryItemId,
-      (restoreByItem.get(m.inventoryItemId) ?? 0) + restore,
-    );
+  for (const m of consumed ?? []) {
+    restoreByItem.set(m.inventoryItemId, (restoreByItem.get(m.inventoryItemId) ?? 0) + Math.abs(Number(m.delta)));
   }
 
   try {
-    await prisma.$transaction(async (tx) => {
-      await tx.order.update({
-        where: { id: order.id },
-        data: {
-          status: "cancelled",
-          notes: reason?.trim()
-            ? [order.notes, `Cancelled: ${reason.trim()}`]
-                .filter(Boolean)
-                .join("\n")
-            : order.notes,
-        },
-      });
-      await tx.kitchenTicket.updateMany({
-        where: { orderId: order.id, status: { not: "cancelled" } },
-        data: { status: "cancelled" },
-      });
-      for (const [inventoryItemId, qty] of restoreByItem) {
-        await tx.inventoryItem.update({
-          where: { id: inventoryItemId },
-          data: { stock: { increment: qty } },
-        });
-        await tx.inventoryMovement.create({
-          data: {
-            inventoryItemId,
-            delta: qty,
-            reason: `Cancelled order ${order.number}`,
-            orderId: order.id,
-          },
-        });
-      }
-      // Free the seats the cancelled order had been holding.
-      if (order.tableId && order.guests > 0) {
-        await tx.$executeRaw`UPDATE "Table" SET "occupancy" = GREATEST(0, "occupancy" - ${order.guests}) WHERE "id" = ${order.tableId}`;
-      }
-    });
+    const updatedNotes = reason?.trim()
+      ? [order.notes, `Cancelled: ${reason.trim()}`].filter(Boolean).join("\n")
+      : order.notes;
+    await supabase.from("Order").update({ status: "cancelled", notes: updatedNotes }).eq("id", order.id);
+    await supabase.from("KitchenTicket").update({ status: "cancelled" }).eq("orderId", order.id).not("status", "eq", "cancelled");
+
+    for (const [inventoryItemId, qty] of restoreByItem) {
+      const { data: item } = await supabase.from("InventoryItem").select("stock").eq("id", inventoryItemId).maybeSingle();
+      await supabase.from("InventoryItem").update({ stock: Number(item?.stock ?? 0) + qty }).eq("id", inventoryItemId);
+      await supabase.from("InventoryMovement").insert({ inventoryItemId, delta: qty, reason: `Cancelled order ${order.number}`, orderId: order.id });
+    }
+
+    if (order.tableId && order.guests > 0) {
+      const { data: t } = await supabase.from("Table").select("occupancy").eq("id", order.tableId).maybeSingle();
+      await supabase.from("Table").update({ occupancy: Math.max(0, Number(t?.occupancy ?? 0) - order.guests) }).eq("id", order.tableId);
+    }
 
     revalidatePath("/orders");
     revalidatePath("/kitchen");
@@ -589,21 +351,12 @@ export async function cancelHeldOrderAction(
     if (order.tableId) revalidatePath("/pos");
 
     await publish({ type: "order.cancelled", orderId: order.id });
-
-    await logActivity({
-      type: "order",
-      title: `Order ${order.number} cancelled`,
-      description: reason?.trim() || "Cancelled before payment · inventory restored",
-      orderId: order.id,
-    });
+    await logActivity({ type: "order", title: `Order ${order.number} cancelled`, description: reason?.trim() || "Cancelled before payment · inventory restored", orderId: order.id });
 
     return { ok: true };
   } catch (err) {
     console.error("cancelHeldOrderAction failed", err);
-    return {
-      ok: false,
-      error: err instanceof Error ? err.message : "Failed to cancel",
-    };
+    return { ok: false, error: err instanceof Error ? err.message : "Failed to cancel" };
   }
 }
 
@@ -611,136 +364,52 @@ export async function cancelHeldOrderAction(
 // Take payment and finalise the order
 // ──────────────────────────────────────────────────────────────
 
-export type PayOrderInput = {
-  orderId: string;
-  payment: PaymentMethod;
-  /** Which payment channel to credit. When set we both stamp it on
-   *  the order (audit trail) and increment its `currentBalance` in
-   *  the same transaction so the Settings → Payment methods totals
-   *  stay truthful. */
-  paymentChannelId?: string | null;
-  tip?: number;
-};
+export type PayOrderInput = { orderId: string; payment: PaymentMethod; paymentChannelId?: string | null; tip?: number };
 
 export type PayOrderResult =
-  | {
-      ok: true;
-      orderId: string;
-      orderNumber: string;
-      receiptNumber: string;
-      total: number;
-      fiscalInvoiceNumber?: string;
-    }
+  | { ok: true; orderId: string; orderNumber: string; receiptNumber: string; total: number; fiscalInvoiceNumber?: string }
   | { ok: false; error: string };
 
-const PAYMENT_METHODS: readonly PaymentMethod[] = [
-  "card",
-  "cash",
-  "wallet",
-  "online",
-];
-
-export async function payOrderAction(
-  input: PayOrderInput,
-): Promise<PayOrderResult> {
+export async function payOrderAction(input: PayOrderInput): Promise<PayOrderResult> {
   if (!input.orderId) return { ok: false, error: "Missing order id" };
-  if (!PAYMENT_METHODS.includes(input.payment)) {
-    return { ok: false, error: "Invalid payment method" };
-  }
-  const tipAmount =
-    input.tip != null && Number.isFinite(input.tip) && input.tip >= 0
-      ? round2(input.tip)
-      : 0;
+  if (!PAYMENT_METHODS.includes(input.payment)) return { ok: false, error: "Invalid payment method" };
+  const tipAmount = input.tip != null && Number.isFinite(input.tip) && input.tip >= 0 ? round2(input.tip) : 0;
 
-  const order = await prisma.order.findUnique({
-    where: { id: input.orderId },
-    select: {
-      id: true,
-      number: true,
-      status: true,
-      paidAt: true,
-      subtotal: true,
-      tax: true,
-      discount: true,
-      tableId: true,
-      guests: true,
-    },
-  });
+  const { data: order } = await supabase.from("Order").select("id, number, status, paidAt, subtotal, tax, discount, tableId, guests").eq("id", input.orderId).maybeSingle();
   if (!order) return { ok: false, error: "Order not found" };
-  if (order.status === "cancelled" || order.status === "refunded") {
-    return { ok: false, error: "Order is no longer payable" };
-  }
+  if (order.status === "cancelled" || order.status === "refunded") return { ok: false, error: "Order is no longer payable" };
   if (order.paidAt) {
-    return {
-      ok: true,
-      orderId: order.id,
-      orderNumber: order.number,
-      receiptNumber: receiptNumberFor(order.number),
-      total: round2(toNumber(order.subtotal) - toNumber(order.discount) + toNumber(order.tax)),
-    };
+    return { ok: true, orderId: order.id, orderNumber: order.number, receiptNumber: receiptNumberFor(order.number), total: round2(Number(order.subtotal) - Number(order.discount ?? 0) + Number(order.tax)) };
   }
   if (order.status !== "ready") {
-    return {
-      ok: false,
-      error: `Order is ${order.status}. Wait for the kitchen to mark it ready before collecting payment.`,
-    };
+    return { ok: false, error: `Order is ${order.status}. Wait for the kitchen to mark it ready before collecting payment.` };
   }
 
-  const subtotal = toNumber(order.subtotal);
-  const discount = toNumber(order.discount);
-  const tax = toNumber(order.tax);
+  const subtotal = Number(order.subtotal);
+  const discount = Number(order.discount ?? 0);
+  const tax = Number(order.tax);
   const total = round2(subtotal - discount + tax + tipAmount);
 
-  // Resolve the channel up-front so a wrong / archived id bails out
-  // before we touch the order — otherwise the cashier sees a paid
-  // order with no money landed against any channel.
   let paymentChannelId: string | null = null;
   if (input.paymentChannelId) {
-    const channel = await prisma.paymentChannel.findUnique({
-      where: { id: input.paymentChannelId },
-      select: { id: true, archived: true, kind: true },
-    });
-    if (!channel || channel.archived) {
-      return { ok: false, error: "Selected payment method isn't active" };
-    }
-    if (channel.kind !== input.payment) {
-      return {
-        ok: false,
-        error: "Payment method doesn't match the selected channel's kind",
-      };
-    }
+    const { data: channel } = await supabase.from("PaymentChannel").select("id, archived, kind").eq("id", input.paymentChannelId).maybeSingle();
+    if (!channel || channel.archived) return { ok: false, error: "Selected payment method isn't active" };
+    if (channel.kind !== input.payment) return { ok: false, error: "Payment method doesn't match the selected channel's kind" };
     paymentChannelId = channel.id;
   }
 
   try {
-    // Single transaction: stamp the order paid, free the seats it
-    // occupied, and credit the payment channel. occupancy is clamped
-    // to 0 via `Math.max` in raw SQL so an out-of-band manual reset
-    // earlier in the day can't push us negative. The channel credit
-    // here is what makes Settings → Payment methods balances actually
-    // reflect what the cashier has taken in.
-    await prisma.$transaction(async (tx) => {
-      await tx.order.update({
-        where: { id: order.id },
-        data: {
-          payment: input.payment,
-          paymentChannelId,
-          paidAt: new Date(),
-          tip: tipAmount > 0 ? tipAmount : null,
-          total,
-          status: "completed",
-        },
-      });
-      if (order.tableId && order.guests > 0) {
-        await tx.$executeRaw`UPDATE "Table" SET "occupancy" = GREATEST(0, "occupancy" - ${order.guests}) WHERE "id" = ${order.tableId}`;
-      }
-      if (paymentChannelId && total > 0) {
-        await tx.paymentChannel.update({
-          where: { id: paymentChannelId },
-          data: { currentBalance: { increment: total } },
-        });
-      }
-    });
+    await supabase.from("Order").update({ payment: input.payment, paymentChannelId, paidAt: new Date().toISOString(), tip: tipAmount > 0 ? tipAmount : null, total, status: "completed" }).eq("id", order.id);
+
+    if (order.tableId && order.guests > 0) {
+      const { data: t } = await supabase.from("Table").select("occupancy").eq("id", order.tableId).maybeSingle();
+      await supabase.from("Table").update({ occupancy: Math.max(0, Number(t?.occupancy ?? 0) - order.guests) }).eq("id", order.tableId);
+    }
+
+    if (paymentChannelId && total > 0) {
+      const { data: ch } = await supabase.from("PaymentChannel").select("currentBalance").eq("id", paymentChannelId).single();
+      await supabase.from("PaymentChannel").update({ currentBalance: Number(ch?.currentBalance ?? 0) + total }).eq("id", paymentChannelId);
+    }
 
     revalidatePath("/orders");
     revalidatePath("/kitchen");
@@ -749,290 +418,49 @@ export async function payOrderAction(
     if (order.tableId) revalidatePath("/pos");
 
     await publish({ type: "order.paid", orderId: order.id });
+    await logActivity({ type: "order", title: `Order ${order.number} paid`, description: `${input.payment} · Rs. ${total.toLocaleString()}`, orderId: order.id, metadata: { payment: input.payment, tip: tipAmount, total } });
 
-    await logActivity({
-      type: "order",
-      title: `Order ${order.number} paid`,
-      description: `${input.payment} · Rs. ${total.toLocaleString()}`,
-      orderId: order.id,
-      metadata: { payment: input.payment, tip: tipAmount, total },
-    });
-
-    // BRA auto-submit happens once we've actually collected payment.
-    // Fire-and-(non-strictly)-forget — the order is already paid, any
-    // BRA outage just gets logged + retryable from the drawer.
     let fiscal: string | undefined;
-    try {
-      const result = await maybeSubmitToBra(order.id);
-      fiscal = result ?? undefined;
-    } catch {
-      // swallow; logged inside maybeSubmitToBra
-    }
+    try { const r = await maybeSubmitToBra(order.id); fiscal = r ?? undefined; } catch { /* swallow */ }
 
-    return {
-      ok: true,
-      orderId: order.id,
-      orderNumber: order.number,
-      receiptNumber: receiptNumberFor(order.number),
-      total,
-      fiscalInvoiceNumber: fiscal,
-    };
+    return { ok: true, orderId: order.id, orderNumber: order.number, receiptNumber: receiptNumberFor(order.number), total, fiscalInvoiceNumber: fiscal };
   } catch (err) {
     console.error("payOrderAction failed", err);
-    return {
-      ok: false,
-      error: err instanceof Error ? err.message : "Failed to pay",
-    };
+    return { ok: false, error: err instanceof Error ? err.message : "Failed to pay" };
   }
 }
 
 // ──────────────────────────────────────────────────────────────
-// Hand off a prepaid order (mark picked up / delivered)
+// Hand off a prepaid order
 // ──────────────────────────────────────────────────────────────
 
-export type CompleteOrderResult =
-  | { ok: true }
-  | { ok: false; error: string };
+export type CompleteOrderResult = { ok: true } | { ok: false; error: string };
 
-/**
- * Close out a prepaid order once the customer has it — "Mark picked up"
- * (takeaway) / "Mark delivered" (delivery). Payment was already captured
- * at placement, so this only advances the order to `completed` so it
- * leaves the active kitchen / orders lists. Unpaid orders must go through
- * `payOrderAction` instead (which both collects payment and completes).
- */
-export async function completeOrderAction(
-  orderId: string,
-): Promise<CompleteOrderResult> {
+export async function completeOrderAction(orderId: string): Promise<CompleteOrderResult> {
   if (!orderId) return { ok: false, error: "Missing order id" };
-  const order = await prisma.order.findUnique({
-    where: { id: orderId },
-    select: {
-      id: true,
-      number: true,
-      status: true,
-      paidAt: true,
-      tableId: true,
-      guests: true,
-    },
-  });
+  const { data: order } = await supabase.from("Order").select("id, number, status, paidAt, tableId, guests").eq("id", orderId).maybeSingle();
   if (!order) return { ok: false, error: "Order not found" };
-  if (order.status === "cancelled" || order.status === "refunded") {
-    return { ok: false, error: "Order is no longer active" };
-  }
+  if (order.status === "cancelled" || order.status === "refunded") return { ok: false, error: "Order is no longer active" };
   if (order.status === "completed") return { ok: true };
-  if (!order.paidAt) {
-    return {
-      ok: false,
-      error: "Order isn't paid yet — collect payment to complete it.",
-    };
-  }
+  if (!order.paidAt) return { ok: false, error: "Order isn't paid yet — collect payment to complete it." };
 
   try {
-    await prisma.$transaction(async (tx) => {
-      await tx.order.update({
-        where: { id: order.id },
-        data: { status: "completed" },
-      });
-      // Defensive: prepaid orders are takeaway/delivery (no table), but
-      // free any seats just in case so occupancy can't leak.
-      if (order.tableId && order.guests > 0) {
-        await tx.$executeRaw`UPDATE "Table" SET "occupancy" = GREATEST(0, "occupancy" - ${order.guests}) WHERE "id" = ${order.tableId}`;
-      }
-    });
-
+    await supabase.from("Order").update({ status: "completed" }).eq("id", order.id);
+    if (order.tableId && order.guests > 0) {
+      const { data: t } = await supabase.from("Table").select("occupancy").eq("id", order.tableId).maybeSingle();
+      await supabase.from("Table").update({ occupancy: Math.max(0, Number(t?.occupancy ?? 0) - order.guests) }).eq("id", order.tableId);
+    }
     revalidatePath("/orders");
     revalidatePath("/kitchen");
     revalidatePath("/dashboard");
-
     await publish({ type: "order.updated", orderId: order.id });
-    await logActivity({
-      type: "order",
-      title: `Order ${order.number} handed off`,
-      description: "Marked picked up / delivered",
-      orderId: order.id,
-    });
+    await logActivity({ type: "order", title: `Order ${order.number} handed off`, description: "Marked picked up / delivered", orderId: order.id });
     return { ok: true };
   } catch (err) {
     console.error("completeOrderAction failed", err);
-    return {
-      ok: false,
-      error: err instanceof Error ? err.message : "Failed to complete order",
-    };
+    return { ok: false, error: err instanceof Error ? err.message : "Failed to complete order" };
   }
 }
 
-// ──────────────────────────────────────────────────────────────
-// Helpers
-// ──────────────────────────────────────────────────────────────
-
-async function priceCart(
-  items: CheckoutItem[],
-): Promise<
-  | { ok: true; lines: Priced[] }
-  | { ok: false; error: string }
-> {
-  const productIds = Array.from(new Set(items.map((i) => i.productId)));
-  const menuItems = await prisma.menuItem.findMany({
-    where: { id: { in: productIds } },
-    include: { recipe: true },
-  });
-  const menuById = new Map(menuItems.map((m) => [m.id, m]));
-  const missing = productIds.filter((id) => !menuById.has(id));
-  if (missing.length) {
-    return { ok: false, error: `Unknown menu item(s): ${missing.join(", ")}` };
-  }
-
-  const lines: Priced[] = items.map((line) => {
-    const product = menuById.get(line.productId)!;
-    const modPrice = (line.modifiers ?? []).reduce(
-      (sum, m) => sum + (typeof m.priceDelta === "number" ? m.priceDelta : 0),
-      0,
-    );
-    return {
-      line,
-      name: product.name,
-      unitPrice: Number(product.price) + modPrice,
-      stationId: product.stationId,
-      recipe: product.recipe.map((r) => ({
-        inventoryItemId: r.inventoryItemId,
-        quantity: Number(r.quantity),
-      })),
-    };
-  });
-  return { ok: true, lines };
-}
-
-function sumPriced(lines: Priced[]): number {
-  return lines.reduce((sum, p) => sum + p.unitPrice * p.line.quantity, 0);
-}
-
-function collectIngredientDelta(lines: Priced[]): Map<string, number> {
-  const delta = new Map<string, number>();
-  for (const p of lines) {
-    for (const r of p.recipe) {
-      delta.set(
-        r.inventoryItemId,
-        (delta.get(r.inventoryItemId) ?? 0) + r.quantity * p.line.quantity,
-      );
-    }
-  }
-  return delta;
-}
-
-function toOrderItemCreate(p: Priced) {
-  return {
-    menuItemId: p.line.productId,
-    name: p.name,
-    quantity: p.line.quantity,
-    unitPrice: p.unitPrice,
-    modifiers:
-      p.line.modifiers && p.line.modifiers.length
-        ? p.line.modifiers.map((m) => m.name)
-        : undefined,
-    note: p.line.note ?? null,
-  };
-}
-
-type TxClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
-
-async function applyInventoryDelta(
-  tx: TxClient,
-  delta: Map<string, number>,
-  ctx: { orderId: string; sign: 1 | -1; reason: string },
-): Promise<void> {
-  for (const [inventoryItemId, qty] of delta) {
-    if (qty <= 0) continue;
-    await tx.inventoryItem.update({
-      where: { id: inventoryItemId },
-      data:
-        ctx.sign < 0
-          ? { stock: { decrement: qty } }
-          : { stock: { increment: qty } },
-    });
-    await tx.inventoryMovement.create({
-      data: {
-        inventoryItemId,
-        delta: qty * ctx.sign,
-        reason: ctx.reason,
-        orderId: ctx.orderId,
-      },
-    });
-  }
-}
-
-function round2(n: number): number {
-  return Math.round(n * 100) / 100;
-}
-
-function toNumber(value: unknown): number {
-  if (value == null) return 0;
-  if (typeof value === "number") return value;
-  if (typeof value === "string") return Number.parseFloat(value);
-  if (typeof value === "object" && value !== null && "toNumber" in value) {
-    return (value as { toNumber: () => number }).toNumber();
-  }
-  return Number(value);
-}
-
-function receiptNumberFor(orderNumber: string): string {
-  return `BR-${orderNumber.replace(/^#/, "")}`;
-}
-
-/**
- * Sequential-ish order numbers without a dedicated sequence table.
- *
- * Uses `MAX(number) + 1` rather than `count + 1` because deleted rows
- * (e.g. cancelled test orders) leave gaps that a count-based scheme
- * doesn't account for — you'd compute an already-taken number and
- * collide on insert. The follow-up `findUnique` loop is a defensive
- * race-guard for the rare case where two cashiers checkout at the
- * exact same moment; on the *very* unlikely persistent collision we
- * throw so the caller surfaces a clear error instead of silently
- * looping on a P2002.
- */
-async function nextOrderNumber(): Promise<string> {
-  const rows = await prisma.$queryRaw<{ max: number | null }[]>`
-    SELECT MAX(CAST(SUBSTRING(number FROM 2) AS INTEGER)) AS max
-    FROM "Order"
-    WHERE number ~ '^#[0-9]+$'
-  `;
-  const top = rows[0]?.max ?? ORDER_NUMBER_BASE;
-  let candidate = Math.max(top + 1, ORDER_NUMBER_BASE + 1);
-  for (let attempt = 0; attempt < 50; attempt++) {
-    const taken = await prisma.order.findUnique({
-      where: { number: `#${candidate}` },
-      select: { id: true },
-    });
-    if (!taken) return `#${candidate}`;
-    candidate += 1;
-  }
-  throw new Error(
-    `Could not allocate a unique order number (50 candidates collided starting from #${top + 1})`,
-  );
-}
-
-/**
- * Try to push the order to BRA after payment is captured. Short-circuits
- * if fiscal config has auto-submit off or BRA isn't configured. Any
- * failure is intentionally swallowed — the sale is already paid and the
- * failure is captured in FiscalSubmission for retry.
- */
-async function maybeSubmitToBra(orderId: string): Promise<string | null> {
-  try {
-    const cfg = await prisma.fiscalConfig.findUnique({
-      where: { id: "default" },
-      select: { enabled: true, autoSubmit: true, mode: true },
-    });
-    if (!cfg?.enabled || !cfg.autoSubmit || cfg.mode === "disabled") return null;
-    const result = await submitInvoiceToBraAction(orderId);
-    return result.ok ? result.data.fiscalInvoiceNumber : null;
-  } catch (err) {
-    console.error("Auto-submit to BRA failed", err);
-    return null;
-  }
-}
-
-// Legacy alias for any caller still importing `createOrderAction`.
 export const createOrderAction = placeOrderAction;
 export type CheckoutResult = PlaceOrderResult;

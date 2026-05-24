@@ -1,20 +1,23 @@
 import "server-only";
 
-import { prisma } from "@/lib/prisma";
+import { supabase } from "@/lib/supabase";
 import type { Category, MenuItem, ProductModifier, RecipeIngredient } from "@/types";
 
 export async function listMenuItems(): Promise<MenuItem[]> {
-  const rows = await prisma.menuItem.findMany({
-    orderBy: [{ categoryId: "asc" }, { name: "asc" }],
-    include: { recipe: true },
-  });
-  return rows.map((m) => ({
+  const { data, error } = await supabase
+    .from("MenuItem")
+    .select("*, RecipeIngredient(inventoryItemId, quantity, unit)")
+    .order("categoryId")
+    .order("name");
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((m) => ({
     id: m.id,
     name: m.name,
     description: m.description ?? undefined,
     categoryId: m.categoryId,
     stationId: m.stationId,
-    price: toNumber(m.price),
+    price: Number(m.price),
+    cost: m.cost != null ? Number(m.cost) : undefined,
     sku: m.sku ?? undefined,
     pctCode: m.pctCode ?? undefined,
     image: m.image ?? undefined,
@@ -22,37 +25,30 @@ export async function listMenuItems(): Promise<MenuItem[]> {
     posVisible: m.posVisible,
     prepTimeMinutes: m.prepTimeMinutes ?? undefined,
     popular: m.popular,
-    modifiers: Array.isArray(m.modifiers)
-      ? (m.modifiers as ProductModifier[])
-      : undefined,
-    recipe: m.recipe.map<RecipeIngredient>((r) => ({
+    modifiers: Array.isArray(m.modifiers) ? (m.modifiers as ProductModifier[]) : undefined,
+    recipe: (m.RecipeIngredient ?? []).map<RecipeIngredient>((r) => ({
       inventoryItemId: r.inventoryItemId,
-      quantity: toNumber(r.quantity),
+      quantity: Number(r.quantity),
       unit: r.unit,
     })),
   }));
 }
 
 export async function listMenuCategories(): Promise<Category[]> {
-  const rows = await prisma.menuCategory.findMany({
-    orderBy: { name: "asc" },
-    include: { _count: { select: { items: true } } },
-  });
-  return rows.map((c) => ({
+  const [{ data: cats, error }, { data: items }] = await Promise.all([
+    supabase.from("MenuCategory").select("*").order("name"),
+    supabase.from("MenuItem").select("categoryId"),
+  ]);
+  if (error) throw new Error(error.message);
+
+  const counts: Record<string, number> = {};
+  for (const i of items ?? []) counts[i.categoryId] = (counts[i.categoryId] ?? 0) + 1;
+
+  return (cats ?? []).map((c) => ({
     id: c.id,
     name: c.name,
     slug: c.slug,
     color: c.color,
-    count: c._count.items,
+    count: counts[c.id] ?? 0,
   }));
-}
-
-function toNumber(value: unknown): number {
-  if (value == null) return 0;
-  if (typeof value === "number") return value;
-  if (typeof value === "string") return Number.parseFloat(value);
-  if (typeof value === "object" && value !== null && "toNumber" in value) {
-    return (value as { toNumber: () => number }).toNumber();
-  }
-  return Number(value);
 }

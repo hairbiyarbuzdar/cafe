@@ -1,68 +1,57 @@
 import "server-only";
 
-import { prisma } from "@/lib/prisma";
-import type {
-  KitchenTicket,
-  KitchenTicketItem,
-  OrderChannel,
-  TicketStatus,
-} from "@/types";
+import { supabase } from "@/lib/supabase";
+import type { KitchenTicket, KitchenTicketItem, OrderChannel, TicketStatus } from "@/types";
 
-/**
- * Active kitchen tickets across all stations.
- *
- * Returns one ticket per (order, station) pair that hasn't reached
- * "served". Each ticket includes only the order items routed to that
- * station — the join through MenuItem.stationId enforces routing.
- */
 export async function listActiveKitchenTickets(): Promise<KitchenTicket[]> {
-  // Include `cancelled` so cooks see a struck-out ticket they can
-  // explicitly dismiss; without that, a cancelled order would silently
-  // disappear mid-prep.
-  const tickets = await prisma.kitchenTicket.findMany({
-    where: { status: { in: ["pending", "preparing", "ready", "cancelled"] } },
-    orderBy: { createdAt: "desc" },
-    include: {
-      order: {
-        include: {
-          items: {
-            include: {
-              menuItem: { select: { stationId: true } },
-            },
-          },
-          table: { select: { name: true } },
-        },
-      },
-    },
-  });
+  const { data, error } = await supabase
+    .from("KitchenTicket")
+    .select(`
+      id, orderId, stationId, status, createdAt,
+      Order(
+        number, channel, customerName, notes,
+        Table(name),
+        OrderItem(id, menuItemId, name, quantity, modifiers, note, preparedAt, MenuItem(stationId))
+      )
+    `)
+    .in("status", ["pending", "preparing", "ready", "cancelled"])
+    .order("createdAt", { ascending: false });
+  if (error) throw new Error(error.message);
 
-  return tickets.map((t) => {
-    const stationItems: KitchenTicketItem[] = t.order.items
-      .filter((i) => i.menuItem.stationId === t.stationId)
+  return (data ?? []).map((t) => {
+    const order = (Array.isArray(t.Order) ? t.Order[0] : t.Order) as Record<string, unknown> | null;
+    if (!order) return null;
+
+    const allItems = (order.OrderItem as Record<string, unknown>[] | null) ?? [];
+    const table = (Array.isArray(order.Table) ? order.Table[0] : order.Table) as { name: string } | null;
+
+    const stationItems: KitchenTicketItem[] = allItems
+      .filter((i) => {
+        const menuItem = (Array.isArray(i.MenuItem) ? i.MenuItem[0] : i.MenuItem) as { stationId: string } | null;
+        return menuItem?.stationId === t.stationId;
+      })
       .map((i) => ({
-        id: i.id,
-        menuItemId: i.menuItemId,
-        name: i.name,
-        quantity: i.quantity,
-        modifiers: Array.isArray(i.modifiers)
-          ? (i.modifiers as string[])
-          : undefined,
-        note: i.note ?? undefined,
-        preparedAt: i.preparedAt ? i.preparedAt.toISOString() : undefined,
+        id: i.id as string,
+        menuItemId: (i.menuItemId as string | null) ?? "",
+        name: i.name as string,
+        quantity: i.quantity as number,
+        modifiers: Array.isArray(i.modifiers) ? (i.modifiers as string[]) : undefined,
+        note: (i.note as string | null) ?? undefined,
+        preparedAt: (i.preparedAt as string | null) ?? undefined,
       }));
 
     return {
       id: `${t.orderId}__${t.stationId}`,
       orderId: t.orderId,
-      orderNumber: t.order.number,
+      orderNumber: order.number as string,
       stationId: t.stationId,
-      customerName: t.order.customerName ?? undefined,
-      table: t.order.table?.name,
-      channel: t.order.channel as OrderChannel,
+      customerName: (order.customerName as string | null) ?? undefined,
+      table: table?.name,
+      channel: order.channel as OrderChannel,
       status: t.status as TicketStatus,
       items: stationItems,
-      notes: t.order.notes ?? undefined,
-      createdAt: t.createdAt.toISOString(),
+      notes: (order.notes as string | null) ?? undefined,
+      createdAt: t.createdAt,
     };
-  });
+  }).filter(Boolean) as KitchenTicket[];
 }

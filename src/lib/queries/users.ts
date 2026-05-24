@@ -1,58 +1,43 @@
 import "server-only";
 
-import { prisma } from "@/lib/prisma";
+import { supabase } from "@/lib/supabase";
 import type { AssignableStaff } from "@/types";
 import type { Permission, SessionUser } from "@/types/auth";
 
-/**
- * Staff that can be assigned to orders/tables: waiters (dine-in) and
- * delivery riders. These roles carry no app permissions — they exist
- * purely so orders/tables can be tagged with a person.
- */
 export async function listAssignableStaff(): Promise<AssignableStaff[]> {
-  const rows = await prisma.user.findMany({
-    where: { role: { in: ["waiter", "delivery"] } },
-    orderBy: [{ role: "asc" }, { name: "asc" }],
-    select: { id: true, name: true, role: true },
-  });
-  return rows.map((r) => ({ id: r.id, name: r.name, role: r.role }));
+  const { data, error } = await supabase
+    .from("User")
+    .select("id, name, role")
+    .in("role", ["waiter", "delivery"])
+    .eq("active", true)
+    .order("role")
+    .order("name");
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((r) => ({ id: r.id, name: r.name, role: r.role }));
 }
 
-/**
- * Public user roster — what the login screen's demo picker and the
- * settings → team panel both render. Never includes `passwordHash`.
- */
 export async function listPublicUsers(): Promise<SessionUser[]> {
-  const rows = await prisma.user.findMany({
-    orderBy: [{ role: "asc" }, { name: "asc" }],
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      phone: true,
-      role: true,
-      avatar: true,
-      defaultRoute: true,
-      monthlySalary: true,
-      roleRef: {
-        select: { name: true, permissions: true, defaultRoute: true },
-      },
-    },
+  const { data, error } = await supabase
+    .from("User")
+    .select("id, name, email, phone, role, avatar, defaultRoute, monthlySalary, Role(name, permissions, defaultRoute)")
+    .order("role")
+    .order("name");
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((r) => {
+    const roleData = Array.isArray(r.Role) ? r.Role[0] : r.Role;
+    return {
+      id: r.id,
+      name: r.name,
+      email: r.email,
+      phone: r.phone,
+      role: r.role,
+      roleName: roleData?.name,
+      permissions: Array.isArray(roleData?.permissions) ? (roleData.permissions as Permission[]) : [],
+      avatar: r.avatar,
+      defaultRoute: r.defaultRoute ?? roleData?.defaultRoute ?? null,
+      monthlySalary: r.monthlySalary != null ? Number(r.monthlySalary) : null,
+    };
   });
-  return rows.map((r) => ({
-    id: r.id,
-    name: r.name,
-    email: r.email,
-    phone: r.phone,
-    role: r.role,
-    roleName: r.roleRef?.name,
-    permissions: Array.isArray(r.roleRef?.permissions)
-      ? (r.roleRef.permissions as Permission[])
-      : [],
-    avatar: r.avatar,
-    defaultRoute: r.defaultRoute ?? r.roleRef?.defaultRoute ?? null,
-    monthlySalary: r.monthlySalary ? Number(r.monthlySalary) : null,
-  }));
 }
 
 export type PendingMember = {
@@ -63,16 +48,13 @@ export type PendingMember = {
   createdAt: string;
 };
 
-/** Drafts created from the Staff page, awaiting a role + password. */
 export async function listPendingMembers(): Promise<PendingMember[]> {
-  const rows = await prisma.pendingMember.findMany({
-    orderBy: { createdAt: "desc" },
-  });
-  return rows.map((r) => ({
-    id: r.id,
-    name: r.name,
-    email: r.email,
-    phone: r.phone,
-    createdAt: r.createdAt.toISOString(),
+  const { data, error } = await supabase
+    .from("PendingMember")
+    .select("id, name, email, phone, createdAt")
+    .order("createdAt", { ascending: false });
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((r) => ({
+    id: r.id, name: r.name, email: r.email, phone: r.phone, createdAt: r.createdAt,
   }));
 }

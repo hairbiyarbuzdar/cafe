@@ -2,20 +2,10 @@ import "server-only";
 
 import { cookies } from "next/headers";
 
-import { prisma } from "@/lib/prisma";
+import { supabase } from "@/lib/supabase";
 import { SESSION_COOKIE, parseSession } from "@/lib/session";
-import type {
-  Permission,
-  Session,
-  SessionCookie,
-  SessionUser,
-} from "@/types/auth";
+import type { Permission, Session, SessionCookie, SessionUser } from "@/types/auth";
 
-/**
- * Server-side current user. The cookie carries `{userId, role}`; we
- * still re-fetch from the DB so a deleted/role-changed user is caught
- * immediately rather than at the cookie's 7-day expiry.
- */
 export async function getServerSession(): Promise<Session | null> {
   const cookie = await readSessionCookie();
   if (!cookie) return null;
@@ -34,37 +24,30 @@ async function readSessionCookie(): Promise<SessionCookie | null> {
   return parseSession(store.get(SESSION_COOKIE)?.value);
 }
 
-async function loadSessionUser(userId: string): Promise<SessionUser | null> {
-  const row = await prisma.user.findUnique({
-    where: { id: userId },
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      phone: true,
-      role: true,
-      avatar: true,
-      defaultRoute: true,
-      monthlySalary: true,
-      roleRef: {
-        select: { name: true, permissions: true, defaultRoute: true },
-      },
-    },
-  });
-  if (!row) return null;
-  const permissions = Array.isArray(row.roleRef?.permissions)
-    ? (row.roleRef.permissions as Permission[])
+export async function loadSessionUser(userId: string): Promise<SessionUser | null> {
+  const { data, error } = await supabase
+    .from("User")
+    .select("id, name, email, phone, role, avatar, defaultRoute, monthlySalary, Role(name, permissions, defaultRoute)")
+    .eq("id", userId)
+    .single();
+
+  if (error || !data) return null;
+
+  const roleData = Array.isArray(data.Role) ? data.Role[0] : data.Role;
+  const permissions = Array.isArray(roleData?.permissions)
+    ? (roleData.permissions as Permission[])
     : [];
+
   return {
-    id: row.id,
-    name: row.name,
-    email: row.email,
-    phone: row.phone,
-    role: row.role,
-    roleName: row.roleRef?.name,
+    id: data.id,
+    name: data.name,
+    email: data.email,
+    phone: data.phone,
+    role: data.role,
+    roleName: roleData?.name,
     permissions,
-    avatar: row.avatar,
-    defaultRoute: row.defaultRoute ?? row.roleRef?.defaultRoute ?? null,
-    monthlySalary: row.monthlySalary ? Number(row.monthlySalary) : null,
+    avatar: data.avatar,
+    defaultRoute: data.defaultRoute ?? roleData?.defaultRoute ?? null,
+    monthlySalary: data.monthlySalary != null ? Number(data.monthlySalary) : null,
   };
 }

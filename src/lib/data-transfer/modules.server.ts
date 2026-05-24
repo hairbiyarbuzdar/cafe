@@ -1,6 +1,6 @@
 import "server-only";
 
-import { prisma } from "@/lib/prisma";
+import { supabase } from "@/lib/supabase";
 import { getOrCreateWorkspace } from "@/lib/queries/workspace";
 import { getModule, MODULE_ORDER } from "./registry";
 import type {
@@ -11,15 +11,15 @@ import type {
   ModuleKey,
 } from "./types";
 
-/** Logo path under /public. The user drops their file here; the PDF
- * falls back to a café-initials monogram if it's missing. */
 export const LOGO_PUBLIC_PATH = "/logo.png";
 
 const num = (d: unknown): number | null => (d == null ? null : Number(d));
-const iso = (d: Date | null | undefined): string | null =>
-  d ? d.toISOString() : null;
+const iso = (d: string | Date | null | undefined): string | null => {
+  if (d == null) return null;
+  if (typeof d === "string") return d;
+  return d.toISOString();
+};
 
-/** Build the workspace-driven branding stamped onto exports. */
 export async function getExportBranding(): Promise<ExportBranding> {
   const ws = await getOrCreateWorkspace();
   return {
@@ -34,83 +34,103 @@ export async function getExportBranding(): Promise<ExportBranding> {
 }
 
 async function fetchOrders(): Promise<DataRow[]> {
-  const rows = await prisma.order.findMany({
-    orderBy: { createdAt: "desc" },
-    include: {
-      _count: { select: { items: true } },
-      paymentChannel: { select: { name: true } },
-      staff: { select: { name: true } },
-    },
+  const { data: orders } = await supabase
+    .from("Order")
+    .select("*, paymentChannel:paymentChannelId(name), staff:staffId(name)")
+    .order("createdAt", { ascending: false });
+
+  if (!orders?.length) return [];
+
+  const orderIds = orders.map((o) => o.id);
+  const { data: items } = await supabase
+    .from("OrderItem")
+    .select("orderId")
+    .in("orderId", orderIds);
+
+  const countMap = new Map<string, number>();
+  for (const item of items ?? []) {
+    countMap.set(item.orderId, (countMap.get(item.orderId) ?? 0) + 1);
+  }
+
+  return orders.map((o) => {
+    const pc = Array.isArray(o.paymentChannel) ? o.paymentChannel[0] : o.paymentChannel;
+    const st = Array.isArray(o.staff) ? o.staff[0] : o.staff;
+    return {
+      id: o.id,
+      number: o.number,
+      status: o.status,
+      channel: o.channel,
+      customerName: o.customerName,
+      customerPhone: o.customerPhone,
+      itemCount: countMap.get(o.id) ?? 0,
+      subtotal: num(o.subtotal),
+      tax: num(o.tax),
+      discount: num(o.discount),
+      tip: num(o.tip),
+      total: num(o.total),
+      payment: o.payment ?? null,
+      paymentChannel: (pc as { name?: string } | null)?.name ?? null,
+      staff: (st as { name?: string } | null)?.name ?? null,
+      paidAt: iso(o.paidAt),
+      createdAt: iso(o.createdAt),
+    };
   });
-  return rows.map((o) => ({
-    id: o.id,
-    number: o.number,
-    status: o.status,
-    channel: o.channel,
-    customerName: o.customerName,
-    customerPhone: o.customerPhone,
-    itemCount: o._count.items,
-    subtotal: num(o.subtotal),
-    tax: num(o.tax),
-    discount: num(o.discount),
-    tip: num(o.tip),
-    total: num(o.total),
-    payment: o.payment ?? null,
-    paymentChannel: o.paymentChannel?.name ?? null,
-    staff: o.staff?.name ?? null,
-    paidAt: iso(o.paidAt),
-    createdAt: iso(o.createdAt),
-  }));
 }
 
 async function fetchMenu(): Promise<DataRow[]> {
-  const rows = await prisma.menuItem.findMany({
-    orderBy: { name: "asc" },
-    include: {
-      category: { select: { name: true } },
-      station: { select: { name: true } },
-    },
+  const { data: rows } = await supabase
+    .from("MenuItem")
+    .select("*, category:categoryId(name), station:stationId(name)")
+    .order("name");
+
+  return (rows ?? []).map((m) => {
+    const cat = Array.isArray(m.category) ? m.category[0] : m.category;
+    const sta = Array.isArray(m.station) ? m.station[0] : m.station;
+    return {
+      id: m.id,
+      name: m.name,
+      category: (cat as { name?: string } | null)?.name ?? null,
+      price: num(m.price),
+      sku: m.sku,
+      station: (sta as { name?: string } | null)?.name ?? null,
+      available: m.available,
+      posVisible: m.posVisible,
+      popular: m.popular,
+      prepTimeMinutes: m.prepTimeMinutes,
+      description: m.description,
+      createdAt: iso(m.createdAt),
+    };
   });
-  return rows.map((m) => ({
-    id: m.id,
-    name: m.name,
-    category: m.category?.name ?? null,
-    price: num(m.price),
-    sku: m.sku,
-    station: m.station?.name ?? null,
-    available: m.available,
-    posVisible: m.posVisible,
-    popular: m.popular,
-    prepTimeMinutes: m.prepTimeMinutes,
-    description: m.description,
-    createdAt: iso(m.createdAt),
-  }));
 }
 
 async function fetchInventory(): Promise<DataRow[]> {
-  const rows = await prisma.inventoryItem.findMany({
-    orderBy: { name: "asc" },
-    include: { supplier: { select: { name: true } } },
+  const { data: rows } = await supabase
+    .from("InventoryItem")
+    .select("*, supplier:supplierId(name)")
+    .order("name");
+
+  return (rows ?? []).map((i) => {
+    const sup = Array.isArray(i.supplier) ? i.supplier[0] : i.supplier;
+    return {
+      id: i.id,
+      name: i.name,
+      sku: i.sku,
+      category: i.category,
+      unit: i.unit,
+      stock: num(i.stock),
+      reorderLevel: num(i.reorderLevel),
+      costPerUnit: num(i.costPerUnit),
+      supplier: (sup as { name?: string } | null)?.name ?? null,
+      lastRestocked: iso(i.lastRestocked),
+      expiresAt: iso(i.expiresAt),
+      createdAt: iso(i.createdAt),
+    };
   });
-  return rows.map((i) => ({
-    id: i.id,
-    name: i.name,
-    sku: i.sku,
-    category: i.category,
-    unit: i.unit,
-    stock: num(i.stock),
-    reorderLevel: num(i.reorderLevel),
-    costPerUnit: num(i.costPerUnit),
-    supplier: i.supplier?.name ?? null,
-    lastRestocked: iso(i.lastRestocked),
-    expiresAt: iso(i.expiresAt),
-    createdAt: iso(i.createdAt),
-  }));
 }
 
 async function fetchSuppliers(): Promise<DataRow[]> {
-  const rows = await prisma.supplier.findMany({ orderBy: { name: "asc" } });
-  return rows.map((s) => ({
+  const { data: rows } = await supabase.from("Supplier").select("*").order("name");
+  return (rows ?? []).map((s) => ({
     id: s.id,
     name: s.name,
     contact: s.contact,
@@ -123,8 +143,8 @@ async function fetchSuppliers(): Promise<DataRow[]> {
 }
 
 async function fetchStaff(): Promise<DataRow[]> {
-  const rows = await prisma.user.findMany({ orderBy: { name: "asc" } });
-  return rows.map((u) => ({
+  const { data: rows } = await supabase.from("User").select("*").order("name");
+  return (rows ?? []).map((u) => ({
     id: u.id,
     name: u.name,
     email: u.email,
@@ -139,36 +159,39 @@ async function fetchStaff(): Promise<DataRow[]> {
 }
 
 async function fetchExpenses(): Promise<DataRow[]> {
-  const rows = await prisma.expense.findMany({
-    orderBy: { occurredAt: "desc" },
-    include: {
-      expenseHead: { select: { name: true } },
-      paymentChannel: { select: { name: true } },
-    },
+  const { data: rows } = await supabase
+    .from("Expense")
+    .select("*, expenseHead:expenseHeadId(name), paymentChannel:paymentChannelId(name)")
+    .order("occurredAt", { ascending: false });
+
+  return (rows ?? []).map((e) => {
+    const head = Array.isArray(e.expenseHead) ? e.expenseHead[0] : e.expenseHead;
+    const pc = Array.isArray(e.paymentChannel) ? e.paymentChannel[0] : e.paymentChannel;
+    return {
+      id: e.id,
+      head: (head as { name?: string } | null)?.name ?? null,
+      amount: num(e.amount),
+      paymentChannel: (pc as { name?: string } | null)?.name ?? null,
+      detail: e.detail,
+      occurredAt: iso(e.occurredAt),
+      createdAt: iso(e.createdAt),
+    };
   });
-  return rows.map((e) => ({
-    id: e.id,
-    head: e.expenseHead?.name ?? null,
-    amount: num(e.amount),
-    paymentChannel: e.paymentChannel?.name ?? null,
-    detail: e.detail,
-    occurredAt: iso(e.occurredAt),
-    createdAt: iso(e.createdAt),
-  }));
 }
 
 async function fetchCustomers(): Promise<DataRow[]> {
-  // No Customer table — derive distinct customers from order history.
-  const orders = await prisma.order.findMany({
-    where: { OR: [{ customerName: { not: null } }, { customerPhone: { not: null } }] },
-    select: { customerName: true, customerPhone: true, total: true, createdAt: true },
-  });
+  const { data: orders } = await supabase
+    .from("Order")
+    .select("customerName, customerPhone, total, createdAt")
+    .or("customerName.not.is.null,customerPhone.not.is.null");
+
   const map = new Map<
     string,
-    { name: string | null; phone: string | null; count: number; spent: number; last: Date }
+    { name: string | null; phone: string | null; count: number; spent: number; last: string }
   >();
-  for (const o of orders) {
-    const key = (o.customerPhone || o.customerName || "").toLowerCase();
+
+  for (const o of orders ?? []) {
+    const key = ((o.customerPhone || o.customerName) ?? "").toLowerCase();
     if (!key) continue;
     const existing = map.get(key);
     if (existing) {
@@ -185,21 +208,25 @@ async function fetchCustomers(): Promise<DataRow[]> {
       });
     }
   }
+
   return [...map.entries()].map(([key, c]) => ({
     id: key,
     name: c.name,
     phone: c.phone,
     orderCount: c.count,
     totalSpent: c.spent,
-    lastOrderAt: iso(c.last),
+    lastOrderAt: c.last,
   }));
 }
 
 async function fetchPaymentMethods(): Promise<DataRow[]> {
-  const rows = await prisma.paymentChannel.findMany({
-    orderBy: [{ archived: "asc" }, { createdAt: "asc" }],
-  });
-  return rows.map((p) => ({
+  const { data: rows } = await supabase
+    .from("PaymentChannel")
+    .select("*")
+    .order("archived")
+    .order("createdAt");
+
+  return (rows ?? []).map((p) => ({
     id: p.id,
     name: p.name,
     kind: p.kind,
@@ -225,10 +252,7 @@ export async function fetchModuleRows(key: ModuleKey): Promise<DataRow[]> {
   return FETCHERS[key]();
 }
 
-/** Gather the requested modules into a self-contained export bundle. */
-export async function buildExportBundle(
-  keys: ModuleKey[],
-): Promise<ExportBundle> {
+export async function buildExportBundle(keys: ModuleKey[]): Promise<ExportBundle> {
   const ordered = MODULE_ORDER.filter((k) => keys.includes(k));
   const branding = await getExportBranding();
   const datasets: ModuleDataset[] = [];

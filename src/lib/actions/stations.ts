@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { prisma } from "@/lib/prisma";
+import { supabase } from "@/lib/supabase";
 
 export type ActionResult<T = void> =
   | (T extends void ? { ok: true } : { ok: true; data: T })
@@ -15,16 +15,8 @@ export type StationInput = {
   active?: boolean;
 };
 
-type SanitizedStation = {
-  name: string;
-  printer: string | null;
-  color: string;
-  active: boolean;
-};
-
-type SanitizeResult =
-  | { ok: true; data: SanitizedStation }
-  | { ok: false; error: string };
+type SanitizedStation = { name: string; printer: string | null; color: string; active: boolean };
+type SanitizeResult = | { ok: true; data: SanitizedStation } | { ok: false; error: string };
 
 function sanitize(input: StationInput): SanitizeResult {
   const name = input.name?.trim();
@@ -33,12 +25,7 @@ function sanitize(input: StationInput): SanitizeResult {
   if (!color) return { ok: false, error: "Pick a color" };
   return {
     ok: true,
-    data: {
-      name,
-      printer: input.printer?.trim() || null,
-      color,
-      active: input.active ?? true,
-    },
+    data: { name, printer: input.printer?.trim() || null, color, active: input.active ?? true },
   };
 }
 
@@ -48,19 +35,20 @@ export async function createStationAction(
   const sanitized = sanitize(input);
   if (!sanitized.ok) return { ok: false, error: sanitized.error };
 
-  const dup = await prisma.kitchenStation.findUnique({
-    where: { name: sanitized.data.name },
-    select: { id: true },
-  });
-  if (dup) {
-    return { ok: false, error: `Station "${sanitized.data.name}" already exists` };
-  }
+  const { data: dup } = await supabase
+    .from("KitchenStation")
+    .select("id")
+    .eq("name", sanitized.data.name)
+    .maybeSingle();
+  if (dup) return { ok: false, error: `Station "${sanitized.data.name}" already exists` };
 
   try {
-    const created = await prisma.kitchenStation.create({
-      data: sanitized.data,
-      select: { id: true },
-    });
+    const { data: created, error } = await supabase
+      .from("KitchenStation")
+      .insert(sanitized.data)
+      .select("id")
+      .single();
+    if (error) throw error;
     revalidatePath("/menu");
     revalidatePath("/kitchen");
     return { ok: true, data: { id: created.id } };
@@ -81,19 +69,20 @@ export async function updateStationAction(
   const sanitized = sanitize(input);
   if (!sanitized.ok) return { ok: false, error: sanitized.error };
 
-  const dup = await prisma.kitchenStation.findFirst({
-    where: { name: sanitized.data.name, NOT: { id } },
-    select: { id: true },
-  });
-  if (dup) {
-    return { ok: false, error: `Station "${sanitized.data.name}" already exists` };
-  }
+  const { data: dup } = await supabase
+    .from("KitchenStation")
+    .select("id")
+    .eq("name", sanitized.data.name)
+    .neq("id", id)
+    .maybeSingle();
+  if (dup) return { ok: false, error: `Station "${sanitized.data.name}" already exists` };
 
   try {
-    await prisma.kitchenStation.update({
-      where: { id },
-      data: sanitized.data,
-    });
+    const { error } = await supabase
+      .from("KitchenStation")
+      .update(sanitized.data)
+      .eq("id", id);
+    if (error) throw error;
     revalidatePath("/menu");
     revalidatePath("/kitchen");
     return { ok: true };
@@ -106,19 +95,15 @@ export async function updateStationAction(
   }
 }
 
-export async function toggleStationActiveAction(
-  id: string,
-): Promise<ActionResult> {
+export async function toggleStationActiveAction(id: string): Promise<ActionResult> {
   if (!id) return { ok: false, error: "Missing station id" };
-  const row = await prisma.kitchenStation.findUnique({
-    where: { id },
-    select: { active: true },
-  });
+  const { data: row } = await supabase
+    .from("KitchenStation")
+    .select("active")
+    .eq("id", id)
+    .maybeSingle();
   if (!row) return { ok: false, error: "Station not found" };
-  await prisma.kitchenStation.update({
-    where: { id },
-    data: { active: !row.active },
-  });
+  await supabase.from("KitchenStation").update({ active: !row.active }).eq("id", id);
   revalidatePath("/menu");
   revalidatePath("/kitchen");
   return { ok: true };
@@ -127,20 +112,22 @@ export async function toggleStationActiveAction(
 export async function deleteStationAction(id: string): Promise<ActionResult> {
   if (!id) return { ok: false, error: "Missing station id" };
 
-  const referenced = await prisma.menuItem.findFirst({
-    where: { stationId: id },
-    select: { id: true },
-  });
+  const { data: referenced } = await supabase
+    .from("MenuItem")
+    .select("id")
+    .eq("stationId", id)
+    .limit(1)
+    .maybeSingle();
   if (referenced) {
     return {
       ok: false,
-      error:
-        "At least one menu item routes to this station. Reassign those items before deleting.",
+      error: "At least one menu item routes to this station. Reassign those items before deleting.",
     };
   }
 
   try {
-    await prisma.kitchenStation.delete({ where: { id } });
+    const { error } = await supabase.from("KitchenStation").delete().eq("id", id);
+    if (error) throw error;
     revalidatePath("/menu");
     revalidatePath("/kitchen");
     return { ok: true };

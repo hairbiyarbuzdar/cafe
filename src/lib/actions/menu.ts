@@ -2,14 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 
-import { prisma } from "@/lib/prisma";
+import { supabase } from "@/lib/supabase";
 import type { ProductModifier, RecipeIngredient } from "@/types";
-
-/**
- * Menu CRUD. Persists to the `MenuItem` table so edits survive page
- * refreshes — the form sheet was previously mutating the Zustand
- * store directly, which only lasted until the next nav.
- */
 
 export type ActionResult<T = void> =
   | (T extends void ? { ok: true } : { ok: true; data: T })
@@ -33,19 +27,10 @@ export type MenuItemInput = {
 };
 
 type SanitizedMenuItem = {
-  name: string;
-  description: string | null;
-  categoryId: string;
-  stationId: string;
-  price: number;
-  sku: string | null;
-  pctCode: string | null;
-  available: boolean;
-  posVisible: boolean;
-  popular: boolean;
-  prepTimeMinutes: number | null;
-  image: string | null;
-  modifiers: object | undefined;
+  name: string; description: string | null; categoryId: string; stationId: string;
+  price: number; sku: string | null; pctCode: string | null; available: boolean;
+  posVisible: boolean; popular: boolean; prepTimeMinutes: number | null;
+  image: string | null; modifiers: object | undefined;
 };
 
 type SanitizeResult =
@@ -55,36 +40,19 @@ type SanitizeResult =
 function sanitize(input: MenuItemInput): SanitizeResult {
   const name = input.name?.trim();
   const sku = input.sku?.trim() || null;
-  if (!name || name.length < 2) {
-    return { ok: false, error: "Name is required" };
-  }
+  if (!name || name.length < 2) return { ok: false, error: "Name is required" };
   if (!input.categoryId) return { ok: false, error: "Pick a category" };
   if (!input.stationId) return { ok: false, error: "Pick a kitchen station" };
-  if (!Number.isFinite(input.price) || input.price < 0) {
-    return { ok: false, error: "Price must be 0 or greater" };
-  }
+  if (!Number.isFinite(input.price) || input.price < 0) return { ok: false, error: "Price must be 0 or greater" };
   return {
     ok: true,
     data: {
-      name,
-      description: input.description?.trim() || null,
-      categoryId: input.categoryId,
-      stationId: input.stationId,
-      price: input.price,
-      sku,
-      pctCode: input.pctCode?.trim() || null,
-      available: input.available,
-      posVisible: input.posVisible,
-      popular: input.popular ?? false,
-      prepTimeMinutes:
-        input.prepTimeMinutes != null && input.prepTimeMinutes > 0
-          ? Math.floor(input.prepTimeMinutes)
-          : null,
+      name, description: input.description?.trim() || null, categoryId: input.categoryId,
+      stationId: input.stationId, price: input.price, sku, pctCode: input.pctCode?.trim() || null,
+      available: input.available, posVisible: input.posVisible, popular: input.popular ?? false,
+      prepTimeMinutes: input.prepTimeMinutes != null && input.prepTimeMinutes > 0 ? Math.floor(input.prepTimeMinutes) : null,
       image: input.image?.trim() || null,
-      modifiers:
-        input.modifiers && input.modifiers.length
-          ? (input.modifiers as unknown as object)
-          : undefined,
+      modifiers: input.modifiers && input.modifiers.length ? (input.modifiers as unknown as object) : undefined,
     },
     recipe: input.recipe ?? [],
   };
@@ -96,42 +64,37 @@ export async function createMenuItemAction(
   const sanitized = sanitize(input);
   if (!sanitized.ok) return { ok: false, error: sanitized.error };
 
-  // SKU uniqueness — quick precheck to give the operator a friendly
-  // error instead of leaking a P2002 from Prisma.
   const sku = sanitized.data.sku;
   if (sku) {
-    const dup = await prisma.menuItem.findUnique({
-      where: { sku },
-      select: { id: true },
-    });
+    const { data: dup } = await supabase.from("MenuItem").select("id").eq("sku", sku).maybeSingle();
     if (dup) return { ok: false, error: `SKU "${sku}" is in use` };
   }
 
   try {
-    const created = await prisma.menuItem.create({
-      data: {
-        ...sanitized.data,
-        recipe: sanitized.recipe.length
-          ? {
-              create: sanitized.recipe.map((r) => ({
-                inventoryItemId: r.inventoryItemId,
-                quantity: r.quantity,
-                unit: r.unit,
-              })),
-            }
-          : undefined,
-      },
-      select: { id: true },
-    });
+    const { data: created, error } = await supabase
+      .from("MenuItem")
+      .insert(sanitized.data)
+      .select("id")
+      .single();
+    if (error) throw error;
+
+    if (sanitized.recipe.length) {
+      await supabase.from("RecipeIngredient").insert(
+        sanitized.recipe.map((r) => ({
+          menuItemId: created.id,
+          inventoryItemId: r.inventoryItemId,
+          quantity: r.quantity,
+          unit: r.unit,
+        })),
+      );
+    }
+
     revalidatePath("/menu");
     revalidatePath("/pos");
     return { ok: true, data: { id: created.id } };
   } catch (err) {
     console.error("createMenuItemAction failed", err);
-    return {
-      ok: false,
-      error: err instanceof Error ? err.message : "Failed to create item",
-    };
+    return { ok: false, error: err instanceof Error ? err.message : "Failed to create item" };
   }
 }
 
@@ -145,41 +108,32 @@ export async function updateMenuItemAction(
 
   const sku = sanitized.data.sku;
   if (sku) {
-    const dup = await prisma.menuItem.findFirst({
-      where: { sku, NOT: { id } },
-      select: { id: true },
-    });
+    const { data: dup } = await supabase.from("MenuItem").select("id").eq("sku", sku).neq("id", id).maybeSingle();
     if (dup) return { ok: false, error: `SKU "${sku}" is in use` };
   }
 
   try {
-    await prisma.$transaction(async (tx) => {
-      await tx.menuItem.update({
-        where: { id },
-        data: sanitized.data,
-      });
-      // Replace the recipe wholesale — simpler than diffing each line.
-      await tx.recipeIngredient.deleteMany({ where: { menuItemId: id } });
-      if (sanitized.recipe.length) {
-        await tx.recipeIngredient.createMany({
-          data: sanitized.recipe.map((r) => ({
-            menuItemId: id,
-            inventoryItemId: r.inventoryItemId,
-            quantity: r.quantity,
-            unit: r.unit,
-          })),
-        });
-      }
-    });
+    const { error } = await supabase.from("MenuItem").update(sanitized.data).eq("id", id);
+    if (error) throw error;
+
+    await supabase.from("RecipeIngredient").delete().eq("menuItemId", id);
+    if (sanitized.recipe.length) {
+      await supabase.from("RecipeIngredient").insert(
+        sanitized.recipe.map((r) => ({
+          menuItemId: id,
+          inventoryItemId: r.inventoryItemId,
+          quantity: r.quantity,
+          unit: r.unit,
+        })),
+      );
+    }
+
     revalidatePath("/menu");
     revalidatePath("/pos");
     return { ok: true };
   } catch (err) {
     console.error("updateMenuItemAction failed", err);
-    return {
-      ok: false,
-      error: err instanceof Error ? err.message : "Failed to update item",
-    };
+    return { ok: false, error: err instanceof Error ? err.message : "Failed to update item" };
   }
 }
 
@@ -193,65 +147,47 @@ export async function deleteMenuItemsAction(
 ): Promise<ActionResult<{ deleted: number }>> {
   if (!ids.length) return { ok: false, error: "Nothing selected" };
 
-  // Block deleting menu items that already appear on placed orders —
-  // OrderItem.menuItemId is a required FK without cascade, so the
-  // delete would fail with a 23503 and the operator would have to
-  // refresh to see the consistent state. Block early with a clear msg.
-  const inUse = await prisma.orderItem.findMany({
-    where: { menuItemId: { in: ids } },
-    select: { menuItemId: true },
-    take: 1,
-  });
-  if (inUse.length > 0) {
+  const { data: inUse } = await supabase
+    .from("OrderItem")
+    .select("menuItemId")
+    .in("menuItemId", ids)
+    .limit(1);
+  if (inUse && inUse.length > 0) {
     return {
       ok: false,
-      error:
-        "At least one selected item is referenced by past orders. Hide it from the POS (toggle 'On POS') instead of deleting.",
+      error: "At least one selected item is referenced by past orders. Hide it from the POS (toggle 'On POS') instead of deleting.",
     };
   }
 
   try {
-    const result = await prisma.menuItem.deleteMany({
-      where: { id: { in: ids } },
-    });
+    const { error } = await supabase.from("MenuItem").delete().in("id", ids);
+    if (error) throw error;
     revalidatePath("/menu");
     revalidatePath("/pos");
-    return { ok: true, data: { deleted: result.count } };
+    return { ok: true, data: { deleted: ids.length } };
   } catch (err) {
     console.error("deleteMenuItemsAction failed", err);
-    return {
-      ok: false,
-      error: err instanceof Error ? err.message : "Failed to delete items",
-    };
+    return { ok: false, error: err instanceof Error ? err.message : "Failed to delete items" };
   }
 }
 
-export async function toggleMenuItemAvailabilityAction(
-  id: string,
-): Promise<ActionResult> {
+export async function toggleMenuItemAvailabilityAction(id: string): Promise<ActionResult> {
   return toggleField(id, "available");
 }
 
-export async function toggleMenuItemPosVisibilityAction(
-  id: string,
-): Promise<ActionResult> {
+export async function toggleMenuItemPosVisibilityAction(id: string): Promise<ActionResult> {
   return toggleField(id, "posVisible");
 }
 
-async function toggleField(
-  id: string,
-  field: "available" | "posVisible",
-): Promise<ActionResult> {
+async function toggleField(id: string, field: "available" | "posVisible"): Promise<ActionResult> {
   if (!id) return { ok: false, error: "Missing item id" };
-  const row = await prisma.menuItem.findUnique({
-    where: { id },
-    select: { [field]: true } as { available: true } | { posVisible: true },
-  });
+  const { data: row } = await supabase
+    .from("MenuItem")
+    .select(field)
+    .eq("id", id)
+    .maybeSingle();
   if (!row) return { ok: false, error: "Item not found" };
-  await prisma.menuItem.update({
-    where: { id },
-    data: { [field]: !(row as Record<string, boolean>)[field] },
-  });
+  await supabase.from("MenuItem").update({ [field]: !(row as Record<string, boolean>)[field] }).eq("id", id);
   revalidatePath("/menu");
   revalidatePath("/pos");
   return { ok: true };

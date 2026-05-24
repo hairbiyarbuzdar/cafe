@@ -1,73 +1,67 @@
 import "server-only";
 
-import { prisma } from "@/lib/prisma";
-import type {
-  Order,
-  OrderChannel,
-  OrderStatus,
-  PaymentMethod,
-} from "@/types";
+import { supabase } from "@/lib/supabase";
+import type { Order, OrderChannel, OrderStatus, PaymentMethod } from "@/types";
 
 const ANON_STAFF = "Unassigned";
 
-export async function listOrders(): Promise<Order[]> {
-  const rows = await prisma.order.findMany({
-    orderBy: { createdAt: "desc" },
-    include: {
-      items: true,
-      staff: { select: { name: true } },
-      assignedStaff: { select: { name: true } },
-      table: { select: { name: true } },
-    },
-  });
-
-  return rows.map((o) => ({
-    id: o.id,
-    number: o.number,
+function mapOrder(o: Record<string, unknown>): Order {
+  const items = (o.OrderItem as Record<string, unknown>[] | null) ?? [];
+  const staff = (o.staff as { name: string } | null) ?? (Array.isArray(o.User) ? o.User[0] : null);
+  const assignedStaff = o.assignedStaff as { name: string } | null;
+  const table = (o.table as { name: string } | null) ?? (Array.isArray(o.Table) ? o.Table[0] : null);
+  return {
+    id: o.id as string,
+    number: o.number as string,
     status: o.status as OrderStatus,
     channel: o.channel as OrderChannel,
-    customer: o.customerName
-      ? {
-          name: o.customerName,
-          phone: o.customerPhone ?? undefined,
-        }
-      : undefined,
-    table: o.table?.name,
-    items: o.items.map((i) => ({
-      id: i.id,
-      productId: i.menuItemId,
-      name: i.name,
-      quantity: i.quantity,
-      unitPrice: toNumber(i.unitPrice),
+    customer: o.customerName ? { name: o.customerName as string, phone: (o.customerPhone as string | null) ?? undefined } : undefined,
+    table: (table as { name: string } | null)?.name,
+    items: items.map((i) => ({
+      id: i.id as string,
+      productId: i.menuItemId as string | null ?? undefined,
+      name: i.name as string,
+      quantity: i.quantity as number,
+      unitPrice: Number(i.unitPrice),
       modifiers: Array.isArray(i.modifiers) ? (i.modifiers as string[]) : [],
-      note: i.note ?? undefined,
+      note: (i.note as string | null) ?? undefined,
     })),
-    subtotal: toNumber(o.subtotal),
-    tax: toNumber(o.tax),
-    tip: o.tip != null ? toNumber(o.tip) : undefined,
-    discount: o.discount != null ? toNumber(o.discount) : undefined,
-    total: toNumber(o.total),
+    subtotal: Number(o.subtotal),
+    tax: Number(o.tax),
+    tip: o.tip != null ? Number(o.tip) : undefined,
+    discount: o.discount != null ? Number(o.discount) : undefined,
+    total: Number(o.total),
     payment: o.payment ? (o.payment as PaymentMethod) : undefined,
-    paymentChannelId: o.paymentChannelId ?? undefined,
-    paidAt: o.paidAt ? o.paidAt.toISOString() : undefined,
-    staff: o.staff?.name ?? ANON_STAFF,
-    assignedStaff: o.assignedStaff?.name ?? undefined,
-    notes: o.notes ?? undefined,
-    createdAt: o.createdAt.toISOString(),
-    updatedAt: o.updatedAt.toISOString(),
-    fiscalInvoiceNumber: o.fiscalInvoiceNumber ?? undefined,
-    fiscalSubmittedAt: o.fiscalSubmittedAt
-      ? o.fiscalSubmittedAt.toISOString()
-      : undefined,
-    fiscalLastError: o.fiscalLastError ?? undefined,
-  }));
+    paymentChannelId: (o.paymentChannelId as string | null) ?? undefined,
+    paidAt: (o.paidAt as string | null) ?? undefined,
+    staff: (staff as { name: string } | null)?.name ?? ANON_STAFF,
+    assignedStaff: (assignedStaff as { name: string } | null)?.name ?? undefined,
+    notes: (o.notes as string | null) ?? undefined,
+    createdAt: o.createdAt as string,
+    updatedAt: o.updatedAt as string,
+    fiscalInvoiceNumber: (o.fiscalInvoiceNumber as string | null) ?? undefined,
+    fiscalSubmittedAt: (o.fiscalSubmittedAt as string | null) ?? undefined,
+    fiscalLastError: (o.fiscalLastError as string | null) ?? undefined,
+  };
 }
 
-/**
- * Just the orders currently on hold (unpaid, not cancelled/refunded/completed).
- * Used by the POS "Add to held order" picker — kept slim and ordered
- * newest-first so cashiers grab the right one fast.
- */
+const ORDER_SELECT = `
+  *,
+  OrderItem(*),
+  staffUser:staffId(name),
+  assignedUser:assignedStaffId(name),
+  Table(name)
+`;
+
+export async function listOrders(): Promise<Order[]> {
+  const { data, error } = await supabase
+    .from("Order")
+    .select(ORDER_SELECT)
+    .order("createdAt", { ascending: false });
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((o) => mapOrder(o as unknown as Record<string, unknown>));
+}
+
 export type HeldOrderLine = {
   id: string;
   name: string;
@@ -81,151 +75,66 @@ export type HeldOrderSummary = {
   id: string;
   number: string;
   channel: OrderChannel;
-  /** Aggregate lifecycle status, mirrored from kitchen-ticket
-   * transitions (see `setKitchenTicketStatusAction`). The pay flow
-   * gates on this — only `ready` orders are payable. */
   status: OrderStatus;
   table?: string;
   customerName?: string;
   total: number;
   itemCount: number;
   createdAt: string;
-  /** Line items belonging to the order. Pre-loaded so the POS held
-   * orders picker can expand a row inline without a follow-up fetch. */
   items: HeldOrderLine[];
 };
 
 export async function listHeldOrders(): Promise<HeldOrderSummary[]> {
-  const rows = await prisma.order.findMany({
-    where: {
-      paidAt: null,
-      status: { notIn: ["cancelled", "refunded", "completed"] },
-    },
-    orderBy: { createdAt: "desc" },
-    select: {
-      id: true,
-      number: true,
-      channel: true,
-      status: true,
-      customerName: true,
-      total: true,
-      createdAt: true,
-      table: { select: { name: true } },
-      _count: { select: { items: true } },
-      items: {
-        select: {
-          id: true,
-          name: true,
-          quantity: true,
-          unitPrice: true,
-          modifiers: true,
-          note: true,
-        },
-      },
-    },
+  const { data, error } = await supabase
+    .from("Order")
+    .select("id, number, channel, status, customerName, total, createdAt, Table(name), OrderItem(id, name, quantity, unitPrice, modifiers, note)")
+    .is("paidAt", null)
+    .not("status", "in", '("cancelled","refunded","completed")')
+    .order("createdAt", { ascending: false });
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((o) => {
+    const table = Array.isArray(o.Table) ? o.Table[0] : o.Table;
+    const items = (o.OrderItem ?? []) as Record<string, unknown>[];
+    return {
+      id: o.id,
+      number: o.number,
+      channel: o.channel as OrderChannel,
+      status: o.status as OrderStatus,
+      table: (table as { name: string } | null)?.name,
+      customerName: o.customerName ?? undefined,
+      total: Number(o.total),
+      itemCount: items.length,
+      createdAt: o.createdAt,
+      items: items.map((i) => ({
+        id: i.id as string,
+        name: i.name as string,
+        quantity: i.quantity as number,
+        unitPrice: Number(i.unitPrice),
+        modifiers: Array.isArray(i.modifiers) ? (i.modifiers as string[]) : [],
+        note: (i.note as string | null) ?? undefined,
+      })),
+    };
   });
-  return rows.map((o) => ({
-    id: o.id,
-    number: o.number,
-    channel: o.channel as OrderChannel,
-    status: o.status as OrderStatus,
-    table: o.table?.name,
-    customerName: o.customerName ?? undefined,
-    total: toNumber(o.total),
-    itemCount: o._count.items,
-    createdAt: o.createdAt.toISOString(),
-    items: o.items.map((i) => ({
-      id: i.id,
-      name: i.name,
-      quantity: i.quantity,
-      unitPrice: toNumber(i.unitPrice),
-      modifiers: Array.isArray(i.modifiers) ? (i.modifiers as string[]) : [],
-      note: i.note ?? undefined,
-    })),
-  }));
 }
 
-/** Single-order fetch used by the POS "Pay" flow. Returns null when
- * the order has already been paid/cancelled/refunded since the picker
- * was loaded — the caller surfaces that as a friendly toast. */
 export async function getOrderById(id: string): Promise<Order | null> {
-  const o = await prisma.order.findUnique({
-    where: { id },
-    include: {
-      items: true,
-      staff: { select: { name: true } },
-      assignedStaff: { select: { name: true } },
-      table: { select: { name: true } },
-    },
-  });
-  if (!o) return null;
-  return {
-    id: o.id,
-    number: o.number,
-    status: o.status as OrderStatus,
-    channel: o.channel as OrderChannel,
-    customer: o.customerName
-      ? { name: o.customerName, phone: o.customerPhone ?? undefined }
-      : undefined,
-    table: o.table?.name,
-    items: o.items.map((i) => ({
-      id: i.id,
-      productId: i.menuItemId,
-      name: i.name,
-      quantity: i.quantity,
-      unitPrice: toNumber(i.unitPrice),
-      modifiers: Array.isArray(i.modifiers) ? (i.modifiers as string[]) : [],
-      note: i.note ?? undefined,
-    })),
-    subtotal: toNumber(o.subtotal),
-    tax: toNumber(o.tax),
-    tip: o.tip != null ? toNumber(o.tip) : undefined,
-    discount: o.discount != null ? toNumber(o.discount) : undefined,
-    total: toNumber(o.total),
-    payment: o.payment ? (o.payment as PaymentMethod) : undefined,
-    paymentChannelId: o.paymentChannelId ?? undefined,
-    paidAt: o.paidAt ? o.paidAt.toISOString() : undefined,
-    staff: o.staff?.name ?? ANON_STAFF,
-    assignedStaff: o.assignedStaff?.name ?? undefined,
-    notes: o.notes ?? undefined,
-    createdAt: o.createdAt.toISOString(),
-    updatedAt: o.updatedAt.toISOString(),
-    fiscalInvoiceNumber: o.fiscalInvoiceNumber ?? undefined,
-    fiscalSubmittedAt: o.fiscalSubmittedAt
-      ? o.fiscalSubmittedAt.toISOString()
-      : undefined,
-    fiscalLastError: o.fiscalLastError ?? undefined,
-  };
+  const { data, error } = await supabase
+    .from("Order")
+    .select(ORDER_SELECT)
+    .eq("id", id)
+    .single();
+  if (error || !data) return null;
+  return mapOrder(data as unknown as Record<string, unknown>);
 }
 
-export type OrdersSummary = {
-  completed: number;
-  pending: number;
-  revenue: number;
-};
+export type OrdersSummary = { completed: number; pending: number; revenue: number };
 
 export async function ordersSummary(): Promise<OrdersSummary> {
-  const [completedCount, pendingCount, revenueAgg] = await Promise.all([
-    prisma.order.count({ where: { status: "completed" } }),
-    prisma.order.count({ where: { status: { in: ["pending", "preparing"] } } }),
-    prisma.order.aggregate({
-      where: { status: "completed" },
-      _sum: { total: true },
-    }),
+  const [{ count: completed }, { count: pending }, { data: rev }] = await Promise.all([
+    supabase.from("Order").select("*", { count: "exact", head: true }).eq("status", "completed"),
+    supabase.from("Order").select("*", { count: "exact", head: true }).in("status", ["pending", "preparing"]),
+    supabase.from("Order").select("total").eq("status", "completed"),
   ]);
-  return {
-    completed: completedCount,
-    pending: pendingCount,
-    revenue: revenueAgg._sum.total ? toNumber(revenueAgg._sum.total) : 0,
-  };
-}
-
-function toNumber(value: unknown): number {
-  if (value == null) return 0;
-  if (typeof value === "number") return value;
-  if (typeof value === "string") return Number.parseFloat(value);
-  if (typeof value === "object" && value !== null && "toNumber" in value) {
-    return (value as { toNumber: () => number }).toNumber();
-  }
-  return Number(value);
+  const revenue = (rev ?? []).reduce((sum, r) => sum + Number(r.total), 0);
+  return { completed: completed ?? 0, pending: pending ?? 0, revenue };
 }
